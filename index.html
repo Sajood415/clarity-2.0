@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clarity Content Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="studio-text/studio-text.css?v=5">
+<link rel="stylesheet" href="studio-image/studio-image.css?v=4">
+<link rel="stylesheet" href="studio-video/studio-video.css?v=3">
+<link rel="stylesheet" href="studio-create/create-flow.css?v=8">
+<link rel="stylesheet" href="studio-campaign/campaign-flow.css?v=8">
+<style>
+/* Reset & tokens */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; overflow: hidden; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+a { text-decoration: none; color: inherit; }
+
+:root {
+  --bg: #0e1320;
+  --card: #171d2e;
+  --card2: #1c2337;
+  --primary: #6366f1;
+  --primary-hover: #818cf8;
+  --primary-dim: rgba(99,102,241,0.15);
+  --text: #e8eaf2;
+  --muted: #9aa0b4;
+  --border: #262c40;
+  --accent: #34d399;
+  --warning: #f59e0b;
+  --danger: #f87171;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+/* Shell — no sidebar, full screen */
+#app { height: 100vh; background: var(--bg); color: var(--text); }
+#content { height: 100vh; overflow-y: auto; overflow-x: hidden; background: var(--bg); }
+
+/* ============================================================
+   HOME LANDING
+   ============================================================ */
+.home-wrap {
+  display: flex; flex-direction: column; height: 100%; min-height: 100vh;
+  position: relative; background: var(--bg);
+}
+
+/* Brand wordmark top-left */
+.home-brand {
+  padding: 20px 36px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.home-brand-name {
+  font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.01em; line-height: 1;
+}
+.home-brand-name em { color: var(--primary); font-style: normal; }
+.home-brand-meta { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* Centered nudge area */
+.home-center {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 0 32px 100px; text-align: center;
+}
+
+/* Entrance animation */
+@keyframes nudge-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.home-nudge { max-width: 580px; animation: nudge-enter 0.5s cubic-bezier(.22,.68,0,1.2) both; }
+
+/* State A — strategy ready badge */
+.home-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border-radius: 20px;
+  background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3);
+  color: #34d399; font-size: 11px; font-weight: 600; margin-bottom: 22px;
+}
+.home-pulse-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #34d399;
+  animation: home-pulse 2s ease infinite;
+}
+@keyframes home-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* State B — no-intel badge */
+.home-warn-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border-radius: 20px;
+  background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
+  color: #f59e0b; font-size: 11px; font-weight: 600; margin-bottom: 22px;
+}
+
+.home-heading {
+  font-family: 'Cormorant Garamond', serif; font-size: 42px; font-weight: 600;
+  color: var(--text); line-height: 1.12; margin-bottom: 14px; letter-spacing: -0.01em;
+}
+.home-sub {
+  font-size: 15px; color: var(--muted); line-height: 1.7; margin-bottom: 32px;
+  max-width: 440px; margin-left: auto; margin-right: auto;
+}
+.home-sub strong { color: var(--text); font-weight: 500; }
+
+/* CTA row */
+.home-actions {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.btn-lg { padding: 12px 26px !important; font-size: 15px !important; }
+
+/* Campaigns link */
+.home-campaigns-link { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.home-campaigns-link a { color: var(--primary-hover); }
+.home-campaigns-link a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Intelligence summary cards (State A only) */
+.home-intel-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  max-width: 680px; width: 100%; margin-top: 32px;
+  animation: nudge-enter 0.5s 0.1s cubic-bezier(.22,.68,0,1.2) both;
+}
+.home-intel-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; text-align: left;
+  border-top: 2px solid var(--primary);
+}
+.home-intel-card-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--muted); margin-bottom: 9px;
+}
+.home-intel-card-val { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; line-height: 1.35; }
+.home-intel-card-sub { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+/* Intelligence toggle — bottom-left corner of home screen */
+.home-intel-toggle {
+  position: absolute; bottom: 28px; left: 28px;
+}
+.home-intel-toggle-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px;
+}
+.home-toggle-options { display: flex; flex-direction: column; gap: 4px; }
+.home-toggle-opt {
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+  color: var(--muted); cursor: pointer; padding: 5px 9px;
+  border-radius: var(--radius-sm); border: 1px solid transparent;
+  transition: all 0.15s; user-select: none;
+}
+.home-toggle-opt:hover { color: var(--text); background: var(--primary-dim); }
+.home-toggle-opt.active { color: var(--text); background: var(--primary-dim); border-color: rgba(99,102,241,0.3); }
+.home-toggle-radio-dot {
+  width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--border); display: flex; align-items: center;
+  justify-content: center; transition: border-color 0.15s;
+}
+.home-toggle-opt.active .home-toggle-radio-dot { border-color: var(--primary); }
+.home-toggle-opt.active .home-toggle-radio-dot::after {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--primary);
+}
+
+/* ============================================================
+   APP TOP BAR (wizard / library / campaign modes)
+   ============================================================ */
+.app-topbar {
+  position: sticky; top: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 26px; background: var(--card); border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.app-topbar-brand {
+  font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 700; color: var(--primary);
+}
+.app-topbar-back {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+  color: var(--muted); cursor: pointer; padding: 6px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: none; transition: all 0.15s;
+}
+.app-topbar-back:hover { color: var(--text); border-color: var(--primary); }
+
+/* ============================================================
+   CAMPAIGN OVERLAY (slides over wizard step 6)
+   ============================================================ */
+.cf-camp-overlay-backdrop {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(8,12,24,0.78);
+  display: flex; align-items: stretch; justify-content: flex-end;
+  animation: overlay-backdrop-in 0.22s ease;
+}
+@keyframes overlay-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+.cf-camp-overlay-panel {
+  width: 88%; max-width: 1000px; height: 100%;
+  background: var(--bg);
+  display: flex; flex-direction: column; overflow: hidden;
+  border-left: 1px solid var(--border);
+  box-shadow: -16px 0 56px rgba(0,0,0,0.55);
+  animation: overlay-slide-in 0.3s cubic-bezier(.22,.68,0,1.05) both;
+}
+@keyframes overlay-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+/* Overlay body: flex column so the cf-screen fills it and internal scroll works */
+.cf-camp-overlay-body {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+/* Override cf-screen defaults inside overlay so topbar/footer stay fixed and only .cf-body scrolls */
+.cf-camp-overlay-body .cf-screen {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+}
+.cf-camp-overlay-body .cf-body {
+  flex: 1; min-height: 0;
+}
+/* Ensure the campaign main area scrolls independently inside the panel */
+.cf-camp-overlay-body .cp-main {
+  overflow-y: auto; height: 100%;
+}
+/* ============================================================
+   STYLED CONFIRM MODAL (replaces window.confirm)
+   ============================================================ */
+.clarity-modal-backdrop {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(8,12,24,0.82);
+  display: flex; align-items: center; justify-content: center;
+  animation: overlay-backdrop-in 0.18s ease;
+}
+.clarity-modal {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px 28px 24px;
+  max-width: 380px; width: 90%;
+  box-shadow: 0 24px 56px rgba(0,0,0,0.55);
+  animation: cf-step-fade 0.18s ease both;
+}
+.clarity-modal-title {
+  font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600;
+  color: var(--text); margin-bottom: 8px;
+}
+.clarity-modal-body {
+  font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 24px;
+}
+.clarity-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* Close X button in overlay topbar */
+.cf-overlay-close-x {
+  width: 32px; height: 32px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--muted); font-size: 16px; cursor: pointer;
+  transition: all 0.15s; background: none;
+}
+.cf-overlay-close-x:hover { color: var(--danger); border-color: var(--danger); background: rgba(248,113,113,0.08); }
+
+/* ============================================================
+   SHARED UI
+   ============================================================ */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.pill-green { background: rgba(52,211,153,0.12); color: #34d399; }
+.pill-indigo { background: var(--primary-dim); color: var(--primary-hover); }
+.pill-amber { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.pill-red { background: rgba(248,113,113,0.12); color: #f87171; }
+.pill-muted { background: rgba(154,160,180,0.12); color: var(--muted); }
+.screen { padding: 28px; min-height: 100%; }
+.screen-header { margin-bottom: 24px; }
+.screen-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 600; color: var(--text); }
+.screen-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+.tag { display: inline-flex; padding: 2px 8px; border-radius: 4px; font-size: 11px; border: 1px solid var(--border); color: var(--muted); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; transition: all 0.15s; cursor: pointer; border: 1px solid transparent; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-outline { border-color: var(--border); color: var(--muted); }
+.btn-outline:hover { border-color: var(--primary); color: var(--text); }
+.btn-ghost { color: var(--muted); }
+.btn-ghost:hover { color: var(--text); background: var(--primary-dim); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.modal-close { color: var(--muted); font-size: 20px; cursor: pointer; }
+.modal-close:hover { color: var(--text); }
+
+/* Wizard steps (Text + Image) */
+.wizard-steps { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
+.wizard-step { display: flex; align-items: center; }
+.wiz-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.wiz-dot.done { background: var(--accent); color: #fff; }
+.wiz-dot.active { background: var(--primary); color: #fff; box-shadow: 0 0 0 3px var(--primary-dim); }
+.wiz-dot.pending { background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
+.wiz-line { height: 2px; width: 40px; background: var(--border); }
+.wiz-line.done { background: var(--accent); }
+.wiz-label { font-size: 10px; color: var(--muted); margin-top: 6px; white-space: nowrap; }
+
+/* Toggles */
+.toggle-sw { width: 36px; height: 20px; background: var(--border); border-radius: 10px; position: relative; transition: all 0.2s; cursor: pointer; flex-shrink: 0; }
+.toggle-sw.on { background: var(--primary); }
+.toggle-knob { width: 16px; height: 16px; background: #fff; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: all 0.2s; }
+.toggle-sw.on .toggle-knob { left: 18px; }
+
+/* Persona fit */
+.pf-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.pf-chip.green { background: rgba(52,211,153,0.12); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+.pf-chip.amber { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.pf-chip.red { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+.pf-chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.pf-breakdown { display: flex; flex-direction: column; gap: 8px; }
+.pf-dim { display: flex; align-items: center; gap: 10px; }
+.pf-dim-name { width: 100px; font-size: 11px; color: var(--muted); }
+.pf-dim-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.pf-dim-fill { height: 100%; border-radius: 3px; background: var(--primary); }
+.pf-dim-val { width: 32px; text-align: right; font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text); }
+
+/* Compliance + brand voice (Text wizard) */
+.ch-compliance { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-family: 'DM Mono', monospace; }
+.ch-compliance.ok { background: rgba(52,211,153,0.1); color: #34d399; }
+.ch-compliance.warn { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.ch-compliance.fail { background: rgba(248,113,113,0.1); color: #f87171; }
+.bv-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.bv-meter-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; margin-bottom: 4px; }
+.bv-meter-fill { height: 100%; border-radius: 4px; }
+.bv-meter-fill.good { background: #34d399; }
+.bv-meter-fill.warn { background: #f59e0b; }
+
+/* Evidence rail (Text wizard) */
+.evidence-item { padding: 10px 12px; border-radius: 8px; background: var(--card2); border: 1px solid var(--border); margin-bottom: 8px; }
+.evidence-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 4px; margin-bottom: 6px; display: inline-block; }
+.evidence-tag.research { background: rgba(99,102,241,0.12); color: var(--primary-hover); }
+.evidence-tag.social { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.evidence-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+.evidence-source { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* Approvals (Audio) */
+.approval-rail { display: flex; flex-direction: column; gap: 8px; }
+.approval-step { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--card2); border: 1px solid var(--border); }
+.approval-step.done { border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.06); }
+.approval-step.active { border-color: var(--primary); background: var(--primary-dim); }
+.approval-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.approval-icon.done { background: rgba(52,211,153,0.15); color: #34d399; }
+.approval-icon.active { background: var(--primary-dim); color: var(--primary-hover); }
+.approval-meta { flex: 1; }
+.approval-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.approval-who { font-size: 11px; color: var(--muted); }
+
+/* Audio studio */
+.audio-chapter-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.audio-chapter { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: var(--card2); border: 1px solid var(--border); cursor: pointer; }
+.audio-chapter.playing { border-color: #34d399; background: rgba(52,211,153,0.06); }
+.audio-ch-num { width: 20px; height: 20px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+.audio-ch-num.playing { background: #34d399; color: #fff; }
+.audio-ch-title { flex: 1; font-size: 12px; color: var(--text); }
+.audio-ch-dur { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); }
+
+/* Create home (used by create-flow.js internals) */
+.create-hero { max-width: 960px; margin: 0 auto; }
+.create-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: #34d399; font-size: 11px; font-weight: 600; margin-bottom: 16px; }
+.create-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; animation: create-pulse 2s ease infinite; }
+@keyframes create-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.create-intel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.create-intel-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.create-intel-val { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.create-intel-sub { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.create-brief-bar { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 24px; }
+.create-brief-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 10px; }
+.create-brief-field label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
+.create-brief-field input, .create-brief-field select { width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; color: var(--text); font-size: 13px; outline: none; }
+.create-modality-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.create-modality { background: var(--card); border: 2px solid var(--border); border-radius: var(--radius); padding: 20px 14px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.create-modality:hover { border-color: var(--primary); transform: translateY(-2px); }
+.create-modality.selected { border-color: var(--primary); background: var(--primary-dim); }
+.create-modality-icon { font-size: 28px; margin-bottom: 8px; }
+.create-modality-name { font-size: 14px; font-weight: 600; }
+.create-modality-desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.create-cta-row { display: flex; align-items: center; gap: 12px; }
+.create-flow-hint { font-size: 12px; color: var(--muted); }
+.create-audio-banner { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+</style>
+</head>
+<body>
+<!-- Convenience links (separate pages) -->
+<!-- /studio-text/  /studio-image/  /studio-video/  /studio-audio/ -->
+<!-- ===================== APP SHELL ===================== -->
+<div id="app">
+  <div id="content"></div>
+</div>
+
+<script>
+/* ===================== SHARED INTELLIGENCE DATA ===================== */
+var CLARITY_SAMPLE_INTELLIGENCE = {
+  brand: 'Hearth Bakery',
+  persona: {
+    name: 'Maya Holloway',
+    seg: 'Local foodie · 28–45 · drives for quality',
+    insight: 'Values authenticity over trends. Responds to process stories and limited-batch urgency.'
+  },
+  market: {
+    whiteSpace: 'Artisan craft vs ghost-kitchen convenience — competitors sell speed, Hearth sells patience.',
+    gap: '68% of food-tech startups shuttered since 2023; artisan bakeries grew 14% CAGR.',
+    trend: 'Slow food · local sourcing · behind-the-scenes content'
+  },
+  consumer: {
+    trigger: 'Fear of missing the batch. Motivator: feeling part of a community, not a transaction.',
+    research: 'Pre-order conversion lifts 34% when ferment process is shown. Peak engagement Sat 8–11am.'
+  }
+};
+
+/* ===================== STATE ===================== */
+var appState = {
+  mode: 'home',
+  cpOverlayOpen: false,
+  createBrief: {
+    goal: 'Drive weekend pre-orders',
+    message: 'Sourdough Saturday is back — 72-hour cold ferment, stone-baked, limited batch. Craft over convenience.',
+    persona: 'Maya Holloway',
+    whyNow: 'Seasonal launch · Summer 2026'
+  },
+  intelligence: JSON.parse(JSON.stringify(CLARITY_SAMPLE_INTELLIGENCE))
+};
+
+/* ===================== STYLED CONFIRM MODAL ===================== */
+function showConfirmModal(opts) {
+  var existing = document.getElementById('clarity-modal-root');
+  if (existing) existing.remove();
+  var el = document.createElement('div');
+  el.id = 'clarity-modal-root';
+  el.className = 'clarity-modal-backdrop';
+  el.innerHTML = '<div class="clarity-modal">'
+    + '<div class="clarity-modal-title">' + (opts.title || 'Are you sure?') + '</div>'
+    + '<div class="clarity-modal-body">' + (opts.body || '') + '</div>'
+    + '<div class="clarity-modal-actions">'
+    + '<button class="btn btn-outline" id="cm-cancel">' + (opts.cancelLabel || 'Keep editing') + '</button>'
+    + '<button class="btn btn-primary" id="cm-confirm">' + (opts.confirmLabel || 'Discard &amp; exit') + '</button>'
+    + '</div></div>';
+  document.body.appendChild(el);
+  el.querySelector('#cm-cancel').onclick = function () { el.remove(); };
+  el.querySelector('#cm-confirm').onclick = function () { el.remove(); opts.onConfirm && opts.onConfirm(); };
+  el.onclick = function (e) { if (e.target === el) el.remove(); };
+}
+
+/* ===================== MODE SYSTEM ===================== */
+function setMode(mode) {
+  appState.mode = mode;
+  /* Keep appState.screen in sync for backward compat with module files */
+  if (mode === 'wizard') appState.screen = 'create-flow';
+  else if (mode === 'library') appState.screen = 'library';
+  else if (mode === 'campaign') appState.screen = 'campaign';
+  else appState.screen = 'home';
+  renderApp();
+}
+
+/* Compatibility shim for module files that call nav() */
+function nav(screen) {
+  if (screen === 'create-flow') setMode('wizard');
+  else if (screen === 'library' || screen === 'history') setMode('library');
+  else if (screen === 'campaign') setMode('campaign');
+  else setMode('home');
+}
+
+/* ===================== INTELLIGENCE TOGGLE ===================== */
+function clarityGetIntelMode() {
+  return localStorage.getItem('clarity_intel_mode') || 'on';
+}
+
+window.claritySetIntelMode = function(mode) {
+  localStorage.setItem('clarity_intel_mode', mode);
+  appState.intelligence = mode === 'off' ? null : JSON.parse(JSON.stringify(CLARITY_SAMPLE_INTELLIGENCE));
+  renderApp();
+};
+
+/* ===================== HOME SCREEN ===================== */
+function screenHome() {
+  var intel = appState.intelligence;
+  var intelMode = clarityGetIntelMode();
+  var campaigns = appState.campaigns || [];
+
+  /* ---- Intelligence toggle (bottom-left) ---- */
+  var toggleHtml = '<div class="home-intel-toggle">'
+    + '<div class="home-intel-toggle-label">Intelligence</div>'
+    + '<div class="home-toggle-options">'
+    + '<label class="home-toggle-opt' + (intelMode === 'on' ? ' active' : '') + '" onclick="claritySetIntelMode(\'on\')">'
+    + '<span class="home-toggle-radio-dot"></span>With Intelligence'
+    + '</label>'
+    + '<label class="home-toggle-opt' + (intelMode === 'off' ? ' active' : '') + '" onclick="claritySetIntelMode(\'off\')">'
+    + '<span class="home-toggle-radio-dot"></span>Without Intelligence'
+    + '</label>'
+    + '</div>'
+    + '</div>';
+
+  var nudgeHtml;
+  var cardsHtml = '';
+
+  if (intel) {
+    /* ---- State A: Strategy exists ---- */
+    var personaName = intel.persona ? intel.persona.name : 'your audience';
+    var marketTrend = intel.market ? intel.market.trend.split('·')[0].trim() : 'your market';
+
+    nudgeHtml = '<div class="home-nudge">'
+      + '<div class="home-status"><span class="home-pulse-dot"></span>Intelligence active</div>'
+      + '<h1 class="home-heading">Ready to create content.</h1>'
+      + '<p class="home-sub">Strategy loaded for <strong>' + personaName + '</strong> in the <strong>' + marketTrend + '</strong> space. Every piece of content you create will be informed by this context.</p>'
+      + '<div class="home-actions">'
+      + '<button class="btn btn-primary btn-lg" onclick="setMode(\'wizard\')">Create content</button>'
+      + '<button class="btn btn-outline" onclick="setMode(\'library\')">View library</button>'
+      + '</div>'
+      + (campaigns.length
+          ? '<div class="home-campaigns-link">You have ' + campaigns.length + ' active campaign' + (campaigns.length === 1 ? '' : 's') + ' — <a href="#" onclick="setMode(\'campaign\'); return false;">view campaigns</a></div>'
+          : '')
+      + '</div>';
+
+    /* Read-only intel summary cards */
+    cardsHtml = '<div class="home-intel-cards">'
+      + '<div class="home-intel-card">'
+      + '<div class="home-intel-card-label">Persona</div>'
+      + '<div class="home-intel-card-val">' + intel.persona.name + '</div>'
+      + '<div class="home-intel-card-sub">' + intel.persona.seg + '</div>'
+      + '</div>'
+      + '<div class="home-intel-card">'
+      + '<div class="home-intel-card-label">Market Signal</div>'
+      + '<div class="home-intel-card-val">' + intel.market.trend + '</div>'
+      + '<div class="home-intel-card-sub">' + intel.market.gap + '</div>'
+      + '</div>'
+      + '<div class="home-intel-card">'
+      + '<div class="home-intel-card-label">Consumer Trigger</div>'
+      + '<div class="home-intel-card-val">' + intel.consumer.trigger.split('.')[0] + '.</div>'
+      + '<div class="home-intel-card-sub">' + intel.consumer.research + '</div>'
+      + '</div>'
+      + '</div>';
+
+  } else {
+    /* ---- State B: No intelligence ---- */
+    nudgeHtml = '<div class="home-nudge">'
+      + '<div class="home-warn-badge">No strategy loaded</div>'
+      + '<h1 class="home-heading">Create content.</h1>'
+      + '<p class="home-sub">Intelligence context is not loaded. Content generation will work without it — activate intelligence for results grounded in your strategy and audience research.</p>'
+      + '<div class="home-actions">'
+      + '<button class="btn btn-primary btn-lg" onclick="setMode(\'wizard\')">Create content</button>'
+      + '<button class="btn btn-outline" onclick="claritySetIntelMode(\'on\')">Activate intelligence</button>'
+      + '</div>'
+      + '</div>';
+  }
+
+  return '<div class="home-wrap">'
+    + '<div class="home-brand"><span class="home-brand-name"><em>Clarity</em> Content Studio</span><span class="home-brand-meta">v3</span></div>'
+    + '<div class="home-center">' + nudgeHtml + cardsHtml + '</div>'
+    + toggleHtml
+    + '</div>';
+}
+
+/* ===================== RENDER DISPATCHER ===================== */
+function renderApp() {
+  var el = document.getElementById('content');
+  var mode = appState.mode;
+
+  if (mode === 'home') {
+    el.innerHTML = screenHome();
+    return;
+  }
+
+  if (mode === 'wizard') {
+    /* If the campaign overlay is already in the DOM, only swap its inner content so the
+       slide-in / backdrop animations don't replay on every interaction inside the drawer. */
+    if (appState.cpOverlayOpen) {
+      var existingBody = el.querySelector('.cf-camp-overlay-body');
+      if (existingBody && window.screenCampaign) {
+        existingBody.innerHTML = window.screenCampaign();
+        return;
+      }
+    }
+    /* Only animate when the step actually changed — not on in-step interactions (tile clicks etc.) */
+    var currentStep = appState.createFlow ? appState.createFlow.step : 0;
+    var stepChanged = appState._cfPrevStep !== currentStep;
+    appState._cfPrevStep = currentStep;
+
+    el.innerHTML = screenCreateFlow();
+
+    if (stepChanged) {
+      var next = el.querySelector('.cf-main, .cf-decision-wrap');
+      if (next) next.style.animation = 'cf-step-fade 0.18s ease both';
+    }
+    return;
+  }
+
+  /* Library and campaign share the same topbar pattern */
+  var topbar = '<div class="app-topbar">'
+    + '<span class="app-topbar-brand">Clarity</span>'
+    + '<button class="app-topbar-back" onclick="setMode(\'home\')">&#8592; Back to home</button>'
+    + '</div>';
+
+  if (mode === 'library') {
+    el.innerHTML = topbar + screenLibrary();
+  } else if (mode === 'campaign') {
+    el.innerHTML = topbar + screenCampaign();
+  }
+}
+
+/* renderContent() alias — module files call this directly to trigger re-renders */
+window.renderContent = renderApp;
+
+/* ===================== INIT ===================== */
+function init() {
+  /* Restore intelligence toggle from localStorage */
+  if (clarityGetIntelMode() === 'off') {
+    appState.intelligence = null;
+  }
+  /* Always boot to home — no hash routing in v3 */
+  appState.mode = 'home';
+  renderApp();
+}
+window.addEventListener('load', init);
+
+</script>
+<script src="studio-create/create-flow.js?v=11"></script>
+<script src="studio-campaign/campaign-flow.js?v=11"></script>
+<script src="studio-text/studio-text.js?v=8"></script>
+<script src="studio-image/studio-image.js?v=7"></script>
+<script src="studio-video/studio-video.js?v=5"></script>
+<script>CreateFlow.init(appState); CampaignFlow.init(appState); StudioText.init(appState); StudioImage.init(appState); StudioVideo.init(appState);</script>
+
+<!-- Clarity Content Studio — Text, Image, Video, Audio -->
+
+</body>
+</html>
