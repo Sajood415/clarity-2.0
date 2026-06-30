@@ -631,16 +631,19 @@
 
 /* Back button */
 .ob-back {
+  position: fixed;
+  top: 22px;
+  left: 24px;
+  z-index: 10;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
   color: var(--muted);
   cursor: pointer;
-  margin-bottom: 24px;
   background: none;
   border: none;
-  padding: 0;
+  padding: 4px 0;
   font-family: 'DM Sans', sans-serif;
   transition: color 0.15s;
 }

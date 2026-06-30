@@ -159,7 +159,7 @@ var OnboardingFlow = (function () {
     /* Right form side */
     var rightPanel = '<div class="ob-auth-right">'
       + '<div class="ob-auth-chrome">'
-      + '<button class="ob-back" onclick="obGoStep(1)" style="margin-bottom:20px;">&#8592; Back</button>'
+      + '<button class="ob-back" onclick="obGoStep(1)">&#8592; Back</button>'
       + progressDots(2)
       + '</div>'
       + '<div class="ob-card">'
@@ -193,7 +193,7 @@ var OnboardingFlow = (function () {
 
     var tilesHtml = OB_TYPES.map(function (t) {
       var sel = biz.type === t.id;
-      return '<div class="ob-type-tile' + (sel ? ' selected' : '') + '" onclick="obSelectType(\'' + t.id + '\')">'
+      return '<div id="ob-type-tile-' + t.id + '" class="ob-type-tile' + (sel ? ' selected' : '') + '" onclick="obSelectType(\'' + t.id + '\')">'
         + '<div class="ob-type-icon">' + OB_TYPE_ICONS[t.id] + '</div>'
         + (sel ? '<div class="ob-type-check">&#10003;</div>' : '')
         + '<div class="ob-type-name">' + t.name + '</div>'
@@ -322,14 +322,34 @@ window.obBizDescInput = function (val) {
   appState.business.description = val;
 };
 
-/* Business type tile click — persist + re-render to show selection state */
+/* Business type tile click — direct DOM update, no re-render */
 window.obSelectType = function (id) {
-  /* Capture live field values before re-render so they're not lost */
-  var nameEl = document.getElementById('ob-biz-name');
-  var descEl = document.getElementById('ob-biz-desc');
-  if (nameEl) appState.business.name = nameEl.value;
-  if (descEl) appState.business.description = descEl.value;
-
   appState.business.type = id;
-  renderContent();
+
+  /* Toggle selected class and check badge on each tile in-place */
+  var allIds = ['food', 'retail', 'creative', 'tech', 'trades', 'other'];
+  allIds.forEach(function (tid) {
+    var tile = document.getElementById('ob-type-tile-' + tid);
+    if (!tile) return;
+    var isNowSelected = tid === id;
+    tile.classList.toggle('selected', isNowSelected);
+    /* Remove existing check badge if present */
+    var existing = tile.querySelector('.ob-type-check');
+    if (existing) existing.remove();
+    /* Insert check badge right after the icon wrap when selected */
+    if (isNowSelected) {
+      var check = document.createElement('div');
+      check.className = 'ob-type-check';
+      check.innerHTML = '&#10003;';
+      tile.insertBefore(check, tile.querySelector('.ob-type-name'));
+    }
+  });
+
+  /* Enable/disable Continue button */
+  var btn = document.getElementById('ob-setup-btn');
+  if (btn) {
+    var nameEl = document.getElementById('ob-biz-name');
+    var name = nameEl ? nameEl.value : appState.business.name;
+    btn.disabled = !(name && name.trim());
+  }
 };
