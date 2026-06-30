@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="onboarding/onboarding.css?v=1">
 <link rel="stylesheet" href="studio-strategy/strategy-flow.css?v=1">
+<link rel="stylesheet" href="studio-persona/persona-flow.css?v=1">
 <link rel="stylesheet" href="studio-text/studio-text.css?v=5">
 <link rel="stylesheet" href="studio-image/studio-image.css?v=4">
 <link rel="stylesheet" href="studio-video/studio-video.css?v=3">
@@ -380,6 +381,118 @@ a { text-decoration: none; color: inherit; }
 .create-cta-row { display: flex; align-items: center; gap: 12px; }
 .create-flow-hint { font-size: 12px; color: var(--muted); }
 .create-audio-banner { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* ============================================================
+   SECTION TRANSITION SCREEN  —  prefix: tr-
+   ============================================================ */
+@keyframes tr-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes tr-leave {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-10px); }
+}
+@keyframes tr-circle-in {
+  from { opacity: 0; transform: scale(0.55); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes tr-check-draw {
+  from { stroke-dashoffset: 42; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes tr-text-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tr-screen {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: tr-enter 0.28s ease both;
+}
+
+.tr-screen.tr-leaving {
+  animation: tr-leave 0.26s ease forwards;
+}
+
+.tr-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 440px;
+  padding: 0 24px;
+}
+
+.tr-check-wrap {
+  margin-bottom: 28px;
+  animation: tr-circle-in 0.32s cubic-bezier(.22,.68,0,1.3) both;
+}
+
+.tr-check-svg {
+  display: block;
+}
+
+.tr-check-circle {
+  opacity: 0;
+  animation: tr-circle-in 0.32s 0.05s cubic-bezier(.22,.68,0,1.3) forwards;
+}
+
+.tr-check-path {
+  stroke-dasharray: 42;
+  stroke-dashoffset: 42;
+  animation: tr-check-draw 0.38s 0.28s cubic-bezier(.4,0,.2,1) forwards;
+}
+
+.tr-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin-bottom: 12px;
+  opacity: 0;
+  animation: tr-text-up 0.32s 0.42s ease forwards;
+}
+
+.tr-summary {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: tr-text-up 0.32s 0.54s ease forwards;
+}
+
+.tr-next-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  background: var(--primary-dim);
+  border: 1px solid rgba(99,102,241,0.3);
+  color: var(--primary-hover);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: tr-text-up 0.32s 0.66s ease forwards;
+}
+
+.tr-next-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-hover);
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body>
@@ -417,6 +530,7 @@ var appState = {
   onboarding: { step: 1, authMode: 'signup' },
   business: { name: '', description: '', type: null },
   strategy: { priorities: [], goal: '', positioning: '' },
+  persona:  { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' },
   createBrief: {
     goal: 'Drive weekend pre-orders',
     message: 'Sourdough Saturday is back — 72-hour cold ferment, stone-baked, limited batch. Craft over convenience.',
@@ -446,6 +560,48 @@ function showConfirmModal(opts) {
   el.onclick = function (e) { if (e.target === el) el.remove(); };
 }
 
+/* ===================== SECTION TRANSITION ===================== */
+var _trTimer = null;
+
+function setTransition(opts) {
+  /* opts: { title, summary, nextBadge, nextMode } */
+  if (_trTimer) { clearTimeout(_trTimer); _trTimer = null; }
+  appState.mode = 'transition';
+  appState._transition = opts;
+  renderApp();
+  /* After pause, fade out then advance */
+  _trTimer = setTimeout(function () {
+    var el = document.getElementById('tr-screen');
+    if (el) el.classList.add('tr-leaving');
+    setTimeout(function () {
+      _trTimer = null;
+      setMode(opts.nextMode);
+    }, 270);
+  }, 1500);
+}
+
+function screenTransition() {
+  var t = appState._transition || {};
+  var title   = t.title   || 'Done';
+  var summary = t.summary || '';
+  var badge   = t.nextBadge || '';
+
+  var checkSvg = '<svg class="tr-check-svg" width="72" height="72" viewBox="0 0 64 64" fill="none">'
+    + '<circle class="tr-check-circle" cx="32" cy="32" r="29" stroke="#34d399" stroke-width="2"/>'
+    + '<path class="tr-check-path" d="M18 32 l10 10 l18-18"'
+    + ' stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '</svg>';
+
+  return '<div class="tr-screen" id="tr-screen">'
+    + '<div class="tr-content">'
+    + '<div class="tr-check-wrap">' + checkSvg + '</div>'
+    + '<div class="tr-title">' + title + '</div>'
+    + (summary ? '<div class="tr-summary">' + summary + '</div>' : '')
+    + (badge   ? '<div class="tr-next-badge">' + badge + '</div>' : '')
+    + '</div>'
+    + '</div>';
+}
+
 /* ===================== MODE SYSTEM ===================== */
 function setMode(mode) {
   appState.mode = mode;
@@ -456,6 +612,7 @@ function setMode(mode) {
   else if (mode === 'onboarding') appState.screen = 'onboarding';
   else if (mode === 'strategic-plan') appState.screen = 'strategic-plan';
   else if (mode === 'persona-studio') appState.screen = 'persona-studio';
+  else if (mode === 'gtm-strategy') appState.screen = 'gtm-strategy';
   else appState.screen = 'home';
   renderApp();
 }
@@ -558,64 +715,66 @@ function screenHome() {
     + '</div>';
 }
 
-/* ===================== PERSONA STUDIO PLACEHOLDER ===================== */
-function screenPersonaStudio() {
+/* ===================== GTM STRATEGY STUB ===================== */
+function screenGtmStrategy() {
+  var p   = appState.persona  || {};
   var biz = appState.business || {};
-  var s   = appState.strategy || {};
+
+  var personaName = (p.name && p.name.trim()) ? p.name.trim() : 'Your Persona';
+  var personaBio  = (p.description && p.description.trim()) ? p.description.trim() : 'No description yet.';
+
+  /* Top 3 cares-about as chips */
+  var caresAbout  = (p.caresAbout && p.caresAbout.length > 0) ? p.caresAbout : [];
+  var topCares    = caresAbout.slice(0, 3);
+  var caresChips  = topCares.length
+    ? topCares.map(function (c) { return '<span class="gtm-card-chip">' + c + '</span>'; }).join('')
+    : '<span style="font-size:11px;color:var(--muted);font-style:italic;">None selected</span>';
+
   var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
-
-  var typeLabels = {
-    food: 'Food & Hospitality', retail: 'Retail & Products',
-    creative: 'Creative & Services', tech: 'Tech & Software',
-    trades: 'Trades & Local', other: 'Other'
-  };
-  var typeLabel = biz.type ? (typeLabels[biz.type] || 'General') : 'General';
-
-  var topPriority = (s.priorities && s.priorities.length > 0) ? s.priorities[0] : null;
-  var priorityLabels = {
-    customers: 'Get more customers', launch: 'Launch a new product',
-    online: 'Get found online', community: 'Build a loyal community',
-    repeat: 'Increase repeat orders', idea: 'Test a new idea'
-  };
 
   var topbar = '<div class="app-topbar">'
     + '<span class="app-topbar-brand">Clarity</span>'
     + '<button class="app-topbar-back" onclick="setMode(\'home\')">&#8592; Back to home</button>'
     + '</div>';
 
-  var body = '<div class="ps-body">'
-    + '<div class="ps-badge"><span class="ps-badge-dot"></span>Coming Wednesday</div>'
-    + '<div class="ps-title">Persona Studio</div>'
-    + '<p class="ps-sub">Clarity will build a detailed audience persona for ' + bizName + ' — who they are, what they care about, and what drives them to buy. This powers everything from messaging to content timing.</p>'
-    + '<div class="ps-preview-cards">'
-    + '<div class="ps-preview-card">'
-    + '<div class="ps-preview-label">Business</div>'
-    + '<div class="ps-preview-val">' + bizName + '</div>'
-    + '<div class="ps-preview-sub">' + typeLabel + '</div>'
+  var body = '<div class="gtm-body">'
+    + '<div class="gtm-badge"><span class="gtm-badge-dot"></span>Up next</div>'
+    + '<div class="gtm-title">Go-to-Market Strategy</div>'
+    + '<p class="gtm-sub">Clarity will build a channel strategy, messaging framework, and launch cadence for ' + bizName + ' — grounded in your persona and strategic priorities.</p>'
+    + '<div class="gtm-cards">'
+    + '<div class="gtm-card">'
+    + '<div class="gtm-card-label">Persona</div>'
+    + '<div class="gtm-card-val">' + personaName + '</div>'
+    + '<div class="gtm-card-sub">' + personaBio + '</div>'
     + '</div>'
-    + '<div class="ps-preview-card">'
-    + '<div class="ps-preview-label">Top Priority</div>'
-    + '<div class="ps-preview-val">' + (topPriority ? priorityLabels[topPriority] : 'Not set') + '</div>'
-    + '<div class="ps-preview-sub">' + ((s.priorities && s.priorities.length > 1) ? '+' + (s.priorities.length - 1) + ' more goal' + (s.priorities.length > 2 ? 's' : '') : 'Primary goal') + '</div>'
+    + '<div class="gtm-card">'
+    + '<div class="gtm-card-label">Key Values</div>'
+    + '<div class="gtm-card-chips">' + caresChips + '</div>'
+    + (caresAbout.length > 3 ? '<div class="gtm-card-sub" style="margin-top:6px;">+' + (caresAbout.length - 3) + ' more</div>' : '')
     + '</div>'
-    + '<div class="ps-preview-card">'
-    + '<div class="ps-preview-label">Audience Persona</div>'
-    + '<div class="ps-preview-val">Building&hellip;</div>'
-    + '<div class="ps-preview-sub">Demographics, motivations, triggers</div>'
+    + '<div class="gtm-card">'
+    + '<div class="gtm-card-label">GTM Strategy</div>'
+    + '<div class="gtm-card-val">Building&hellip;</div>'
+    + '<div class="gtm-card-sub">Channel mix, messaging, launch timing</div>'
     + '</div>'
     + '</div>'
-    + '<div class="ps-actions">'
+    + '<div class="gtm-actions">'
     + '<button class="btn btn-outline" onclick="setMode(\'home\')">Go to home</button>'
     + '</div>'
     + '</div>';
 
-  return '<div class="ps-wrap">' + topbar + body + '</div>';
+  return '<div class="gtm-wrap">' + topbar + body + '</div>';
 }
 
 /* ===================== RENDER DISPATCHER ===================== */
 function renderApp() {
   var el = document.getElementById('content');
   var mode = appState.mode;
+
+  if (mode === 'transition') {
+    el.innerHTML = screenTransition();
+    return;
+  }
 
   if (mode === 'onboarding') {
     el.innerHTML = window.screenOnboarding ? window.screenOnboarding() : '';
@@ -624,11 +783,17 @@ function renderApp() {
 
   if (mode === 'strategic-plan') {
     el.innerHTML = window.screenStrategyFlow ? window.screenStrategyFlow() : '';
+    if (window.msCheckLoadingHook) window.msCheckLoadingHook();
     return;
   }
 
   if (mode === 'persona-studio') {
-    el.innerHTML = screenPersonaStudio();
+    el.innerHTML = window.screenPersonaFlow ? window.screenPersonaFlow() : '';
+    return;
+  }
+
+  if (mode === 'gtm-strategy') {
+    el.innerHTML = screenGtmStrategy();
     return;
   }
 
@@ -686,8 +851,10 @@ function init() {
   /* Always boot to onboarding Screen 1 on fresh load */
   appState.mode = 'onboarding';
   appState.onboarding = { step: 1, authMode: 'signup' };
-  appState.strategyFlow = { step: 1 };
-  appState.strategy = { priorities: [], goal: '', positioning: '' };
+  appState.strategyFlow = { screen: 'hub', marketScan: { step: 1, focus: '' }, customerIntel: { step: 1, focus: '' }, competition: { step: 1, focus: '' } };
+  appState.strategy     = { marketScan: null, customerIntelligence: null, competition: null };
+  appState.personaFlow  = { step: 1 };
+  appState.persona      = { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' };
   renderApp();
 }
 window.addEventListener('load', init);
@@ -695,12 +862,13 @@ window.addEventListener('load', init);
 </script>
 <script src="onboarding/onboarding.js?v=1"></script>
 <script src="studio-strategy/strategy-flow.js?v=1"></script>
+<script src="studio-persona/persona-flow.js?v=1"></script>
 <script src="studio-create/create-flow.js?v=11"></script>
 <script src="studio-campaign/campaign-flow.js?v=11"></script>
 <script src="studio-text/studio-text.js?v=8"></script>
 <script src="studio-image/studio-image.js?v=7"></script>
 <script src="studio-video/studio-video.js?v=5"></script>
-<script>OnboardingFlow.init(appState); StrategyFlow.init(appState); CreateFlow.init(appState); CampaignFlow.init(appState); StudioText.init(appState); StudioImage.init(appState); StudioVideo.init(appState);</script>
+<script>OnboardingFlow.init(appState); StrategyFlow.init(appState); PersonaFlow.init(appState); CreateFlow.init(appState); CampaignFlow.init(appState); StudioText.init(appState); StudioImage.init(appState); StudioVideo.init(appState);</script>
 
 <!-- Clarity Content Studio — Text, Image, Video, Audio -->
 

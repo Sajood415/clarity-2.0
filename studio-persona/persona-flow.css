@@ -1,0 +1,429 @@
+/* ============================================================
+   PERSONA FLOW  —  prefix: pf-
+   Reuses: .cf-screen, .cf-topbar, .cf-footer, .cf-brand,
+           .cf-step-title, .cf-step-sub, .cf-stepper-wrap,
+           .wizard-steps/.wiz-dot/.wiz-line/.wiz-label,
+           .cf-footer-mid, .cf-eta, .app-topbar-back
+   ============================================================ */
+
+/* ---- Step body ---- */
+.pf-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 32px 40px;
+}
+
+.pf-step-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+  animation: cf-step-fade 0.18s ease both;
+}
+
+/* ============================================================
+   STEP 1 — REFERENCE CARD (dual-row, indigo-accented)
+   ============================================================ */
+.pf-ref-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+
+.pf-ref-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.pf-ref-row:first-child { padding-top: 0; }
+.pf-ref-row:last-child  { padding-bottom: 0; }
+
+.pf-ref-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 0 -16px; /* bleed to card edges */
+}
+
+.pf-ref-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary-hover);
+  min-width: 94px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.pf-ref-value {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   STEP 1 — FORM FIELDS
+   ============================================================ */
+.pf-field {
+  margin-bottom: 16px;
+}
+
+.pf-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.pf-field input,
+.pf-field textarea {
+  width: 100%;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.pf-field input:focus,
+.pf-field textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+
+.pf-field input::placeholder,
+.pf-field textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.pf-field-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   STEP 2 — CARE-ABOUT CHIP SELECTOR
+   ============================================================ */
+.pf-care-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.pf-care-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--card2);
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.pf-care-chip:hover {
+  border-color: rgba(99,102,241,0.4);
+  color: var(--text);
+}
+
+.pf-care-chip.selected {
+  background: var(--primary-dim);
+  border-color: var(--primary);
+  color: var(--primary-hover);
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.1);
+}
+
+/* ============================================================
+   STEP 4 — PERSONA PROFILE CARD
+   ============================================================ */
+.pf-profile-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+}
+
+/* Header row: avatar + name/age/bio + edit */
+.pf-profile-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card2);
+}
+
+.pf-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--primary-dim);
+  border: 2px solid rgba(99,102,241,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-hover);
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+}
+
+.pf-profile-header-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.pf-profile-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.pf-profile-age {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+  font-family: 'DM Mono', monospace;
+}
+
+.pf-profile-bio {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-top: 6px;
+}
+
+/* Each data section row */
+.pf-profile-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pf-profile-section:last-child {
+  border-bottom: none;
+}
+
+.pf-profile-section-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pf-profile-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* Read-only care chips inside the profile card */
+.pf-profile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pf-profile-chip {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--primary-dim);
+  border: 1px solid rgba(99,102,241,0.3);
+  color: var(--primary-hover);
+}
+
+/* Trigger callout */
+.pf-trigger-quote {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.65;
+  font-style: italic;
+  padding-left: 14px;
+  border-left: 3px solid var(--primary);
+}
+
+/* Edit button (matches sp-summary-edit) */
+.pf-profile-edit {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: none;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+  margin-top: 2px;
+}
+
+.pf-profile-edit:hover {
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+/* ============================================================
+   GTM STRATEGY STUB  —  prefix: gtm-
+   ============================================================ */
+.gtm-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.gtm-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 32px 80px;
+  text-align: center;
+  animation: ob-enter 0.38s cubic-bezier(.22,.68,0,1.2) both;
+}
+
+.gtm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  color: #f59e0b;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 22px;
+  letter-spacing: 0.04em;
+}
+
+.gtm-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: home-pulse 2s ease infinite;
+}
+
+.gtm-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin-bottom: 14px;
+}
+
+.gtm-sub {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 480px;
+  margin: 0 auto 40px;
+}
+
+.gtm-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  max-width: 680px;
+  width: 100%;
+  animation: ob-enter 0.4s 0.12s cubic-bezier(.22,.68,0,1.2) both;
+}
+
+.gtm-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  text-align: left;
+  border-top: 2px solid #f59e0b;
+}
+
+.gtm-card-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.gtm-card-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.35;
+}
+
+.gtm-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.gtm-card-chip {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--primary-dim);
+  border: 1px solid rgba(99,102,241,0.25);
+  color: var(--primary-hover);
+}
+
+.gtm-card-sub {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.gtm-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 36px;
+}
