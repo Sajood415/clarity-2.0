@@ -1,303 +1,549 @@
 /* ============================================================
    PERSONA FLOW  —  prefix: pf-
    Reuses: .cf-screen, .cf-topbar, .cf-footer, .cf-brand,
-           .cf-step-title, .cf-step-sub, .cf-stepper-wrap,
-           .wizard-steps/.wiz-dot/.wiz-line/.wiz-label,
-           .cf-footer-mid, .cf-eta, .app-topbar-back
+           .cf-stepper-wrap, .wizard-steps, .wiz-dot, .wiz-line,
+           .wiz-label, .cf-footer-mid, .cf-eta, .app-topbar-back,
+           .btn, .btn-primary, .btn-outline
    ============================================================ */
 
-/* ---- Step body ---- */
+/* ============================================================
+   SHELL + TOPBAR (entry screen uses .pf-wrap, steps use .cf-screen)
+   ============================================================ */
+.pf-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--ob-bg);
+  color: var(--ob-text);
+}
+
+.pf-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--ob-border);
+  background: var(--ob-surface);
+  flex-shrink: 0;
+}
+
+.pf-topbar-brand {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ob-gold);
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.pf-topbar-brand span {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ob-muted);
+  margin-left: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   ENTRY SCREEN
+   ============================================================ */
+.pf-entry-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 32px 80px;
+}
+
+.pf-entry-inner {
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  animation: ob-enter 0.42s cubic-bezier(.22,.68,0,1.2) both;
+}
+
+.pf-entry-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 46px;
+  font-weight: 600;
+  color: var(--ob-text);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+.pf-entry-ref {
+  font-size: 13px;
+  color: var(--ob-muted);
+  margin-bottom: 32px;
+}
+
+.pf-entry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 36px;
+  background: var(--ob-gold);
+  color: #12100e;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  border: none;
+  margin-top: 28px;
+  transition: filter 0.15s, transform 0.1s;
+}
+.pf-entry-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   CI REFERENCE CARD (shared: entry, step 1, step 2, step 3)
+   ============================================================ */
+.pf-ci-card {
+  text-align: left;
+  background: var(--ob-gold-dim);
+  border: 1px solid var(--ob-gold-rim);
+  border-left: 3px solid var(--ob-gold);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 28px;
+}
+
+.pf-ci-card--soft {
+  background: var(--ob-surface);
+  border-color: var(--ob-border);
+  border-left-color: var(--ob-border);
+}
+
+.pf-ci-card-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ob-gold);
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+.pf-ci-card-body {
+  font-size: 13px;
+  color: var(--ob-text);
+  line-height: 1.55;
+}
+
+.pf-ci-card-body strong {
+  color: var(--ob-gold);
+  font-weight: 600;
+}
+
+/* Demographic chips inside CI card */
+.pf-demo-chip {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--ob-gold-dim);
+  border: 1px solid var(--ob-gold-rim);
+  color: var(--ob-gold);
+  margin: 2px 3px 2px 0;
+  vertical-align: middle;
+}
+
+/* ============================================================
+   STEP BODY (scroll area inside .cf-screen)
+   ============================================================ */
 .pf-body {
   flex: 1;
   overflow-y: auto;
   padding: 32px 32px 40px;
 }
 
+/* ============================================================
+   CONVERSATIONAL SUB-STEPS (Step 1 a / b / c)
+   ============================================================ */
+.pf-conv-wrap {
+  max-width: 520px;
+  margin: 40px auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: ob-enter 0.3s cubic-bezier(.22,.68,0,1.2) both;
+}
+
+/* Amber breadcrumb — shows previous answers */
+.pf-breadcrumb {
+  font-size: 13px;
+  color: var(--ob-muted);
+  margin-bottom: 20px;
+  letter-spacing: 0.01em;
+}
+.pf-bc-gold {
+  color: var(--ob-gold);
+  font-weight: 500;
+}
+
+/* Large centered question heading */
+.pf-conv-question {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 44px;
+  font-weight: 600;
+  color: var(--ob-text);
+  text-align: center;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 36px;
+  width: 100%;
+}
+
+/* Borderless underline input */
+.pf-conv-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.14);
+  padding: 12px 0;
+  font-size: 22px;
+  color: var(--ob-text);
+  font-family: 'DM Sans', sans-serif;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 40px;
+}
+[data-theme="light"] .pf-conv-input {
+  border-bottom-color: rgba(0,0,0,0.12);
+}
+.pf-conv-input:focus { border-bottom-color: var(--ob-gold); }
+.pf-conv-input::placeholder { color: var(--ob-muted); opacity: 0.5; text-align: center; }
+
+/* Borderless textarea */
+.pf-conv-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.14);
+  padding: 12px 0;
+  font-size: 18px;
+  color: var(--ob-text);
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 40px;
+  resize: none;
+  line-height: 1.7;
+  min-height: 80px;
+  text-align: center;
+}
+[data-theme="light"] .pf-conv-textarea {
+  border-bottom-color: rgba(0,0,0,0.12);
+}
+.pf-conv-textarea:focus { border-bottom-color: var(--ob-gold); }
+.pf-conv-textarea::placeholder { color: var(--ob-muted); opacity: 0.5; }
+
+/* Inline continue button */
+.pf-conv-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 30px;
+  background: var(--ob-gold);
+  color: #12100e;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  border: none;
+  align-self: center;
+  transition: opacity 0.15s, filter 0.15s;
+}
+.pf-conv-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+.pf-conv-btn:not(:disabled):hover { filter: brightness(1.1); }
+
+/* ============================================================
+   REGULAR STEP WRAPPER (steps 2 & 3)
+   ============================================================ */
 .pf-step-wrap {
-  max-width: 680px;
+  max-width: 640px;
   margin: 0 auto;
   width: 100%;
   animation: cf-step-fade 0.18s ease both;
 }
 
-/* ============================================================
-   STEP 1 — REFERENCE CARD (dual-row, indigo-accented)
-   ============================================================ */
-.pf-ref-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  background: var(--card2);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--primary);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-bottom: 28px;
-  overflow: hidden;
-}
-
-.pf-ref-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 8px 0;
-}
-
-.pf-ref-row:first-child { padding-top: 0; }
-.pf-ref-row:last-child  { padding-bottom: 0; }
-
-.pf-ref-sep {
-  height: 1px;
-  background: var(--border);
-  margin: 0 -16px; /* bleed to card edges */
-}
-
-.pf-ref-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--primary-hover);
-  min-width: 94px;
-  padding-top: 2px;
-  flex-shrink: 0;
-}
-
-.pf-ref-value {
-  font-size: 13px;
-  color: var(--text);
-  line-height: 1.5;
-}
-
-/* ============================================================
-   STEP 1 — FORM FIELDS
-   ============================================================ */
-.pf-field {
-  margin-bottom: 16px;
-}
-
-.pf-field label {
-  display: block;
-  font-size: 11px;
+.pf-step-question {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 38px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-
-.pf-field input,
-.pf-field textarea {
-  width: 100%;
-  background: var(--card2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 11px 13px;
-  color: var(--text);
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  resize: vertical;
-  line-height: 1.5;
-  font-family: 'DM Sans', sans-serif;
-}
-
-.pf-field input:focus,
-.pf-field textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(212,168,83,0.1);
-}
-
-.pf-field input::placeholder,
-.pf-field textarea::placeholder {
-  color: var(--muted);
-  opacity: 0.6;
-}
-
-.pf-field-hint {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 6px;
-  line-height: 1.5;
+  color: var(--ob-text);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin-bottom: 28px;
+  text-align: center;
 }
 
 /* ============================================================
-   STEP 2 — CARE-ABOUT CHIP SELECTOR
+   STEP 2 — CARE-ABOUT CHIPS
    ============================================================ */
 .pf-care-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 22px;
+  gap: 10px;
+  margin-bottom: 28px;
+  justify-content: center;
 }
 
 .pf-care-chip {
   display: inline-flex;
   align-items: center;
-  padding: 8px 18px;
+  padding: 10px 20px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  border: 1px solid var(--border);
-  background: var(--card2);
-  color: var(--muted);
+  border: 1px solid var(--ob-border);
+  background: var(--ob-surface);
+  color: var(--ob-muted);
   cursor: pointer;
   user-select: none;
-  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
-
 .pf-care-chip:hover {
-  border-color: rgba(212,168,83,0.4);
-  color: var(--text);
+  border-color: var(--ob-gold-rim);
+  color: var(--ob-text);
+}
+.pf-care-chip.selected {
+  background: var(--ob-gold-dim);
+  border-color: var(--ob-gold);
+  color: var(--ob-gold);
+  font-weight: 600;
 }
 
-.pf-care-chip.selected {
-  background: var(--primary-dim);
-  border-color: var(--primary);
-  color: var(--primary-hover);
+/* Optional free-text field */
+.pf-field { margin-top: 4px; }
+
+.pf-field-label {
+  font-size: 11px;
   font-weight: 600;
-  box-shadow: 0 0 0 2px rgba(212,168,83,0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ob-muted);
+  margin-bottom: 8px;
 }
+.pf-field-optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+  opacity: 0.75;
+}
+.pf-field-ta {
+  width: 100%;
+  background: var(--ob-surface);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--ob-text);
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  resize: vertical;
+  line-height: 1.55;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pf-field-ta:focus {
+  border-color: var(--ob-gold-rim);
+  box-shadow: 0 0 0 3px var(--ob-gold-dim);
+}
+.pf-field-ta::placeholder { color: var(--ob-muted); opacity: 0.5; }
 
 /* ============================================================
-   STEP 4 — PERSONA PROFILE CARD
+   STEP 3 — TRIGGER TEXTAREA
    ============================================================ */
-.pf-profile-card {
-  background: var(--card);
-  border: 1px solid var(--border);
+.pf-trigger-ta {
+  width: 100%;
+  background: var(--ob-surface);
+  border: 1px solid var(--ob-border);
   border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  padding: 16px 18px;
+  color: var(--ob-text);
+  font-size: 15px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  resize: vertical;
+  line-height: 1.7;
+  min-height: 140px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pf-trigger-ta:focus {
+  border-color: var(--ob-gold-rim);
+  box-shadow: 0 0 0 3px var(--ob-gold-dim);
+}
+.pf-trigger-ta::placeholder { color: var(--ob-muted); opacity: 0.5; }
+
+/* ============================================================
+   STEP 4 — PERSONA SUMMARY CARD
+   ============================================================ */
+.pf-summary-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--ob-text);
+  text-align: center;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.pf-summary-sub {
+  font-size: 13px;
+  color: var(--ob-muted);
+  text-align: center;
+  margin-bottom: 28px;
 }
 
-/* Header row: avatar + name/age/bio + edit */
+/* Profile card — the "deliverable" moment */
+.pf-profile-card {
+  background: var(--ob-surface);
+  border: 1px solid var(--ob-gold-rim);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--ob-gold-dim), 0 8px 40px rgba(0,0,0,0.22);
+}
+
+/* Header: avatar + name/age/bio + edit */
 .pf-profile-header {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding: 22px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--card2);
+  gap: 18px;
+  padding: 24px;
+  border-bottom: 1px solid var(--ob-border);
+  background: var(--ob-surface2);
 }
 
 .pf-avatar {
-  width: 52px;
-  height: 52px;
   border-radius: 50%;
-  background: var(--primary-dim);
-  border: 2px solid rgba(212,168,83,0.3);
+  background: var(--ob-gold-dim);
+  border: 2px solid var(--ob-gold-rim);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Cormorant Garamond', serif;
-  font-size: 18px;
   font-weight: 700;
-  color: var(--primary-hover);
+  color: var(--ob-gold);
   flex-shrink: 0;
   letter-spacing: -0.02em;
 }
 
-.pf-profile-header-meta {
-  flex: 1;
-  min-width: 0;
-}
+.pf-profile-header-meta { flex: 1; min-width: 0; }
 
 .pf-profile-name {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--ob-text);
   letter-spacing: -0.01em;
-  line-height: 1.15;
+  line-height: 1.2;
 }
-
 .pf-profile-age {
   font-size: 12px;
-  color: var(--muted);
-  margin-top: 3px;
+  color: var(--ob-muted);
+  margin-top: 4px;
   font-family: 'DM Mono', monospace;
 }
-
 .pf-profile-bio {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--ob-muted);
   line-height: 1.55;
-  margin-top: 6px;
+  margin-top: 8px;
+  font-style: italic;
 }
 
-/* Each data section row */
+/* Data section rows */
 .pf-profile-section {
   display: flex;
   align-items: flex-start;
   gap: 16px;
   padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--ob-border);
 }
+.pf-profile-section:last-of-type { border-bottom: none; }
 
-.pf-profile-section:last-child {
-  border-bottom: none;
-}
-
-.pf-profile-section-body {
-  flex: 1;
-  min-width: 0;
-}
+.pf-profile-section-body { flex: 1; min-width: 0; }
 
 .pf-profile-section-label {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--muted);
+  color: var(--ob-muted);
   margin-bottom: 10px;
 }
 
-/* Read-only care chips inside the profile card */
-.pf-profile-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+/* Read-only cares chips */
+.pf-profile-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .pf-profile-chip {
   display: inline-flex;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
-  background: var(--primary-dim);
-  border: 1px solid rgba(212,168,83,0.3);
-  color: var(--primary-hover);
+  background: var(--ob-gold-dim);
+  border: 1px solid var(--ob-gold-rim);
+  color: var(--ob-gold);
 }
 
-/* Trigger callout */
+/* Buying trigger quote */
 .pf-trigger-quote {
   font-size: 14px;
-  color: var(--text);
+  color: var(--ob-text);
   line-height: 1.65;
   font-style: italic;
   padding-left: 14px;
-  border-left: 3px solid var(--primary);
+  border-left: 3px solid var(--ob-gold);
 }
 
-/* Edit button (matches sp-summary-edit) */
+/* Edit link button */
 .pf-profile-edit {
   flex-shrink: 0;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ob-muted);
   cursor: pointer;
   padding: 4px 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--ob-border);
   background: none;
   font-family: 'DM Sans', sans-serif;
-  transition: all 0.15s;
+  transition: color 0.15s, border-color 0.15s;
   margin-top: 2px;
 }
-
 .pf-profile-edit:hover {
-  color: var(--text);
-  border-color: var(--primary);
+  color: var(--ob-text);
+  border-color: var(--ob-gold);
+}
+
+/* Location footer line */
+.pf-profile-footer {
+  padding: 12px 24px;
+  border-top: 1px solid var(--ob-border);
+}
+.pf-summary-loc {
+  font-size: 12px;
+  color: var(--ob-muted);
+}
+
+.pf-summary-empty {
+  font-size: 13px;
+  color: var(--ob-muted);
+  font-style: italic;
+}
+
+/* Confirm / start-over action pair */
+.pf-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* ============================================================
@@ -327,20 +573,19 @@
   gap: 8px;
   padding: 5px 14px;
   border-radius: 20px;
-  background: rgba(245,158,11,0.08);
-  border: 1px solid rgba(245,158,11,0.25);
-  color: #f59e0b;
+  background: var(--ob-gold-dim);
+  border: 1px solid var(--ob-gold-rim);
+  color: var(--ob-gold);
   font-size: 11px;
   font-weight: 600;
   margin-bottom: 22px;
   letter-spacing: 0.04em;
 }
-
 .gtm-badge-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #f59e0b;
+  background: var(--ob-gold);
   animation: home-pulse 2s ease infinite;
 }
 
@@ -353,7 +598,6 @@
   line-height: 1.15;
   margin-bottom: 14px;
 }
-
 .gtm-sub {
   font-size: 15px;
   color: var(--muted);
@@ -370,16 +614,14 @@
   width: 100%;
   animation: ob-enter 0.4s 0.12s cubic-bezier(.22,.68,0,1.2) both;
 }
-
 .gtm-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px;
   text-align: left;
-  border-top: 2px solid #f59e0b;
+  border-top: 2px solid var(--ob-gold);
 }
-
 .gtm-card-label {
   font-size: 9px;
   font-weight: 700;
@@ -388,7 +630,6 @@
   color: var(--muted);
   margin-bottom: 8px;
 }
-
 .gtm-card-val {
   font-size: 13px;
   font-weight: 600;
@@ -396,30 +637,18 @@
   margin-bottom: 6px;
   line-height: 1.35;
 }
-
-.gtm-card-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
+.gtm-card-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .gtm-card-chip {
   display: inline-flex;
   padding: 2px 8px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 500;
-  background: var(--primary-dim);
-  border: 1px solid rgba(212,168,83,0.25);
-  color: var(--primary-hover);
+  background: var(--ob-gold-dim);
+  border: 1px solid var(--ob-gold-rim);
+  color: var(--ob-gold);
 }
-
-.gtm-card-sub {
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.5;
-}
+.gtm-card-sub { font-size: 11px; color: var(--muted); line-height: 1.5; }
 
 .gtm-actions {
   display: flex;
@@ -429,76 +658,13 @@
 }
 
 /* ============================================================
-   WARM PALETTE OVERRIDES — Persona Studio + GTM
-   Applied on top of shared cf- classes to carry warm tone
+   RESPONSIVE
    ============================================================ */
-
-/* Reference card accent */
-.pf-ref-card {
-  background: rgba(255,255,255,0.03) !important;
-  border-color: var(--ob-border) !important;
-  border-left-color: var(--ob-gold) !important;
-}
-
-.pf-ref-label { color: var(--ob-gold) !important; opacity: 0.85; }
-.pf-ref-sep   { background: var(--ob-border) !important; }
-.pf-ref-value { color: var(--ob-text) !important; }
-
-/* Form fields */
-.pf-field label { color: var(--ob-muted) !important; }
-
-.pf-field input,
-.pf-field textarea {
-  background: rgba(255,255,255,0.04) !important;
-  border-color: var(--ob-border) !important;
-  color: var(--ob-text) !important;
-}
-
-.pf-field input:focus,
-.pf-field textarea:focus {
-  border-color: var(--ob-gold-rim) !important;
-  box-shadow: 0 0 0 3px var(--ob-gold-dim) !important;
-}
-
-.pf-field input::placeholder,
-.pf-field textarea::placeholder { color: var(--ob-muted) !important; }
-
-.pf-field-hint { color: var(--ob-muted) !important; }
-
-/* Cares-about chips */
-.pf-care-chip {
-  background: rgba(255,255,255,0.03) !important;
-  border-color: var(--ob-border) !important;
-  color: var(--ob-muted) !important;
-}
-
-.pf-care-chip:hover {
-  border-color: var(--ob-gold-rim) !important;
-  color: var(--ob-text) !important;
-}
-
-.pf-care-chip.selected {
-  background: var(--ob-gold-dim) !important;
-  border-color: var(--ob-gold) !important;
-  color: var(--ob-gold) !important;
-  box-shadow: 0 0 0 2px var(--ob-gold-dim) !important;
-}
-
-/* Persona summary card */
-.pf-summary-card {
-  background: var(--ob-surface) !important;
-  border-color: var(--ob-border) !important;
-}
-
-.pf-summary-initials {
-  background: var(--ob-gold-dim) !important;
-  color: var(--ob-gold) !important;
-  border-color: var(--ob-gold-rim) !important;
-}
-
-/* GTM warm tones */
-.gtm-card-chip {
-  background: var(--ob-gold-dim) !important;
-  border-color: var(--ob-gold-rim) !important;
-  color: var(--ob-gold) !important;
+@media (max-width: 600px) {
+  .pf-entry-heading { font-size: 34px; }
+  .pf-conv-question { font-size: 32px; }
+  .pf-conv-input    { font-size: 18px; }
+  .pf-step-question { font-size: 28px; }
+  .pf-body          { padding: 24px 20px 32px; }
+  .gtm-cards        { grid-template-columns: 1fr; }
 }

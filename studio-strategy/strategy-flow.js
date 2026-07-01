@@ -548,7 +548,7 @@ var StrategyFlow = (function () {
 
   /* ---- Library summary getters (called from screenReportLibrary) ---- */
   window.msReportSummary   = function () { var d = msGetReportData();   return { gapHeadline: d.gap.headline, gapText: d.gap.body.slice(0, 110) }; };
-  window.ciReportSummary   = function () { var d = ciGetReportData();   return { topTrigger: d.triggers[0], wtpLabel: d.wtp.label, wtpSpend: d.wtp.spend }; };
+  window.ciReportSummary   = function () { var d = ciGetReportData();   return { topTrigger: d.triggers[0], wtpLabel: d.wtp.label, wtpSpend: d.wtp.spend, demographicChips: (d.demographics && d.demographics.chips) ? d.demographics.chips : [] }; };
   window.compReportSummary = function () { var d = compGetReportData(); return { whitespace: d.whitespace.slice(0, 120) }; };
 
   return { init: init, screenStrategyFlow: screenStrategyFlow };
@@ -648,7 +648,7 @@ window.msFocusInput  = function (v) { if (!appState.strategyFlow.marketScan) app
 window.ciRunScan     = function () { var e = document.getElementById('ci-focus-input'); if (!appState.strategyFlow.customerIntel) appState.strategyFlow.customerIntel = { step: 1, focus: '' }; if (e) appState.strategyFlow.customerIntel.focus = e.value; appState.strategyFlow.customerIntel.step = 2; renderContent(); };
 window.ciSaveReport  = function () {
   var s = window.ciReportSummary ? window.ciReportSummary() : {};
-  appState.strategy.customerIntelligence = { savedAt: Date.now(), type: (appState.business || {}).type || 'other', topTrigger: s.topTrigger || '', wtpLabel: s.wtpLabel || '', wtpSpend: s.wtpSpend || '' };
+  appState.strategy.customerIntelligence = { savedAt: Date.now(), type: (appState.business || {}).type || 'other', topTrigger: s.topTrigger || '', wtpLabel: s.wtpLabel || '', wtpSpend: s.wtpSpend || '', demographicChips: s.demographicChips || [] };
   if (appState.libraryMode) { appState.libraryMode = false; setMode('report-library'); }
   else { appState.strategyFlow.screen = 'hub'; renderContent(); }
 };

@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="onboarding/onboarding.css?v=5">
 <link rel="stylesheet" href="studio-strategy/strategy-flow.css?v=4">
-<link rel="stylesheet" href="studio-persona/persona-flow.css?v=3">
+<link rel="stylesheet" href="studio-persona/persona-flow.css?v=4">
 <link rel="stylesheet" href="studio-text/studio-text.css?v=6">
 <link rel="stylesheet" href="studio-image/studio-image.css?v=4">
 <link rel="stylesheet" href="studio-video/studio-video.css?v=4">
@@ -106,6 +106,9 @@ a { text-decoration: none; color: inherit; }
 [data-theme="light"] .lib-btn-run-now:hover {
   border-color: rgba(0,0,0,0.2);
 }
+
+/* Prevent fixed theme-toggle from overlapping topbar back buttons */
+.app-topbar-back { margin-right: 44px; }
 
 /* ============================================================
    THEME TOGGLE BUTTON (fixed overlay)
@@ -1277,7 +1280,7 @@ function init() {
   appState.business   = { name: '', description: '', type: null, locations: [] };
   appState.strategyFlow = { screen: 'hub', marketScan: { step: 1, focus: '' }, customerIntel: { step: 1, focus: '' }, competition: { step: 1, focus: '' } };
   appState.strategy     = { marketScan: null, customerIntelligence: null, competition: null };
-  appState.personaFlow  = { step: 1 };
+  appState.personaFlow  = { step: 1, subStep: 1, screen: 'entry' };
   appState.persona      = { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' };
   renderApp();
 }
@@ -1285,8 +1288,8 @@ window.addEventListener('load', init);
 
 </script>
 <script src="onboarding/onboarding.js?v=4"></script>
-<script src="studio-strategy/strategy-flow.js?v=8"></script>
-<script src="studio-persona/persona-flow.js?v=2"></script>
+<script src="studio-strategy/strategy-flow.js?v=9"></script>
+<script src="studio-persona/persona-flow.js?v=3"></script>
 <script src="studio-create/create-flow.js?v=13"></script>
 <script src="studio-campaign/campaign-flow.js?v=13"></script>
 <script src="studio-text/studio-text.js?v=9"></script>
