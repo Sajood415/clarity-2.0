@@ -104,7 +104,7 @@ var PersonaFlow = (function () {
 
     return '<div class="pf-wrap">'
       + '<div class="pf-topbar">'
-      + '<button class="app-topbar-back" onclick="setMode(\'home\')">&#8592; Back to home</button>'
+      + '<button class="app-topbar-back" onclick="setMode(\'strategic-plan\')">&#8592; Back to Strategic Planning</button>'
       + '<div class="pf-topbar-brand">Clarity <span>Persona Studio</span></div>'
       + '<div style="width:130px"></div>'
       + '</div>'
@@ -332,7 +332,7 @@ var PersonaFlow = (function () {
 
     var topbar = '<div class="cf-topbar">'
       + '<div class="cf-brand">Clarity <span>Persona Studio</span></div>'
-      + '<button class="app-topbar-back" onclick="setMode(\'home\')">&#8592; Back to home</button>'
+      + '<button class="app-topbar-back" onclick="setMode(\'strategic-plan\')">&#8592; Back to Strategic Planning</button>'
       + '</div>';
 
     /* For step 1, Continue lives inline — footer only shows Back */

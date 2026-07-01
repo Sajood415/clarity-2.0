@@ -955,8 +955,55 @@ function screenHome() {
   var nudgeHtml;
   var cardsHtml = '';
 
-  if (intel) {
-    /* ---- State A: Strategy exists ---- */
+  /* ---- State C: Launchpad complete — strategy + persona built via the real flow ---- */
+  var strat        = appState.strategy || {};
+  var pData        = appState.persona  || {};
+  var launchpadDone = !!(strat.marketScan && pData.name && pData.name.trim());
+
+  if (launchpadDone) {
+    var lpPersonaName = pData.name.trim();
+    var lpBizName     = (appState.business && appState.business.name) ? appState.business.name.trim() : '';
+    var lpGap         = strat.marketScan.gapHeadline || 'Market opportunity identified';
+    var lpTrigger     = (strat.customerIntelligence && strat.customerIntelligence.topTrigger)
+      ? strat.customerIntelligence.topTrigger
+      : (pData.trigger ? pData.trigger.split('.')[0] : 'Your persona is ready');
+    var lpCares       = (pData.caresAbout && pData.caresAbout.length)
+      ? pData.caresAbout.slice(0, 3).join(', ')
+      : '';
+
+    nudgeHtml = '<div class="home-nudge">'
+      + '<div class="home-status"><span class="home-pulse-dot"></span>Strategy complete</div>'
+      + '<h1 class="home-heading">Ready to create content.</h1>'
+      + '<p class="home-sub">Your research is done. Every piece of content you create will be grounded in your strategic plan and <strong>' + lpPersonaName + '</strong>\u2019s profile.</p>'
+      + '<div class="home-actions">'
+      + '<button class="btn btn-primary btn-lg" onclick="setMode(\'wizard\')">Create content</button>'
+      + '<button class="btn btn-outline" onclick="setMode(\'report-library\')">View your reports</button>'
+      + '</div>'
+      + (campaigns.length
+          ? '<div class="home-campaigns-link">You have ' + campaigns.length + ' active campaign' + (campaigns.length === 1 ? '' : 's') + ' \u2014 <a href="#" onclick="setMode(\'campaign\'); return false;">view campaigns</a></div>'
+          : '')
+      + '</div>';
+
+    cardsHtml = '<div class="home-intel-cards">'
+      + '<div class="home-intel-card">'
+      + '<div class="home-intel-card-label">Persona</div>'
+      + '<div class="home-intel-card-val">' + lpPersonaName + '</div>'
+      + '<div class="home-intel-card-sub">' + (pData.ageRange ? pData.ageRange + (pData.description ? ' \u00b7 ' + pData.description.split(' ').slice(0, 6).join(' ') + '\u2026' : '') : (pData.description || '')) + '</div>'
+      + '</div>'
+      + '<div class="home-intel-card">'
+      + '<div class="home-intel-card-label">Market Gap</div>'
+      + '<div class="home-intel-card-val">' + lpGap + '</div>'
+      + '<div class="home-intel-card-sub">' + (lpBizName ? lpBizName + ' \u00b7 ' : '') + ((appState.business && appState.business.type) || '') + '</div>'
+      + '</div>'
+      + '<div class="home-intel-card">'
+      + '<div class="home-intel-card-label">Customer Trigger</div>'
+      + '<div class="home-intel-card-val">' + lpTrigger + '</div>'
+      + '<div class="home-intel-card-sub">' + (lpCares ? 'Values: ' + lpCares : '') + '</div>'
+      + '</div>'
+      + '</div>';
+
+  } else if (intel) {
+    /* ---- State A: Sample intelligence loaded ---- */
     var personaName = intel.persona ? intel.persona.name : 'your audience';
     var marketTrend = intel.market ? intel.market.trend.split('·')[0].trim() : 'your market';
 
@@ -969,7 +1016,7 @@ function screenHome() {
       + '<button class="btn btn-outline" onclick="setMode(\'library\')">View library</button>'
       + '</div>'
       + (campaigns.length
-          ? '<div class="home-campaigns-link">You have ' + campaigns.length + ' active campaign' + (campaigns.length === 1 ? '' : 's') + ' — <a href="#" onclick="setMode(\'campaign\'); return false;">view campaigns</a></div>'
+          ? '<div class="home-campaigns-link">You have ' + campaigns.length + ' active campaign' + (campaigns.length === 1 ? '' : 's') + ' \u2014 <a href="#" onclick="setMode(\'campaign\'); return false;">view campaigns</a></div>'
           : '')
       + '</div>';
 
@@ -1006,9 +1053,9 @@ function screenHome() {
   }
 
   /* Saved-reports link — only if at least one Strategic Planning report exists */
-  var strat = appState.strategy || {};
   var hasReports = !!(strat.marketScan || strat.customerIntelligence || strat.competition);
-  var reportsLinkHtml = hasReports
+  /* In State C the "View your reports" CTA is already in the nudge — don't duplicate it */
+  var reportsLinkHtml = (!launchpadDone && hasReports)
     ? '<div class="home-reports-link"><a href="#" onclick="setMode(\'report-library\'); return false;">View your saved reports &rarr;</a></div>'
     : '';
 
@@ -1149,7 +1196,7 @@ function screenGtmStrategy() {
 
   var topbar = '<div class="app-topbar">'
     + '<span class="app-topbar-brand">Clarity</span>'
-    + '<button class="app-topbar-back" onclick="setMode(\'home\')">&#8592; Back to home</button>'
+    + '<button class="app-topbar-back" onclick="setMode(\'home\')">Start creating content &#8594;</button>'
     + '</div>';
 
   var body = '<div class="gtm-body">'
@@ -1172,9 +1219,6 @@ function screenGtmStrategy() {
     + '<div class="gtm-card-val">Building&hellip;</div>'
     + '<div class="gtm-card-sub">Channel mix, messaging, launch timing</div>'
     + '</div>'
-    + '</div>'
-    + '<div class="gtm-actions">'
-    + '<button class="btn btn-outline" onclick="setMode(\'home\')">Go to home</button>'
     + '</div>'
     + '</div>';
 
@@ -1322,9 +1366,9 @@ function init() {
 window.addEventListener('load', init);
 
 </script>
-<script src="onboarding/onboarding.js?v=5"></script>
-<script src="studio-strategy/strategy-flow.js?v=12"></script>
-<script src="studio-persona/persona-flow.js?v=3"></script>
+<script src="onboarding/onboarding.js?v=6"></script>
+<script src="studio-strategy/strategy-flow.js?v=13"></script>
+<script src="studio-persona/persona-flow.js?v=4"></script>
 <script src="studio-create/create-flow.js?v=13"></script>
 <script src="studio-campaign/campaign-flow.js?v=13"></script>
 <script src="studio-text/studio-text.js?v=9"></script>

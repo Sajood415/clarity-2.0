@@ -122,7 +122,7 @@ var StrategyFlow = (function () {
       : '';
 
     return '<div class="sp-hub-wrap">'
-      + spTopbar('Back to home', 'spGoWelcome()')
+      + spTopbar('Home', 'spGoWelcome()')
       + '<div class="sp-hub-body">'
       + '<div class="sp-hub-eyebrow">Strategic Planning</div>'
       + '<div class="sp-hub-title">Build your strategic foundation</div>'
@@ -912,7 +912,7 @@ window.stageRevealUnifiedReport = function () {
    GLOBAL EVENT HANDLERS
    ============================================================ */
 
-window.spGoWelcome = function () { appState.onboarding = { step: 1, authMode: 'signup', subStep: 1 }; appState.business = { name: '', description: '', type: null, locations: [] }; setMode('onboarding'); };
+window.spGoWelcome = function () { setMode('home'); };
 
 window.spGoHub = function () { appState.strategyFlow.screen = 'hub'; renderContent(); };
 

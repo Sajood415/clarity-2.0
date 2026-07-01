@@ -382,10 +382,11 @@ var OnboardingFlow = (function () {
      Launching interim screen — "Building your workspace..."
      ============================================================ */
   function screenLaunching() {
+    var txt = (state.onboarding && state.onboarding.launchingText) || 'Building your workspace\u2026';
     return '<div class="ob-launching-screen">'
       + '<div class="ob-launching-inner">'
       + '<div class="ob-launching-dot"></div>'
-      + '<div class="ob-launching-text">Building your workspace&hellip;</div>'
+      + '<div class="ob-launching-text">' + txt + '</div>'
       + '</div>'
       + '</div>';
   }
@@ -453,10 +454,11 @@ window.obSwitchAuth = function (mode) {
 
 /* Screen 2 → Screen 3 (Google button or Continue) */
 window.obAdvanceFromAuth = function () {
-  /* Show the same "Building your workspace..." loader used after Screen 4 */
-  appState.onboarding.step = 'launching';
+  appState.onboarding.step         = 'launching';
+  appState.onboarding.launchingText = 'Signing you in\u2026';
   renderContent();
   setTimeout(function () {
+    appState.onboarding.launchingText = null;
     appState.onboarding.step    = 3;
     appState.onboarding.subStep = 1;
     renderContent();
