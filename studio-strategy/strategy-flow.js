@@ -2,6 +2,39 @@
    STRATEGY FLOW  —  IIFE module
    Screens: hub | market-scan (1-3) | customer-intel (1-3) | competition (1-3)
    ============================================================ */
+
+/* ---- Concept Comparison — UI state & sample constants (outside IIFE) ---- */
+var _ccSelected = null; /* 'a' | 'b' | null */
+
+var CC_SAMPLES = {
+  a: {
+    name:      'Karachi Street Food Co.',
+    typeLabel: 'Food & Hospitality',
+    location:  'Pakistan',
+    market:    'Street food and quick-service dining in a growing urban market — high footfall, price-sensitive consumers seeking familiar regional flavours.',
+    position:  'Authentic regional recipes, fast service, and affordable pricing for urban professionals on the move.',
+    competition:'International fast food chains dominate on brand; local operators dominate on price — thin middle ground.',
+    trigger:   'The need for a quick, satisfying, familiar meal during a busy urban workday at a price that doesn\'t sting.',
+    gtm:       'Instagram-first content, lunch delivery focus, and targeted office district marketing.',
+    risk:      'High competition at every price point, thin margins, weather dependency for street-side operations, and high staff turnover.',
+    winners:   ['yours', 'yours', 'sample', 'yours', 'yours', 'yours'],
+    aiRec:     'Your concept shows stronger digital positioning and lower weather dependency. Karachi Street Food Co. has a pricing advantage in high-footfall urban corridors. <strong>Recommended: your concept</strong> — with a local community angle added to sharpen the point of difference and reduce price-comparison pressure.'
+  },
+  b: {
+    name:      'GrowDesk — Remote Team Tools',
+    typeLabel: 'Tech & Software',
+    location:  'Global',
+    market:    'Remote work software — saturated but high-growth, with real unmet demand in simplicity-first async tools for small teams.',
+    position:  'Simple async-first tools built for small distributed teams who are over-engineered out of every existing option.',
+    competition:'Notion, Slack, and Linear are all feature-heavy incumbents with large user bases and strong network effects.',
+    trigger:   'Team communication breaking down across time zones — the moment productivity loss becomes undeniable and expensive.',
+    gtm:       'Product Hunt launch, founder community content, and a generous free tier to reduce acquisition friction.',
+    risk:      'High churn if onboarding fails to deliver value in the first 7 days; sustained feature parity pressure from well-funded competitors.',
+    winners:   ['sample', 'tie', 'yours', 'sample', 'tie', 'yours'],
+    aiRec:     'Both concepts target underserved niches with real unmet demand. Your concept has clearer geographic focus and a less crowded competitive field. GrowDesk has a broader addressable market but a harder path to defensibility against incumbents. <strong>Recommended: depends on your risk appetite</strong> — local focus for faster initial traction, global positioning for a higher eventual ceiling.'
+  }
+};
+
 var StrategyFlow = (function () {
   var state;
 
@@ -81,7 +114,11 @@ var StrategyFlow = (function () {
       + moduleCard({ slug: 'comp', icon: compIcon, title: 'Competition',            status: compStatus, onclick: 'spGoCompetition()',    desc: 'Map your competitive landscape, identify whitespace, and understand how to position against key players.' });
 
     var continueBtn = allComplete
-      ? '<div class="sp-hub-continue"><button class="btn sp-btn-save" onclick="spGoToPersona()">Continue to Persona Studio &#8594;</button></div>'
+      ? '<div class="sp-hub-continue">'
+        + '<button class="sp-btn-plan-view" onclick="viewStrategicPlanReport()">View Your Strategic Plan &#8594;</button>'
+        + '<button class="sp-btn-plan-view sp-btn-compare" onclick="viewConceptComparison()">Compare Concepts &#8594;</button>'
+        + '<button class="btn sp-btn-save" onclick="spGoToPersona()">Continue to Persona Studio &#8594;</button>'
+        + '</div>'
       : '';
 
     return '<div class="sp-hub-wrap">'
@@ -551,16 +588,331 @@ var StrategyFlow = (function () {
   window.ciReportSummary   = function () { var d = ciGetReportData();   return { topTrigger: d.triggers[0], wtpLabel: d.wtp.label, wtpSpend: d.wtp.spend, demographicChips: (d.demographics && d.demographics.chips) ? d.demographics.chips : [] }; };
   window.compReportSummary = function () { var d = compGetReportData(); return { whitespace: d.whitespace.slice(0, 120) }; };
 
-  return { init: init, screenStrategyFlow: screenStrategyFlow };
+  /* ============================================================
+     UNIFIED STRATEGIC PLAN REPORT
+     ============================================================ */
+
+  var SPR_REACH_DATA = {
+    food:     { channels: ['Instagram & TikTok — process content, provenance stories, batch announcements', 'Local markets, pop-ups and community events', 'Google Business Profile — reviews, photos, opening hours'], contentAngle: 'Show the process — fermentation times, sourcing stories, early-morning bakes — not just the finished product.', timing: 'Build Instagram presence and consistency for 60 days before investing in paid ads or e-commerce.' },
+    retail:   { channels: ['Instagram & Pinterest — product storytelling and lifestyle imagery', 'Email list — launch previews, founder letters, loyalty offers', 'Google Shopping — capture high-intent search demand'], contentAngle: 'Lead with values and founder story — why you exist — before features and price.', timing: 'Grow an engaged organic audience first; paid acquisition converts better once brand story is established.' },
+    creative: { channels: ['LinkedIn — thought leadership, project outcomes, client stories', 'Referral program — systematise word-of-mouth from existing clients', 'Long-form case study content — showcasing measurable outcomes'], contentAngle: 'Show measured client outcomes and business results — not just beautiful work.', timing: 'Invest in 2–3 strong published case studies before outbound outreach; let the work speak first.' },
+    tech:     { channels: ['G2 and ProductHunt — build review presence for inbound discovery', 'Niche content marketing — SEO targeting specific workflow problems', 'LinkedIn — founder-led content reaching decision-makers'], contentAngle: 'Niche-specific problem/solution content that speaks directly to the workflow being replaced.', timing: 'Focus on organic SEO and community building for the first 90 days before testing paid acquisition.' },
+    trades:   { channels: ['Google Business Profile — the single highest-ROI channel for local trades', 'Facebook local community groups — visibility with homeowners before need arises', 'Review platforms — Google, Checkatrade, or local equivalents'], contentAngle: 'Trust signals — verified reviews, before/after photos, job transparency — over promotional content.', timing: 'Accumulate 10+ quality reviews before running any paid local advertising for maximum conversion.' },
+    other:    { channels: ['Organic search (SEO) — content targeting specific customer problems', 'LinkedIn or relevant vertical social platform', 'Owned email newsletter — highest conversion rate for service businesses'], contentAngle: 'Expertise-led content that solves one specific customer problem per piece.', timing: 'Build an owned email list before focusing on social reach — email converts 3× better for service businesses.' }
+  };
+
+  var SPR_WATCH_DATA = {
+    food:     { risks: [{ text: 'Price pressure at the commodity end is real — staying premium-positioned requires consistent quality and communication.', conf: '84%' }, { text: 'Foot traffic and local visibility are critical — gaps in physical presence are hard to recover from once they develop.', conf: '79%' }, { text: 'Seasonal demand fluctuations can compress cash flow — build a pre-order or subscription model early.', conf: '76%' }], signals: 3, monitors: 2 },
+    retail:   { risks: [{ text: 'E-commerce margin pressure from large platforms requires a direct-to-consumer strategy and owned channels.', conf: '87%' }, { text: 'Over-reliance on Instagram or marketplace traffic creates fragile distribution — build email and SEO early.', conf: '82%' }, { text: 'Inventory risk for physical goods compounds quickly if demand signals are misread — start lean.', conf: '75%' }], signals: 3, monitors: 2 },
+    creative: { risks: [{ text: 'Project pipeline volatility is the primary risk — a 60-day lead pipeline is the target for stability.', conf: '85%' }, { text: 'AI is commoditising mid-range creative output — positioning on strategy and outcomes is the defensible move.', conf: '88%' }, { text: 'Scope creep erodes margin on fixed-price work — invest in clear scoping frameworks early.', conf: '81%' }], signals: 3, monitors: 2 },
+    tech:     { risks: [{ text: 'Feature parity from larger incumbents can arrive quickly — niche depth and switching cost are the durable moats.', conf: '89%' }, { text: 'CAC escalates sharply if organic channels stall — building community and content before paid is the resilience strategy.', conf: '84%' }, { text: 'Churn spikes when onboarding underwhelms — time-to-value in the first 7 days determines long-term retention.', conf: '91%' }], signals: 4, monitors: 2 },
+    trades:   { risks: [{ text: 'Dependency on review platforms creates vulnerability — own your client relationships and ask for Google reviews proactively.', conf: '83%' }, { text: 'Word-of-mouth dependency limits growth ceiling — systematise referrals before demand slows.', conf: '78%' }, { text: 'Lead quality from paid sources in trades can be low — qualify aggressively and track lead source ROI from day one.', conf: '80%' }], signals: 3, monitors: 3 },
+    other:    { risks: [{ text: 'Generalist positioning makes differentiation difficult — niche clarity is the highest-leverage strategic move available.', conf: '82%' }, { text: 'Price competition from low-cost alternatives is persistent — value-based framing (outcomes, not hours) is the defence.', conf: '79%' }, { text: 'Customer retention suffers without follow-on touchpoints — build a reason to return into the product or service.', conf: '77%' }], signals: 3, monitors: 2 }
+  };
+
+  function screenStrategicPlanReport() {
+    var msD   = msGetReportData();
+    var ciD   = ciGetReportData();
+    var compD = compGetReportData();
+    var ci    = appState.strategy.customerIntelligence || {};
+    var biz   = appState.business || {};
+    var type  = biz.type || 'other';
+
+    var reach = SPR_REACH_DATA[type] || SPR_REACH_DATA.other;
+    var watch = SPR_WATCH_DATA[type] || SPR_WATCH_DATA.other;
+
+    var TYPE_LABELS = { food: 'Food & Hospitality', retail: 'Retail & Products', creative: 'Creative Services', tech: 'Tech & Software', trades: 'Trades & Services', other: 'Business' };
+    var bizName  = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
+    var typeLabel = TYPE_LABELS[type] || 'Business';
+    var locText   = (biz.locations && biz.locations.length > 0)
+      ? (biz.locations[0] === 'Global' ? 'Globally' : biz.locations.join(', '))
+      : '';
+
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var now = new Date();
+    var todayStr = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+
+    /* Section builder */
+    function sprSec(eyebrow, title, headline, bodyHtml, color) {
+      return '<div class="spr-section spr-stage-section" style="border-left:3px solid ' + color + '">'
+        + '<div class="spr-eyebrow" style="color:' + color + '">' + eyebrow + '</div>'
+        + '<div class="spr-title">' + title + '</div>'
+        + '<div class="spr-headline">' + headline + '</div>'
+        + '<div class="spr-body">' + bodyHtml + '</div>'
+        + '</div>';
+    }
+
+    /* ---- HEADER ---- */
+    var headerCard = '<div class="spr-header spr-stage-section">'
+      + '<div class="spr-header-meta">'
+      + '<div class="spr-header-biz">' + bizName + '</div>'
+      + '<div class="spr-header-type">' + typeLabel + (locText ? ' \u00b7 ' + locText : '') + '</div>'
+      + '<div class="spr-header-date">Strategic Plan \u2014 ' + todayStr + '</div>'
+      + '</div>'
+      + '<div class="spr-header-right">'
+      + '<span class="spr-complete-badge">&#10003; Complete</span>'
+      + '<button class="spr-pdf-btn" onclick="window.print()">Download PDF</button>'
+      + '</div>'
+      + '</div>';
+
+    /* ---- SECTION 1: THE MARKET (teal) ---- */
+    var TEAL = 'var(--ob-teal)';
+    var evChips = msD.evidence.map(function(e) {
+      return '<span class="spr-ev-chip" style="color:var(--ob-teal);border-color:var(--ob-teal-rim)">' + e.confidence + ' confidence \u00b7 ' + e.pub + '</span>';
+    }).join('');
+    var s1Body = '<p class="spr-para">' + hlStat(msD.overview, 'var(--ob-teal)') + '</p>'
+      + '<div class="spr-trend-block" style="border-left-color:var(--ob-teal)">'
+      + '<span class="spr-trend-icon">' + msD.trend.icon + '</span>'
+      + '<div><div class="spr-trend-head">' + msD.trend.headline + '</div>'
+      + '<div class="spr-trend-sub">' + msD.trend.body + '</div></div>'
+      + '</div>'
+      + '<div class="spr-chips-row">' + evChips + '</div>';
+    var s1 = sprSec('THE MARKET', 'Market Overview', msD.trend.headline, s1Body, 'var(--ob-teal)');
+
+    /* ---- SECTION 2: WHERE YOU FIT (amber) ---- */
+    var s2Body = '<p class="spr-para spr-para-strong">' + hlStat(msD.gap.body, 'var(--ob-gold)') + '</p>'
+      + '<p class="spr-para spr-para-hint">Large enough to build a profitable niche, focused enough to own a segment.</p>';
+    var s2 = sprSec('WHERE YOU FIT', 'Your Market Position', msD.gap.headline, s2Body, 'var(--ob-gold)');
+
+    /* ---- SECTION 3: YOUR COMPETITION (coral) ---- */
+    var playerCards = (compD.players || []).map(function(p) {
+      return '<div class="spr-player">'
+        + '<div class="spr-player-name">' + p.name + '</div>'
+        + '<div class="spr-player-pos">' + p.pos + '</div>'
+        + '<div class="spr-player-str">&#43;&nbsp;' + p.strength + '</div>'
+        + '<div class="spr-player-weak">\u2212&nbsp;' + p.weakness + '</div>'
+        + '</div>';
+    }).join('');
+    var s3Body = '<p class="spr-para">' + hlStat(compD.overview, 'var(--ob-coral)') + '</p>'
+      + '<div class="spr-players-row">' + playerCards + '</div>'
+      + '<div class="spr-callout" style="border-left-color:var(--ob-coral);background:var(--ob-coral-dim)">'
+      + '<div class="spr-callout-label" style="color:var(--ob-coral)">Where you can win</div>'
+      + '<div class="spr-callout-text">' + compD.whitespace + '</div>'
+      + '</div>';
+    var s3 = sprSec('YOUR COMPETITION', 'Competitive Landscape', 'The uncrowded quadrant is real and reachable.', s3Body, 'var(--ob-coral)');
+
+    /* ---- SECTION 4: YOUR CUSTOMER (green) ---- */
+    var GREEN = '#6dba8a';
+    var GREEN_DIM = 'rgba(109,186,138,0.10)';
+    var GREEN_RIM = 'rgba(109,186,138,0.30)';
+    var demoChips = (ci.demographicChips && ci.demographicChips.length ? ci.demographicChips : ciD.demographics.chips).map(function(c) {
+      return '<span class="spr-demo-chip" style="color:' + GREEN + ';border-color:' + GREEN_RIM + ';background:' + GREEN_DIM + '">' + c + '</span>';
+    }).join('');
+    var jtbdItems = (ciD.jtbd || []).slice(0, 2).map(function(j) {
+      return '<div class="spr-jtbd-item">\u201c' + j + '\u201d</div>';
+    }).join('');
+    var trigChips = (ciD.triggers || []).slice(0, 4).map(function(t) {
+      return '<span class="spr-trig-chip" style="color:' + GREEN + ';border-color:' + GREEN_RIM + ';background:' + GREEN_DIM + '">' + t + '</span>';
+    }).join('');
+    var wtpLabel = ci.wtpLabel || ciD.wtp.label;
+    var wtpSpend = ci.wtpSpend || ciD.wtp.spend;
+    var wtpText  = '<strong style="color:' + GREEN + '">' + wtpLabel + '</strong> willingness to spend — typically <strong style="color:' + GREEN + '">' + wtpSpend + '</strong> per transaction. ' + ciD.wtp.priority + '.';
+    var s4Body = '<div class="spr-chips-row">' + demoChips + '</div>'
+      + '<div class="spr-jtbd-list">' + jtbdItems + '</div>'
+      + '<div class="spr-section-sub-label" style="color:' + GREEN + '">Emotional triggers</div>'
+      + '<div class="spr-chips-row">' + trigChips + '</div>'
+      + '<div class="spr-wtp-row">' + wtpText + '</div>';
+    var s4 = sprSec('YOUR CUSTOMER', 'Customer Profile', ciD.demographics.summary.split('. ')[0] + '.', s4Body, GREEN);
+
+    /* ---- SECTION 5: HOW TO REACH THEM (purple) ---- */
+    var PURPLE = '#9b7fd4';
+    var PURPLE_DIM = 'rgba(155,127,212,0.10)';
+    var chItems = reach.channels.map(function(ch, i) {
+      return '<div class="spr-channel-item"><span class="spr-channel-num" style="color:' + PURPLE + '">' + (i + 1) + '</span>' + ch + '</div>';
+    }).join('');
+    var s5Body = '<div class="spr-channel-list">' + chItems + '</div>'
+      + '<div class="spr-callout" style="border-left-color:' + PURPLE + ';background:' + PURPLE_DIM + '">'
+      + '<div class="spr-callout-label" style="color:' + PURPLE + '">Content angle</div>'
+      + '<div class="spr-callout-text">' + reach.contentAngle + '</div>'
+      + '</div>'
+      + '<div class="spr-callout" style="border-left-color:' + PURPLE + ';background:' + PURPLE_DIM + ';margin-top:10px">'
+      + '<div class="spr-callout-label" style="color:' + PURPLE + '">Sequencing</div>'
+      + '<div class="spr-callout-text">' + reach.timing + '</div>'
+      + '</div>';
+    var s5 = sprSec('HOW TO REACH THEM', 'Go-to-Market Recommendation', 'Start here and build from a base that compounds.', s5Body, PURPLE);
+
+    /* ---- SECTION 6: WHAT TO WATCH (warm grey) ---- */
+    var GREY = '#8a8078';
+    var riskItems = watch.risks.map(function(r) {
+      return '<div class="spr-risk-item">'
+        + '<div class="spr-risk-text">' + r.text + '</div>'
+        + '<span class="spr-risk-chip">' + r.conf + ' signal strength</span>'
+        + '</div>';
+    }).join('');
+    var s6Body = '<div class="spr-risk-list">' + riskItems + '</div>'
+      + '<div class="spr-closing">Your Strategic Plan has <strong style="color:var(--ob-text)">' + watch.signals + ' strong signals</strong> and <strong style="color:var(--ob-text)">' + watch.monitors + ' areas to monitor</strong> as you build.</div>';
+    var s6 = sprSec('WHAT TO WATCH', 'Risk Factors', 'Know what to watch before it becomes a problem.', s6Body, GREY);
+
+    /* ---- ASSEMBLE ---- */
+    var topbar = spTopbar('Back to Strategic Planning', 'setMode(\'strategic-plan\')');
+    var progressBar = '<div class="sp-stage-progress"><div id="spr-bar" class="sp-stage-bar" style="background:var(--ob-gold);width:0%"></div></div>';
+
+    return '<div class="cf-screen">'
+      + topbar
+      + '<div class="ms-body ms-report-body"><div class="ms-report-card">'
+      + headerCard + s1 + s2 + s3 + s4 + s5 + s6
+      + '</div></div>'
+      + progressBar
+      + '</div>';
+  }
+
+  /* ============================================================
+     CONCEPT COMPARISON SCREEN
+     ============================================================ */
+  function screenConceptComparison() {
+    var biz   = appState.business || {};
+    var type  = biz.type || 'other';
+    var msD   = msGetReportData();
+    var ciD   = ciGetReportData();
+    var compD = compGetReportData();
+    var reach = SPR_REACH_DATA[type] || SPR_REACH_DATA.other;
+    var watch = SPR_WATCH_DATA[type] || SPR_WATCH_DATA.other;
+
+    var TYPE_LABELS = { food: 'Food & Hospitality', retail: 'Retail & Products', creative: 'Creative Services', tech: 'Tech & Software', trades: 'Trades & Services', other: 'Business' };
+    var bizName  = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
+    var typeLabel = TYPE_LABELS[type] || 'Business';
+    var locText   = (biz.locations && biz.locations.length)
+      ? (biz.locations[0] === 'Global' ? 'Global' : biz.locations.join(', '))
+      : '';
+
+    var sel    = _ccSelected;
+    var sample = sel ? CC_SAMPLES[sel] : null;
+
+    /* The six comparison dimensions — user data pulled from report data */
+    var DIMS = [
+      { label: 'The Market',        color: 'var(--ob-teal)',  user: msD.trend.headline },
+      { label: 'Where You Fit',     color: 'var(--ob-gold)',  user: msD.gap.headline },
+      { label: 'Your Competition',  color: 'var(--ob-coral)', user: compD.whitespace.slice(0, 100) + '\u2026' },
+      { label: 'Your Customer',     color: '#6dba8a',          user: ciD.triggers[0] },
+      { label: 'How to Reach Them', color: '#9b7fd4',          user: reach.channels[0].split(' \u2014 ')[0].trim() },
+      { label: 'What to Watch',     color: '#8a8078',          user: watch.risks[0].text.slice(0, 95) + '\u2026' }
+    ];
+    var SDIMS = sample ? [sample.market, sample.position, sample.competition, sample.trigger, sample.gtm, sample.risk] : [];
+
+    /* Summary rows list inside a panel */
+    function summaryRows(dims, isUser) {
+      return dims.map(function(d, i) {
+        var text = isUser ? d.user : SDIMS[i];
+        return '<div class="cc-summary-row">'
+          + '<span class="cc-row-cat" style="color:' + d.color + '">' + d.label + '</span>'
+          + '<span class="cc-row-val">' + text + '</span>'
+          + '</div>';
+      }).join('');
+    }
+
+    /* User concept panel */
+    var userPanel = '<div class="cc-panel cc-panel-user">'
+      + '<div class="cc-panel-pill">Your Concept</div>'
+      + '<div class="cc-panel-biz">' + bizName + '</div>'
+      + '<div class="cc-panel-meta">' + typeLabel + (locText ? ' \u00b7 ' + locText : '') + '</div>'
+      + '<div class="cc-divider"></div>'
+      + summaryRows(DIMS, true)
+      + '</div>';
+
+    /* Sample selector panel */
+    var selectorPanel = '<div class="cc-panel cc-panel-select">'
+      + '<div class="cc-panel-pill cc-panel-pill--muted">Compare against</div>'
+      + '<div class="cc-select-hint">Pick a concept to compare side-by-side</div>'
+      + Object.keys(CC_SAMPLES).map(function(k) {
+          var s = CC_SAMPLES[k];
+          return '<div class="cc-sample-card' + (sel === k ? ' active' : '') + '" onclick="ccSelectSample(\'' + k + '\')">'
+            + '<div class="cc-sample-name">' + s.name + '</div>'
+            + '<div class="cc-sample-meta">' + s.typeLabel + ' \u00b7 ' + s.location + '</div>'
+            + '<div class="cc-sample-blurb">' + s.market.slice(0, 72) + '\u2026</div>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+
+    /* Selected sample panel */
+    var samplePanel = sample
+      ? '<div class="cc-panel cc-panel-sample">'
+        + '<div class="cc-panel-pill-row">'
+        + '<div class="cc-panel-pill cc-panel-pill--amber">Comparing Against</div>'
+        + '<button class="cc-change-btn" onclick="ccChangeSample()">Change</button>'
+        + '</div>'
+        + '<div class="cc-panel-biz">' + sample.name + '</div>'
+        + '<div class="cc-panel-meta">' + sample.typeLabel + ' \u00b7 ' + sample.location + '</div>'
+        + '<div class="cc-divider"></div>'
+        + summaryRows(DIMS, false)
+        + '</div>'
+      : '';
+
+    /* Comparison rows (only when a sample is selected) */
+    var compareRows = '';
+    if (sample) {
+      compareRows = '<div class="cc-compare-table">'
+        + DIMS.map(function(d, i) {
+            var winner = sample.winners[i]; /* 'yours' | 'sample' | 'tie' */
+            var uWin = winner === 'yours'  ? '<span class="cc-winner cc-winner-u">Winner</span>' : '';
+            var sWin = winner === 'sample' ? '<span class="cc-winner cc-winner-s">Winner</span>' : '';
+            var tie  = winner === 'tie'    ? '<span class="cc-winner cc-winner-t">Tie</span>'    : '';
+            return '<div class="cc-cr">'
+              + '<div class="cc-cr-header" style="color:' + d.color + ';border-left-color:' + d.color + '">' + d.label + '</div>'
+              + '<div class="cc-cr-cells">'
+              + '<div class="cc-cr-cell cc-cr-u">' + d.user     + uWin + '</div>'
+              + '<div class="cc-cr-cell cc-cr-s">' + SDIMS[i]   + sWin + tie + '</div>'
+              + '</div>'
+              + '</div>';
+          }).join('')
+        + '</div>';
+    }
+
+    /* AI Recommendation card */
+    var aiCard = sample
+      ? '<div class="cc-ai-card">'
+        + '<div class="cc-ai-eyebrow">AI Recommendation</div>'
+        + '<div class="cc-ai-body">' + sample.aiRec + '</div>'
+        + '</div>'
+      : '';
+
+    var cols = sel
+      ? '<div class="cc-two-col">' + userPanel + samplePanel + '</div>'
+      : '<div class="cc-two-col">' + userPanel + selectorPanel + '</div>';
+
+    return '<div class="sp-hub-wrap">'
+      + spTopbar('Back to Strategic Planning', 'setMode(\'strategic-plan\')')
+      + '<div class="cc-body">'
+      + '<div class="cc-page-heading">Compare Concepts</div>'
+      + '<div class="cc-page-sub">' + (sel ? 'Comparing <strong>' + bizName + '</strong> against <strong>' + sample.name + '</strong>' : 'Select a concept below to compare against your plan') + '</div>'
+      + cols
+      + compareRows
+      + aiCard
+      + '</div>'
+      + '</div>';
+  }
+
+  return { init: init, screenStrategyFlow: screenStrategyFlow, screenStrategicPlanReport: screenStrategicPlanReport, screenConceptComparison: screenConceptComparison };
 })();
 
-window.screenStrategyFlow = function () { return StrategyFlow.screenStrategyFlow(); };
+window.screenStrategyFlow          = function () { return StrategyFlow.screenStrategyFlow(); };
+window.screenStrategicPlanReport   = function () { return StrategyFlow.screenStrategicPlanReport(); };
+window.viewStrategicPlanReport     = function () { setMode('strategic-plan-report'); };
+window.screenConceptComparison     = function () { return StrategyFlow.screenConceptComparison(); };
+window.viewConceptComparison       = function () { _ccSelected = null; setMode('concept-comparison'); };
+window.ccSelectSample              = function (k) { _ccSelected = k; renderContent(); };
+window.ccChangeSample              = function ()  { _ccSelected = null; renderContent(); };
+
+/* Staged reveal for the unified report — targets .spr-stage-section + #spr-bar */
+window.stageRevealUnifiedReport = function () {
+  var sections = document.querySelectorAll('.spr-stage-section');
+  var total    = sections.length;
+  if (!total) return;
+  var bar = document.getElementById('spr-bar');
+  sections.forEach(function (s) { s.classList.remove('revealed'); });
+  if (bar) bar.style.width = '0%';
+  sections.forEach(function (s, i) {
+    setTimeout(function () {
+      s.classList.add('revealed');
+      if (bar) bar.style.width = Math.round(((i + 1) / total) * 100) + '%';
+    }, 120 + i * 360);
+  });
+};
 
 /* ============================================================
    GLOBAL EVENT HANDLERS
    ============================================================ */
 
-window.spGoWelcome = function () { appState.onboarding = { step: 1, authMode: 'signup', subStep: 1 }; appState.business = { name: '', description: '', type: null }; setMode('onboarding'); };
+window.spGoWelcome = function () { appState.onboarding = { step: 1, authMode: 'signup', subStep: 1 }; appState.business = { name: '', description: '', type: null, locations: [] }; setMode('onboarding'); };
 
 window.spGoHub = function () { appState.strategyFlow.screen = 'hub'; renderContent(); };
 

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="onboarding/onboarding.css?v=5">
-<link rel="stylesheet" href="studio-strategy/strategy-flow.css?v=4">
+<link rel="stylesheet" href="studio-strategy/strategy-flow.css?v=6">
 <link rel="stylesheet" href="studio-persona/persona-flow.css?v=4">
 <link rel="stylesheet" href="studio-text/studio-text.css?v=6">
 <link rel="stylesheet" href="studio-image/studio-image.css?v=4">
@@ -903,6 +903,8 @@ function setMode(mode) {
   if (mode === 'wizard') appState.screen = 'create-flow';
   else if (mode === 'library') appState.screen = 'library';
   else if (mode === 'report-library') appState.screen = 'report-library';
+  else if (mode === 'strategic-plan-report') appState.screen = 'strategic-plan-report';
+  else if (mode === 'concept-comparison') appState.screen = 'concept-comparison';
   else if (mode === 'campaign') appState.screen = 'campaign';
   else if (mode === 'onboarding') appState.screen = 'onboarding';
   else if (mode === 'strategic-plan') appState.screen = 'strategic-plan';
@@ -1090,6 +1092,28 @@ function screenReportLibrary() {
   var ciCard   = makeCard(CI_COLOR,   'ci',   'Customer Intelligence', 'Customer Intelligence Report', strat.customerIntelligence, getCiSummary());
   var compCard = makeCard(COMP_COLOR, 'comp', 'Competition',           'Competition Report',           strat.competition,          getCompSummary());
 
+  /* ---- Unified Strategic Plan card (shown only when all 3 modules complete) ---- */
+  var allDone = !!(strat.marketScan && strat.customerIntelligence && strat.competition);
+  var planCard = '';
+  if (allDone) {
+    var latestTs = Math.max(
+      strat.marketScan.savedAt || 0,
+      strat.customerIntelligence.savedAt || 0,
+      strat.competition.savedAt || 0
+    );
+    planCard = '<div class="lib-card lib-plan-card">'
+      + '<div class="lib-card-accent" style="background:var(--ob-gold)"></div>'
+      + '<div class="lib-card-body">'
+      + '<div class="lib-card-module" style="color:var(--ob-gold)">Strategic Plan</div>'
+      + '<div class="lib-card-title">Your Unified Strategic Plan</div>'
+      + '<div class="lib-card-summary">All three modules synthesised into one complete strategic document — market, customer, competition, channels, and risks.</div>'
+      + '<div class="lib-card-meta">' + fmtDate(latestTs) + '</div>'
+      + '<div class="lib-card-actions">'
+      + '<button class="lib-btn-view" style="background:var(--ob-gold)" onclick="viewStrategicPlanReport()">View full plan &#8594;</button>'
+      + '</div>'
+      + '</div></div>';
+  }
+
   var topbar = '<div class="lib-topbar">'
     + '<button class="lib-back-btn" onclick="setMode(\'home\')">&#8592; Back to home</button>'
     + '<div class="lib-topbar-brand">Clarity</div>'
@@ -1101,7 +1125,7 @@ function screenReportLibrary() {
     + '<div class="lib-body">'
     + '<div class="lib-heading">Your Reports</div>'
     + '<div class="lib-sub">Everything Clarity has researched and saved for <strong style="color:var(--ob-text)">' + bizName + '</strong>.</div>'
-    + '<div class="lib-cards">' + msCard + ciCard + compCard + '</div>'
+    + '<div class="lib-cards">' + planCard + msCard + ciCard + compCard + '</div>'
     + '</div>'
     + '</div>';
 }
@@ -1190,6 +1214,17 @@ function renderApp() {
 
   if (mode === 'report-library') {
     el.innerHTML = screenReportLibrary();
+    return;
+  }
+
+  if (mode === 'strategic-plan-report') {
+    el.innerHTML = window.screenStrategicPlanReport ? window.screenStrategicPlanReport() : '';
+    if (window.stageRevealUnifiedReport) requestAnimationFrame(window.stageRevealUnifiedReport);
+    return;
+  }
+
+  if (mode === 'concept-comparison') {
+    el.innerHTML = window.screenConceptComparison ? window.screenConceptComparison() : '';
     return;
   }
 
@@ -1288,7 +1323,7 @@ window.addEventListener('load', init);
 
 </script>
 <script src="onboarding/onboarding.js?v=4"></script>
-<script src="studio-strategy/strategy-flow.js?v=9"></script>
+<script src="studio-strategy/strategy-flow.js?v=12"></script>
 <script src="studio-persona/persona-flow.js?v=3"></script>
 <script src="studio-create/create-flow.js?v=13"></script>
 <script src="studio-campaign/campaign-flow.js?v=13"></script>
