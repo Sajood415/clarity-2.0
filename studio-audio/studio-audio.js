@@ -31,7 +31,7 @@ var StudioAudio = (function () {
 
   var SA_TRIO = [
     { tag: 'H', color: '#34d399', name: 'Aria', role: 'Host — deep, anchoring' },
-    { tag: 'C', color: '#6366f1', name: 'Max',  role: 'Co-host — high-energy' },
+    { tag: 'C', color: '#d4a853', name: 'Max',  role: 'Co-host — high-energy' },
     { tag: 'E', color: '#f59e0b', name: 'Lila', role: 'Expert — neutral, measured' }
   ];
 

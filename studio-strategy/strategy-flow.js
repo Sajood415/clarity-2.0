@@ -184,8 +184,12 @@ var StrategyFlow = (function () {
       + '<button class="btn sp-btn-save" onclick="' + opts.saveAction + '()">Looks good, save this &#8594;</button>'
       + '</div>';
 
+    var isLib   = !!(state.libraryMode);
+    var backLbl = isLib ? 'Back to library'  : 'Back to Strategic Planning';
+    var backFn  = isLib ? 'libGoBack()'      : 'spGoHub()';
+
     return '<div class="cf-screen">'
-      + spTopbar('Back to Strategic Planning', 'spGoHub()')
+      + spTopbar(backLbl, backFn)
       + '<div class="ms-body ms-report-body"><div class="ms-report-card">'
       + header + opts.sections.join('') + '</div></div>'
       + progressBar
@@ -537,6 +541,11 @@ var StrategyFlow = (function () {
     return spScreenHub();
   }
 
+  /* ---- Library summary getters (called from screenReportLibrary) ---- */
+  window.msReportSummary   = function () { var d = msGetReportData();   return { gapHeadline: d.gap.headline, gapText: d.gap.body.slice(0, 110) }; };
+  window.ciReportSummary   = function () { var d = ciGetReportData();   return { topTrigger: d.triggers[0], wtpLabel: d.wtp.label, wtpSpend: d.wtp.spend }; };
+  window.compReportSummary = function () { var d = compGetReportData(); return { whitespace: d.whitespace.slice(0, 120) }; };
+
   return { init: init, screenStrategyFlow: screenStrategyFlow };
 })();
 
@@ -621,21 +630,64 @@ window.compStartLoading = function () { runLoadingPhases(['Scanning your competi
 
 /* Market Scan */
 window.msRunScan     = function () { var e = document.getElementById('ms-focus-input'); if (e) appState.strategyFlow.marketScan.focus = e.value; appState.strategyFlow.marketScan.step = 2; renderContent(); };
-window.msSaveReport  = function () { appState.strategy.marketScan = { savedAt: Date.now(), type: (appState.business || {}).type || 'other' }; appState.strategyFlow.screen = 'hub'; renderContent(); };
+window.msSaveReport  = function () {
+  var s = window.msReportSummary ? window.msReportSummary() : {};
+  appState.strategy.marketScan = { savedAt: Date.now(), type: (appState.business || {}).type || 'other', gapHeadline: s.gapHeadline || '', gapText: s.gapText || '' };
+  if (appState.libraryMode) { appState.libraryMode = false; setMode('report-library'); }
+  else { appState.strategyFlow.screen = 'hub'; renderContent(); }
+};
 window.msRerunScan   = function () { appState.strategy.marketScan = null; appState.strategyFlow.marketScan = { step: 1, focus: (appState.strategyFlow.marketScan || {}).focus || '' }; appState.strategyFlow.screen = 'market-scan'; renderContent(); };
 window.msFocusInput  = function (v) { if (!appState.strategyFlow.marketScan) appState.strategyFlow.marketScan = { step: 1, focus: '' }; appState.strategyFlow.marketScan.focus = v; };
 
 /* Customer Intelligence */
 window.ciRunScan     = function () { var e = document.getElementById('ci-focus-input'); if (!appState.strategyFlow.customerIntel) appState.strategyFlow.customerIntel = { step: 1, focus: '' }; if (e) appState.strategyFlow.customerIntel.focus = e.value; appState.strategyFlow.customerIntel.step = 2; renderContent(); };
-window.ciSaveReport  = function () { appState.strategy.customerIntelligence = { savedAt: Date.now(), type: (appState.business || {}).type || 'other' }; appState.strategyFlow.screen = 'hub'; renderContent(); };
+window.ciSaveReport  = function () {
+  var s = window.ciReportSummary ? window.ciReportSummary() : {};
+  appState.strategy.customerIntelligence = { savedAt: Date.now(), type: (appState.business || {}).type || 'other', topTrigger: s.topTrigger || '', wtpLabel: s.wtpLabel || '', wtpSpend: s.wtpSpend || '' };
+  if (appState.libraryMode) { appState.libraryMode = false; setMode('report-library'); }
+  else { appState.strategyFlow.screen = 'hub'; renderContent(); }
+};
 window.ciRerunScan   = function () { appState.strategy.customerIntelligence = null; appState.strategyFlow.customerIntel = { step: 1, focus: (appState.strategyFlow.customerIntel || {}).focus || '' }; appState.strategyFlow.screen = 'customer-intel'; renderContent(); };
 window.ciFocusInput  = function (v) { if (!appState.strategyFlow.customerIntel) appState.strategyFlow.customerIntel = { step: 1, focus: '' }; appState.strategyFlow.customerIntel.focus = v; };
 
 /* Competition */
 window.compRunScan    = function () { var e = document.getElementById('comp-focus-input'); if (!appState.strategyFlow.competition) appState.strategyFlow.competition = { step: 1, focus: '' }; if (e) appState.strategyFlow.competition.focus = e.value; appState.strategyFlow.competition.step = 2; renderContent(); };
-window.compSaveReport = function () { appState.strategy.competition = { savedAt: Date.now(), type: (appState.business || {}).type || 'other' }; appState.strategyFlow.screen = 'hub'; renderContent(); };
+window.compSaveReport = function () {
+  var s = window.compReportSummary ? window.compReportSummary() : {};
+  appState.strategy.competition = { savedAt: Date.now(), type: (appState.business || {}).type || 'other', whitespace: s.whitespace || '' };
+  if (appState.libraryMode) { appState.libraryMode = false; setMode('report-library'); }
+  else { appState.strategyFlow.screen = 'hub'; renderContent(); }
+};
 window.compRerunScan  = function () { appState.strategy.competition = null; appState.strategyFlow.competition = { step: 1, focus: (appState.strategyFlow.competition || {}).focus || '' }; appState.strategyFlow.screen = 'competition'; renderContent(); };
 window.compFocusInput = function (v) { if (!appState.strategyFlow.competition) appState.strategyFlow.competition = { step: 1, focus: '' }; appState.strategyFlow.competition.focus = v; };
+
+/* ============================================================
+   LIBRARY — back navigation and view/rerun from report library
+   ============================================================ */
+
+/* Return from a report to the library */
+window.libGoBack = function () {
+  appState.libraryMode = false;
+  setMode('report-library');
+};
+
+/* Open a module's report screen from the library */
+window.libViewReport = function (mod) {
+  appState.libraryMode = true;
+  appState.mode = 'strategic-plan';
+  if (mod === 'ms')   window.spGoMarketScan();
+  else if (mod === 'ci')   window.spGoCustomerIntel();
+  else if (mod === 'comp') window.spGoCompetition();
+};
+
+/* Re-run a module from the library (reset + go to context screen) */
+window.libRerunModule = function (mod) {
+  appState.libraryMode = false;
+  appState.mode = 'strategic-plan';
+  if (mod === 'ms')   window.msRerunScan();
+  else if (mod === 'ci')   window.ciRerunScan();
+  else if (mod === 'comp') window.compRerunScan();
+};
 
 /* ============================================================
    STAGED REVEAL — animates sections in 400ms apart

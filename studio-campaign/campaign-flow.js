@@ -26,7 +26,7 @@ var CampaignFlow = (function () {
     Instagram: { color: '#e1306c', icon: '&#9679;' },
     Facebook:  { color: '#1877f2', icon: 'f' },
     X:         { color: '#1d9bf0', icon: '&#10005;' },
-    Email:     { color: '#6366f1', icon: '&#9993;' },
+    Email:     { color: '#d4a853', icon: '&#9993;' },
     YouTube:   { color: '#ff0000', icon: '&#9654;' }
   };
   var _claraTimer = null;
@@ -1055,7 +1055,7 @@ var CampaignFlow = (function () {
         + '</div>';
     }
     // text (default)
-    var pm = CP_PLATFORM_META[a.platform] || { color: '#6366f1', icon: '&#9679;' };
+    var pm = CP_PLATFORM_META[a.platform] || { color: '#d4a853', icon: '&#9679;' };
     return '<div class="cp-asset-thumb cp-asset-thumb-text" style="border-top:2px solid ' + pm.color + ';">'
       + '<div class="cp-asset-thumb-header">'
       + '<span class="cp-asset-thumb-avatar" style="background:' + pm.color + '22;color:' + pm.color + ';">HB</span>'

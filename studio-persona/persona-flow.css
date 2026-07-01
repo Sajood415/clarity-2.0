@@ -105,7 +105,7 @@
 .pf-field input:focus,
 .pf-field textarea:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+  box-shadow: 0 0 0 3px rgba(212,168,83,0.1);
 }
 
 .pf-field input::placeholder,
@@ -147,7 +147,7 @@
 }
 
 .pf-care-chip:hover {
-  border-color: rgba(99,102,241,0.4);
+  border-color: rgba(212,168,83,0.4);
   color: var(--text);
 }
 
@@ -156,7 +156,7 @@
   border-color: var(--primary);
   color: var(--primary-hover);
   font-weight: 600;
-  box-shadow: 0 0 0 2px rgba(99,102,241,0.1);
+  box-shadow: 0 0 0 2px rgba(212,168,83,0.1);
 }
 
 /* ============================================================
@@ -185,7 +185,7 @@
   height: 52px;
   border-radius: 50%;
   background: var(--primary-dim);
-  border: 2px solid rgba(99,102,241,0.3);
+  border: 2px solid rgba(212,168,83,0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -266,7 +266,7 @@
   font-size: 12px;
   font-weight: 500;
   background: var(--primary-dim);
-  border: 1px solid rgba(99,102,241,0.3);
+  border: 1px solid rgba(212,168,83,0.3);
   color: var(--primary-hover);
 }
 
@@ -411,7 +411,7 @@
   font-size: 11px;
   font-weight: 500;
   background: var(--primary-dim);
-  border: 1px solid rgba(99,102,241,0.25);
+  border: 1px solid rgba(212,168,83,0.25);
   color: var(--primary-hover);
 }
 

@@ -32,12 +32,12 @@ var StudioImage = (function () {
     Pinterest: [{ id: 'Pin 2:3', aspect: '4:5', dims: '1000×1500' }]
   };
   var SI_THEMES = {
-    sourdough: { photo: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=900&q=80', bg: 'linear-gradient(160deg,rgba(26,26,46,0.55) 0%,rgba(77,29,149,0.72) 100%)', accent: '#34d399', headline: 'The Art of<br>Slow Growth', sub: 'Hearth · Summer 2026', logo: 'HEARTH' },
-    modality: { photo: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=900&q=80', bg: 'linear-gradient(160deg,rgba(14,19,32,0.5) 0%,rgba(99,102,241,0.65) 100%)', accent: '#6366f1', headline: 'Modality-First.<br>Campaign-Anchored.', sub: 'Clarity Content Studio', logo: 'CLARITY' },
-    split: { photo: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&q=80', bg: 'linear-gradient(90deg,rgba(14,19,32,0.88) 48%,rgba(38,44,64,0.4) 52%)', accent: '#f59e0b', headline: '12 tools<br>vs 1 platform', sub: 'Before → After', logo: '' },
+    sourdough: { photo: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=900&q=80', bg: 'linear-gradient(160deg,rgba(26,26,46,0.55) 0%,rgba(77,29,149,0.72) 100%)', accent: '#2dd4bf', headline: 'The Art of<br>Slow Growth', sub: 'Hearth · Summer 2026', logo: 'HEARTH' },
+    modality: { photo: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=900&q=80', bg: 'linear-gradient(160deg,rgba(18,16,14,0.5) 0%,rgba(212,168,83,0.65) 100%)', accent: '#d4a853', headline: 'Modality-First.<br>Campaign-Anchored.', sub: 'Clarity Content Studio', logo: 'CLARITY' },
+    split: { photo: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&q=80', bg: 'linear-gradient(90deg,rgba(18,16,14,0.88) 48%,rgba(28,25,22,0.4) 52%)', accent: '#f59e0b', headline: '12 tools<br>vs 1 platform', sub: 'Before → After', logo: '' },
     bakery: { photo: 'https://images.unsplash.com/photo-1585478259719-afa9a03f7c78?w=900&q=80', bg: 'linear-gradient(145deg,rgba(45,24,16,0.45),rgba(92,61,46,0.75))', accent: '#ffb84a', headline: 'Sourdough<br>Saturday', sub: 'Pre-orders open 🍞', logo: 'HEARTH' },
     product: { photo: 'https://images.unsplash.com/photo-1611162617474-5b21e939e227?w=900&q=80', bg: 'linear-gradient(160deg,rgba(23,29,46,0.4) 0%,rgba(67,56,202,0.75) 100%)', accent: '#818cf8', headline: 'Studio Image<br>Launch', sub: 'Product feature spotlight', logo: 'CLARITY' },
-    ferment: { photo: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=900&q=80', bg: 'linear-gradient(180deg,rgba(10,22,40,0.35),rgba(19,78,74,0.72))', accent: '#34d399', headline: '72-Hour<br>Cold Ferment', sub: 'Process · Behind the scenes', logo: 'HEARTH' },
+    ferment: { photo: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=900&q=80', bg: 'linear-gradient(180deg,rgba(10,22,40,0.35),rgba(19,78,74,0.72))', accent: '#2dd4bf', headline: '72-Hour<br>Cold Ferment', sub: 'Process · Behind the scenes', logo: 'HEARTH' },
     ad: { photo: 'https://images.unsplash.com/photo-1493770348161-369769ae3570?w=900&q=80', bg: 'linear-gradient(135deg,rgba(28,25,23,0.55),rgba(68,64,60,0.78))', accent: '#f59e0b', headline: 'Craft over<br>convenience', sub: 'Limited batch · This week', logo: 'HEARTH' }
   };
   var SI_VARIATIONS = [
@@ -688,7 +688,7 @@ var StudioImage = (function () {
       + '<div class="card" style="padding:14px;"><div class="label">Brand Kit</div>'
       + '<div style="font-size:12px;color:var(--muted);line-height:1.6;">Colors, logo, and typography applied' + (w.brandKitLock ? ' · Locked ✓' : '') + '</div>'
       + '<div style="display:flex;gap:6px;margin-top:10px;">'
-      + ['#6366f1', '#f59e0b', '#34d399', '#0e1320'].map(function (c) {
+      + ['#d4a853', '#f59e0b', '#2dd4bf', '#12100e'].map(function (c) {
           return '<div style="width:24px;height:24px;border-radius:6px;background:' + c + ';border:1px solid var(--border);"></div>';
         }).join('')
       + '</div></div></div></div>';

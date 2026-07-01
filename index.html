@@ -9,10 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="onboarding/onboarding.css?v=3">
 <link rel="stylesheet" href="studio-strategy/strategy-flow.css?v=3">
-<link rel="stylesheet" href="studio-persona/persona-flow.css?v=2">
-<link rel="stylesheet" href="studio-text/studio-text.css?v=5">
+<link rel="stylesheet" href="studio-persona/persona-flow.css?v=3">
+<link rel="stylesheet" href="studio-text/studio-text.css?v=6">
 <link rel="stylesheet" href="studio-image/studio-image.css?v=4">
-<link rel="stylesheet" href="studio-video/studio-video.css?v=3">
+<link rel="stylesheet" href="studio-video/studio-video.css?v=4">
 <link rel="stylesheet" href="studio-create/create-flow.css?v=9">
 <link rel="stylesheet" href="studio-campaign/campaign-flow.css?v=9">
 <style>
@@ -510,6 +510,204 @@ a { text-decoration: none; color: inherit; }
   background: var(--primary-hover);
   flex-shrink: 0;
 }
+
+/* ================================================================
+   REPORT LIBRARY SCREEN
+   ================================================================ */
+.lib-screen {
+  min-height: 100vh;
+  background: var(--ob-bg);
+  color: var(--ob-text);
+  display: flex;
+  flex-direction: column;
+}
+
+.lib-topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--ob-border);
+  background: var(--ob-surface);
+  flex-shrink: 0;
+}
+
+.lib-topbar-brand {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ob-gold);
+  pointer-events: none;
+}
+
+.lib-back-btn {
+  font-size: 13px;
+  color: var(--ob-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  font-family: 'DM Sans', sans-serif;
+  transition: color 0.15s;
+}
+.lib-back-btn:hover { color: var(--ob-text); }
+
+.lib-body {
+  max-width: 740px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 48px 32px 96px;
+}
+
+.lib-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--ob-text);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.lib-sub {
+  font-size: 14px;
+  color: var(--ob-muted);
+  margin-bottom: 36px;
+  line-height: 1.55;
+}
+
+.lib-cards { display: flex; flex-direction: column; gap: 14px; }
+
+.lib-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--ob-surface);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.lib-card:not(.locked):hover { box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+
+.lib-card.locked { opacity: 0.5; }
+
+.lib-card-accent {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.lib-card-body {
+  flex: 1;
+  padding: 20px 22px;
+  min-width: 0;
+}
+
+.lib-card-module {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 5px;
+  opacity: 0.85;
+}
+
+.lib-card-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ob-text);
+  margin-bottom: 7px;
+  font-family: 'Cormorant Garamond', serif;
+  letter-spacing: -0.01em;
+}
+
+.lib-card-summary {
+  font-size: 13px;
+  color: var(--ob-muted);
+  line-height: 1.6;
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lib-card-meta {
+  font-size: 10px;
+  color: var(--ob-muted);
+  margin-bottom: 14px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+}
+
+.lib-card-not-run {
+  font-size: 13px;
+  color: var(--ob-muted);
+  font-style: italic;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.lib-card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.lib-btn-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  color: #12100e;
+  font-family: 'DM Sans', sans-serif;
+  transition: filter 0.15s;
+}
+.lib-btn-view:hover { filter: brightness(1.1); }
+
+.lib-btn-rerun,
+.lib-btn-run-now {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--ob-border);
+  background: transparent;
+  color: var(--ob-muted);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: color 0.15s, border-color 0.15s;
+}
+.lib-btn-rerun:hover,
+.lib-btn-run-now:hover {
+  color: var(--ob-text);
+  border-color: rgba(255,255,255,0.2);
+}
+
+/* Home screen saved-reports link */
+.home-reports-link {
+  margin-top: 14px;
+  font-size: 13px;
+}
+.home-reports-link a {
+  color: var(--ob-gold);
+  text-decoration: none;
+  font-weight: 500;
+}
+.home-reports-link a:hover { text-decoration: underline; }
+
+@media (max-width: 700px) {
+  .lib-body { padding: 32px 20px 60px; }
+  .lib-topbar { padding: 12px 20px; }
+}
 </style>
 </head>
 <body>
@@ -625,6 +823,7 @@ function setMode(mode) {
   /* Keep appState.screen in sync for backward compat with module files */
   if (mode === 'wizard') appState.screen = 'create-flow';
   else if (mode === 'library') appState.screen = 'library';
+  else if (mode === 'report-library') appState.screen = 'report-library';
   else if (mode === 'campaign') appState.screen = 'campaign';
   else if (mode === 'onboarding') appState.screen = 'onboarding';
   else if (mode === 'strategic-plan') appState.screen = 'strategic-plan';
@@ -725,10 +924,106 @@ function screenHome() {
       + '</div>';
   }
 
+  /* Saved-reports link — only if at least one Strategic Planning report exists */
+  var strat = appState.strategy || {};
+  var hasReports = !!(strat.marketScan || strat.customerIntelligence || strat.competition);
+  var reportsLinkHtml = hasReports
+    ? '<div class="home-reports-link"><a href="#" onclick="setMode(\'report-library\'); return false;">View your saved reports &rarr;</a></div>'
+    : '';
+
   return '<div class="home-wrap">'
     + '<div class="home-brand"><span class="home-brand-name"><em>Clarity</em> Content Studio</span><span class="home-brand-meta">v3</span></div>'
-    + '<div class="home-center">' + nudgeHtml + cardsHtml + '</div>'
+    + '<div class="home-center">' + nudgeHtml + cardsHtml + reportsLinkHtml + '</div>'
     + toggleHtml
+    + '</div>';
+}
+
+/* ===================== REPORT LIBRARY ===================== */
+function screenReportLibrary() {
+  var biz    = appState.business  || {};
+  var strat  = appState.strategy  || {};
+  var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'your business';
+  var months  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function fmtDate(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    return 'Saved ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  /* Get summary text — prefer stored fields, fall back to live data getter */
+  function getMsSummary() {
+    var ms = strat.marketScan;
+    if (!ms) return '';
+    if (ms.gapHeadline) return ms.gapHeadline + (ms.gapText ? ' — ' + ms.gapText : '');
+    return window.msReportSummary ? window.msReportSummary().gapHeadline : 'Market gap opportunity identified.';
+  }
+  function getCiSummary() {
+    var ci = strat.customerIntelligence;
+    if (!ci) return '';
+    if (ci.topTrigger) return 'Primary trigger: ' + ci.topTrigger + (ci.wtpLabel ? ' · ' + ci.wtpLabel + ' willingness to spend (' + ci.wtpSpend + ')' : '');
+    if (window.ciReportSummary) { var s = window.ciReportSummary(); return 'Primary trigger: ' + s.topTrigger + ' · ' + s.wtpLabel + ' willingness to spend'; }
+    return 'Customer triggers and purchase patterns mapped.';
+  }
+  function getCompSummary() {
+    var co = strat.competition;
+    if (!co) return '';
+    if (co.whitespace) return co.whitespace;
+    return window.compReportSummary ? window.compReportSummary().whitespace : 'Competitive whitespace opportunity identified.';
+  }
+
+  var MS_COLOR   = '#d4a853';
+  var CI_COLOR   = '#2dd4bf';
+  var COMP_COLOR = '#e07b6a';
+
+  function makeCard(color, modKey, moduleLabel, reportTitle, saved, summaryText) {
+    var accentBar = '<div class="lib-card-accent" style="background:' + color + '"></div>';
+    var modEye    = '<div class="lib-card-module" style="color:' + color + '">' + moduleLabel + '</div>';
+
+    if (!saved) {
+      return '<div class="lib-card locked">'
+        + accentBar
+        + '<div class="lib-card-body">'
+        + modEye
+        + '<div class="lib-card-title">' + reportTitle + '</div>'
+        + '<div class="lib-card-not-run">This module hasn\'t been run yet.</div>'
+        + '<div class="lib-card-actions">'
+        + '<button class="lib-btn-run-now" onclick="setMode(\'strategic-plan\')">Run now &rarr;</button>'
+        + '</div>'
+        + '</div></div>';
+    }
+
+    return '<div class="lib-card">'
+      + accentBar
+      + '<div class="lib-card-body">'
+      + modEye
+      + '<div class="lib-card-title">' + reportTitle + '</div>'
+      + '<div class="lib-card-summary">' + summaryText + '</div>'
+      + '<div class="lib-card-meta">' + fmtDate(saved.savedAt) + '</div>'
+      + '<div class="lib-card-actions">'
+      + '<button class="lib-btn-view" style="background:' + color + '" onclick="libViewReport(\'' + modKey + '\')">View full report &rarr;</button>'
+      + '<button class="lib-btn-rerun" onclick="libRerunModule(\'' + modKey + '\')">&#8635; Re-run</button>'
+      + '</div>'
+      + '</div></div>';
+  }
+
+  var msCard   = makeCard(MS_COLOR,   'ms',   'Market Scan',          'Market Scan Report',          strat.marketScan,           getMsSummary());
+  var ciCard   = makeCard(CI_COLOR,   'ci',   'Customer Intelligence', 'Customer Intelligence Report', strat.customerIntelligence, getCiSummary());
+  var compCard = makeCard(COMP_COLOR, 'comp', 'Competition',           'Competition Report',           strat.competition,          getCompSummary());
+
+  var topbar = '<div class="lib-topbar">'
+    + '<button class="lib-back-btn" onclick="setMode(\'home\')">&#8592; Back to home</button>'
+    + '<div class="lib-topbar-brand">Clarity</div>'
+    + '<div style="width:140px"></div>'
+    + '</div>';
+
+  return '<div class="lib-screen">'
+    + topbar
+    + '<div class="lib-body">'
+    + '<div class="lib-heading">Your Reports</div>'
+    + '<div class="lib-sub">Everything Clarity has researched and saved for <strong style="color:var(--ob-text)">' + bizName + '</strong>.</div>'
+    + '<div class="lib-cards">' + msCard + ciCard + compCard + '</div>'
+    + '</div>'
     + '</div>';
 }
 
@@ -814,6 +1109,11 @@ function renderApp() {
     return;
   }
 
+  if (mode === 'report-library') {
+    el.innerHTML = screenReportLibrary();
+    return;
+  }
+
   if (mode === 'home') {
     el.innerHTML = screenHome();
     return;
@@ -879,13 +1179,13 @@ window.addEventListener('load', init);
 
 </script>
 <script src="onboarding/onboarding.js?v=3"></script>
-<script src="studio-strategy/strategy-flow.js?v=6"></script>
+<script src="studio-strategy/strategy-flow.js?v=7"></script>
 <script src="studio-persona/persona-flow.js?v=2"></script>
-<script src="studio-create/create-flow.js?v=12"></script>
-<script src="studio-campaign/campaign-flow.js?v=12"></script>
-<script src="studio-text/studio-text.js?v=8"></script>
-<script src="studio-image/studio-image.js?v=7"></script>
-<script src="studio-video/studio-video.js?v=5"></script>
+<script src="studio-create/create-flow.js?v=13"></script>
+<script src="studio-campaign/campaign-flow.js?v=13"></script>
+<script src="studio-text/studio-text.js?v=9"></script>
+<script src="studio-image/studio-image.js?v=8"></script>
+<script src="studio-video/studio-video.js?v=6"></script>
 <script>OnboardingFlow.init(appState); StrategyFlow.init(appState); PersonaFlow.init(appState); CreateFlow.init(appState); CampaignFlow.init(appState); StudioText.init(appState); StudioImage.init(appState); StudioVideo.init(appState);</script>
 
 <!-- Clarity Content Studio — Text, Image, Video, Audio -->

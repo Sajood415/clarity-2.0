@@ -114,7 +114,7 @@ var CreateFlow = (function () {
   }
   function cfModalityOpts(f) {
     if (f.modality === 'image') {
-      if (!f.imageOpts) f.imageOpts = { styleDir: 'Editorial craft', palette: (appState.cfPrefs.colors || ['#6366f1'])[0], textOverlay: true };
+      if (!f.imageOpts) f.imageOpts = { styleDir: 'Editorial craft', palette: (appState.cfPrefs.colors || ['#d4a853'])[0], textOverlay: true };
       return f.imageOpts;
     }
     if (f.modality === 'video') {
@@ -319,7 +319,7 @@ var CreateFlow = (function () {
     state.createdItems = cfSampleLibraryItems();
     state.cfPrefs = {
       brandKitLock: true, style: 'Warm craft', tones: ['Warm', 'Authentic'],
-      colors: ['#6366f1', '#f59e0b', '#34d399', '#0e1320'],
+      colors: ['#d4a853', '#f59e0b', '#2dd4bf', '#12100e'],
       voice: 'Hearth Bakery', logoPlacement: 'Bottom-right'
     };
     state.cfPrefDrawerOpen = false;
@@ -770,8 +770,8 @@ var CreateFlow = (function () {
   }
 
   var CF_VAR_PALETTES = [
-    { bg: 'linear-gradient(135deg,#1a1f35 0%,#2d1b4e 100%)', accent: '#a78bfa' },
-    { bg: 'linear-gradient(135deg,#0d2137 0%,#1a3a2e 100%)', accent: '#34d399' },
+    { bg: 'linear-gradient(135deg,#12100e 0%,#1c1916 100%)', accent: '#d4a853' },
+    { bg: 'linear-gradient(135deg,#0d2137 0%,#1a3a2e 100%)', accent: '#2dd4bf' },
     { bg: 'linear-gradient(135deg,#2a1a0e 0%,#1c1c2e 100%)', accent: '#f59e0b' }
   ];
   var CF_PLATFORM_META = {
@@ -782,7 +782,7 @@ var CreateFlow = (function () {
     TikTok:    { color: '#010101', icon: '&#9835;', handle: '@hearthbakery',    followers: '31k followers' },
     YouTube:   { color: '#ff0000', icon: '&#9654;', handle: 'Hearth Bakery',    followers: '6.7k subscribers' },
     Pinterest: { color: '#e60023', icon: 'P',  handle: 'Hearth Bakery',        followers: '9.4k followers' },
-    Email:     { color: '#6366f1', icon: '&#9993;', handle: 'Newsletter',       followers: '3,200 subscribers' },
+    Email:     { color: '#d4a853', icon: '&#9993;', handle: 'Newsletter',       followers: '3,200 subscribers' },
     Spotify:   { color: '#1db954', icon: '&#9654;', handle: 'The Hearth Podcast', followers: '1.2k listeners' },
     Apple:     { color: '#872ec4', icon: '&#9835;', handle: 'The Hearth Podcast', followers: '890 subscribers' }
   };
@@ -795,8 +795,8 @@ var CreateFlow = (function () {
   function cfTextPostMockup(v, f) {
     var pm = CF_PLATFORM_META[f.platform] || CF_PLATFORM_META['LinkedIn'];
     var avatarIdx = ['A','B','C'].indexOf(v.label);
-    var avatarColors = ['#6366f1','#34d399','#f59e0b'];
-    var av = avatarColors[avatarIdx] || '#6366f1';
+    var avatarColors = ['#d4a853','#2dd4bf','#f59e0b'];
+    var av = avatarColors[avatarIdx] || '#d4a853';
     return '<div class="cf-post-mockup">'
       + '<div class="cf-post-header" style="border-top:3px solid ' + pm.color + ';">'
       + '<div class="cf-post-avatar" style="background:' + av + ';">HB</div>'
@@ -816,11 +816,11 @@ var CreateFlow = (function () {
     var aspect = f.aspect || '1:1';
     var thumb = window.StudioImage && StudioImage.renderPreview
       ? StudioImage.renderPreview(v.theme, aspect, v.headline, false)
-      : '<div class="cf-img-placeholder" style="aspect-ratio:' + aspect.replace(':','/') + ';background:linear-gradient(135deg,#1a1f35,#2d1b4e);"></div>';
+      : '<div class="cf-img-placeholder" style="aspect-ratio:' + aspect.replace(':','/') + ';background:linear-gradient(135deg,#12100e,#1c1916);"></div>';
     var pm = CF_PLATFORM_META[f.platform] || CF_PLATFORM_META['Instagram'];
     return '<div class="cf-image-mockup">'
       + '<div class="cf-image-mockup-header">'
-      + '<div class="cf-post-avatar" style="background:#6366f1;width:28px;height:28px;font-size:10px;">HB</div>'
+      + '<div class="cf-post-avatar" style="background:#d4a853;width:28px;height:28px;font-size:10px;">HB</div>'
       + '<span class="cf-image-mockup-name">hearthbakery</span>'
       + '<span class="cf-image-mockup-badge" style="color:' + pm.color + ';">' + pm.icon + '</span>'
       + '</div>'
@@ -942,7 +942,7 @@ var CreateFlow = (function () {
     if (f.modality === 'image') {
       var imgPreview = (window.StudioImage && StudioImage.renderPreview)
         ? StudioImage.renderPreview(v.theme, f.aspect || '1:1', v.headline, true)
-        : '<div class="cf-img-placeholder" style="aspect-ratio:' + (f.aspect || '1:1').replace(':', '/') + ';background:linear-gradient(135deg,#1a1f35,#2d1b4e);border-radius:var(--radius);"></div>';
+        : '<div class="cf-img-placeholder" style="aspect-ratio:' + (f.aspect || '1:1').replace(':', '/') + ';background:linear-gradient(135deg,#12100e,#1c1916);border-radius:var(--radius);"></div>';
       var captionVal = f.editCaption != null ? f.editCaption : (v.headline ? v.headline.replace(/<br>/g, ' ') : '');
       var altVal = f.editAlt != null ? f.editAlt : '';
       return banner + '<div class="cf-step-title">Edit your visual</div><div class="cf-step-sub">Headline preview · add caption and alt text for publishing</div>' + storyStrip
