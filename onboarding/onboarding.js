@@ -690,7 +690,9 @@ window.obLaunchWorkspace = function () {
   appState.onboarding.step = 'launching';
   renderContent();
   setTimeout(function () {
-    var isFirstConcept = !!(appState.concepts && appState.concepts.length === 1);
-    setMode(isFirstConcept ? 'strategic-plan' : 'dashboard');
+    /* Always land on Strategic Planning after finishing onboarding, no matter
+       how many concepts exist. The dashboard is only for returning users who
+       come back via a restored session (see _restoreLaunchpadState). */
+    setMode('strategic-plan');
   }, 1800);
 };
