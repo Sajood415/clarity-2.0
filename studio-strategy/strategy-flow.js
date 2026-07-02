@@ -2029,7 +2029,13 @@ window.spGoWelcome = function () {
   else { setMode('strategic-plan'); }
 };
 
-window.spGoHub = function () { appState.strategyFlow.screen = 'hub'; renderContent(); };
+window.spGoHub = function () {
+  appState.strategyFlow.screen = 'hub';
+  if (appState.strategyFlow.returnTo === 'dashboard') {
+    appState.strategyFlow.returnTo = null;
+  }
+  renderContent();
+};
 
 window.spGoMarketScan = function () {
   appState.strategyFlow.screen = 'market-scan';

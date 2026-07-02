@@ -1922,6 +1922,7 @@ window.dshContinue = function () {
 window.dshCreateConcept = function () {
   window.clarityCreateConcept({});
   appState.onboarding = { step: 3, subStep: 1, authMode: (appState.onboarding && appState.onboarding.authMode) || 'signup' };
+  if (appState.strategyFlow) appState.strategyFlow.returnTo = null;
   _saveLaunchpadState();
   setMode('onboarding');
 };
