@@ -128,7 +128,6 @@ var StrategyFlow = (function () {
     var continueBtn = allComplete
       ? '<div class="sp-hub-continue">'
         + '<button class="sp-btn-plan-view" onclick="viewStrategicPlanReport()">View Your Strategic Plan &#8594;</button>'
-        + '<button class="sp-btn-plan-view sp-btn-compare" onclick="viewConceptComparison()">Compare Concepts &#8594;</button>'
         + '<button class="btn sp-btn-save" onclick="spGoToPersona()">Continue to Persona Studio &#8594;</button>'
         + '</div>'
       : '';
@@ -1944,8 +1943,8 @@ window.stageRevealUnifiedReport = function () {
    send the user to the Launchpad Home nudge; otherwise keep them in the
    journey rather than exiting mid-flow */
 window.spGoWelcome = function () {
-  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
-  if (c && c.gtmComplete) { setMode('launchpad-home'); }
+  var concepts = (appState && appState.concepts) || [];
+  if (concepts.length > 0) { setMode('dashboard'); }
   else { setMode('strategic-plan'); }
 };
 

@@ -483,8 +483,13 @@ var GtmFlow = (function () {
       + '<div class="gtm-adjust-list">' + cards + '</div>'
       + '<button class="gtm-btn-primary gtm-btn-lg" onclick="gtmLockInStrategy()">Lock in my GTM strategy &#8594;</button>';
 
+    var fromDashboard = gtmFlowState().returnTo === 'dashboard';
+    var topbar = fromDashboard
+      ? gtmTopbar('Back to Dashboard', 'setMode(\'dashboard\')')
+      : gtmTopbar('Back to Pricing setup', 'gtmBackToPricingContext()');
+
     return '<div class="gtm-screen">'
-      + gtmTopbar('Back to Pricing setup', 'gtmBackToPricingContext()')
+      + topbar
       + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-wide">' + body + '</div></div>'
       + '</div>';
   }

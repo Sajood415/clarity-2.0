@@ -1551,13 +1551,23 @@ function _dshSyncFlowsForConcept(concept) {
     customerIntel: { step: s.customerIntelligence ? 3 : 1, focus: '' },
     competition:   { step: s.competition          ? 3 : 1, focus: '' }
   };
-  appState.personaFlow = { step: 1, subStep: 1, screen: 'entry', suggestionActive: false };
+  /* Persona: if it's already complete, jump straight to the Step 4 summary and
+     route its back button to the dashboard; otherwise start at the entry screen */
+  var p = (concept && concept.persona) || {};
+  var personaDone = !!(p.name && p.name.trim());
+  appState.personaFlow = personaDone
+    ? { step: 4, subStep: 1, screen: 'steps', suggestionActive: false, returnTo: 'dashboard' }
+    : { step: 1, subStep: 1, screen: 'entry', suggestionActive: false };
 
-  /* GTM: resume at Pricing if the plan was already generated, otherwise start fresh */
+  /* GTM: if complete, jump straight to the finished pricing-output and route its
+     back button to the dashboard; else resume at Pricing if the plan exists,
+     otherwise start fresh */
   var planDone = !!(g.plan && g.plan.actions && g.plan.actions.length);
+  var gtmDone = !!(concept && concept.gtmComplete);
   var savedPricingInputs = (g.pricing && g.pricing.inputs) || {};
   appState.gtmFlow = {
-    step: planDone ? 'pricing-context' : 'plan-context',
+    step: gtmDone ? 'pricing-output' : (planDone ? 'pricing-context' : 'plan-context'),
+    returnTo: gtmDone ? 'dashboard' : '',
     planFocus: '',
     pricingInputs: {
       avgOrder:   savedPricingInputs.avgOrder   || '',

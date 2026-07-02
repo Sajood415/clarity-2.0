@@ -400,9 +400,12 @@ var PersonaFlow = (function () {
       : step === 3 ? pfStep3()
       : pfStep4();
 
+    var backToDash = (step === 4 && f.returnTo === 'dashboard');
     var topbar = '<div class="cf-topbar">'
       + '<div class="cf-brand">Clarity <span>Persona Studio</span></div>'
-      + '<button class="app-topbar-back" onclick="setMode(\'strategic-plan\')">&#8592; Back to Strategic Planning</button>'
+      + (backToDash
+          ? '<button class="app-topbar-back" onclick="setMode(\'dashboard\')">&#8592; Back to Dashboard</button>'
+          : '<button class="app-topbar-back" onclick="setMode(\'strategic-plan\')">&#8592; Back to Strategic Planning</button>')
       + '</div>';
 
     /* For step 1, Continue lives inline — footer only shows Back */
