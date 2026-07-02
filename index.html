@@ -8,8 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="onboarding/onboarding.css?v=5">
-<link rel="stylesheet" href="studio-strategy/strategy-flow.css?v=6">
-<link rel="stylesheet" href="studio-persona/persona-flow.css?v=4">
+<link rel="stylesheet" href="studio-strategy/strategy-flow.css?v=7">
+<link rel="stylesheet" href="studio-persona/persona-flow.css?v=5">
+<link rel="stylesheet" href="studio-gtm/gtm-flow.css?v=1">
 <link rel="stylesheet" href="studio-text/studio-text.css?v=6">
 <link rel="stylesheet" href="studio-image/studio-image.css?v=4">
 <link rel="stylesheet" href="studio-video/studio-video.css?v=4">
@@ -53,6 +54,11 @@ a { text-decoration: none; color: inherit; }
   --ob-coral:     #e07b6a;
   --ob-coral-dim: rgba(224,123,106,0.10);
   --ob-coral-rim: rgba(224,123,106,0.28);
+  --ob-green:     #6dba8a;
+  --ob-green-dim: rgba(109,186,138,0.10);
+  --ob-purple:     #9b7fd4;
+  --ob-purple-dim: rgba(155,127,212,0.10);
+  --ob-purple-rim: rgba(155,127,212,0.30);
   --ob-muted:     #9a8f82;
   --ob-text:      #e8e0d5;
 }
@@ -85,6 +91,11 @@ a { text-decoration: none; color: inherit; }
   --ob-coral:     #c85f4a;
   --ob-coral-dim: rgba(200,95,74,0.10);
   --ob-coral-rim: rgba(200,95,74,0.28);
+  --ob-green:     #4f9e6f;
+  --ob-green-dim: rgba(79,158,111,0.10);
+  --ob-purple:     #7a5fb8;
+  --ob-purple-dim: rgba(122,95,184,0.10);
+  --ob-purple-rim: rgba(122,95,184,0.30);
   --ob-muted:     #6b6056;
   --ob-text:      #1a1612;
 }
@@ -263,6 +274,153 @@ a { text-decoration: none; color: inherit; }
 .home-toggle-opt.active .home-toggle-radio-dot::after {
   content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--primary);
 }
+
+/* ============================================================
+   LAUNCHPAD HOME — the one proactive "strategy complete" nudge,
+   shown only when a concept has finished market + customer +
+   competition + persona + GTM. The graduation moment into Content Studio.
+   ============================================================ */
+.lp-wrap {
+  min-height: 100vh; background: var(--ob-bg); color: var(--ob-text);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 60px 32px;
+  animation: nudge-enter 0.5s cubic-bezier(.22,.68,0,1.2) both;
+}
+.lp-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border-radius: 20px;
+  background: var(--ob-gold-dim); border: 1px solid rgba(212,168,83,0.3);
+  color: var(--ob-gold); font-size: 12px; font-weight: 600; margin-bottom: 28px;
+}
+.lp-badge-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--ob-gold);
+  animation: home-pulse 2s ease infinite;
+}
+.lp-heading {
+  font-family: 'Cormorant Garamond', serif; font-size: 44px; font-weight: 600;
+  color: var(--ob-text); line-height: 1.15; margin-bottom: 16px; max-width: 640px;
+}
+.lp-sub {
+  font-size: 16px; color: var(--ob-muted); line-height: 1.6; max-width: 480px;
+  margin: 0 auto 36px;
+}
+.lp-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  max-width: 680px; width: 100%; margin-bottom: 36px;
+}
+.lp-card {
+  background: var(--ob-surface); border: 1px solid var(--ob-border);
+  border-radius: 10px; padding: 16px; text-align: left; border-top: 2px solid transparent;
+}
+.lp-card-amber  { border-top-color: var(--ob-gold); }
+.lp-card-teal   { border-top-color: var(--ob-teal); }
+.lp-card-purple { border-top-color: var(--ob-purple); }
+.lp-card-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.lp-card-amber  .lp-card-label { color: var(--ob-gold); }
+.lp-card-teal   .lp-card-label { color: var(--ob-teal); }
+.lp-card-purple .lp-card-label { color: var(--ob-purple); }
+.lp-card-text { font-size: 13px; color: var(--ob-text); line-height: 1.4; }
+.lp-cta {
+  background: var(--ob-gold); color: #1a1612; border: none; border-radius: var(--radius-sm);
+  height: 48px; min-width: 320px; padding: 0 32px; font-size: 18px; font-weight: 600;
+  cursor: pointer; transition: filter 0.15s; margin-bottom: 20px;
+}
+.lp-cta:hover { filter: brightness(1.08); }
+.lp-links { font-size: 13px; color: var(--ob-muted); }
+.lp-links a { color: var(--ob-muted); cursor: pointer; transition: color 0.15s; }
+.lp-links a:hover { color: var(--ob-gold); }
+.lp-links-sep { margin: 0 8px; }
+
+/* ============================================================
+   DASHBOARD — returning user's home base for managing every concept.
+   Fixed left sidebar (concept list + new-concept) + right detail panel
+   (active concept's progress, one full-width row per module).
+   ============================================================ */
+.dsh-wrap { display: flex; min-height: 100vh; background: var(--ob-bg); color: var(--ob-text); }
+
+/* ---- Sidebar ---- */
+.dsh-sidebar {
+  width: 220px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  background: var(--ob-surface); border-right: 1px solid rgba(255,255,255,0.07);
+  padding: 32px 20px; display: flex; flex-direction: column;
+}
+[data-theme="light"] .dsh-sidebar { border-right-color: rgba(0,0,0,0.08); }
+.dsh-brand { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 700; color: var(--ob-gold); }
+.dsh-user-email { font-size: 11px; color: var(--ob-muted); margin-top: 24px; overflow-wrap: break-word; }
+.dsh-concepts-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ob-gold); margin-top: 32px; margin-bottom: 10px;
+}
+.dsh-concept-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.dsh-concept-item {
+  padding: 10px 12px; border-radius: 8px; cursor: pointer;
+  border-left: 2px solid transparent; transition: background 0.15s;
+}
+.dsh-concept-item:hover { background: rgba(255,255,255,0.03); }
+[data-theme="light"] .dsh-concept-item:hover { background: rgba(0,0,0,0.03); }
+.dsh-concept-item.active { background: var(--ob-gold-dim); border-left-color: var(--ob-gold); }
+.dsh-concept-name { font-size: 13px; color: var(--ob-text); font-weight: 600; line-height: 1.3; overflow-wrap: break-word; }
+.dsh-concept-name.dsh-unnamed { font-style: italic; font-weight: 500; color: var(--ob-muted); }
+.dsh-concept-type { font-size: 11px; color: var(--ob-muted); margin-top: 2px; }
+
+.dsh-new-concept-btn {
+  background: none; border: none; color: var(--ob-gold); font-size: 13px; font-weight: 600;
+  cursor: pointer; padding: 10px 4px 4px; text-align: left; margin-top: 12px; flex-shrink: 0;
+}
+.dsh-new-concept-btn:hover { opacity: 0.75; }
+
+/* ---- Content area ---- */
+.dsh-content { flex: 1; min-width: 0; padding: 48px; }
+.dsh-biz-name {
+  font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 700;
+  color: var(--ob-text); line-height: 1.15; overflow-wrap: break-word;
+}
+.dsh-biz-name.dsh-unnamed { font-style: italic; font-weight: 500; color: var(--ob-muted); }
+.dsh-biz-desc { font-size: 15px; font-style: italic; color: var(--ob-muted); margin-top: 8px; max-width: 600px; line-height: 1.5; }
+.dsh-biz-loc { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ob-muted); margin-top: 10px; }
+.dsh-biz-loc svg { color: var(--ob-gold); flex-shrink: 0; }
+
+.dsh-section-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ob-gold); margin-bottom: 6px;
+}
+.dsh-section-label.dsh-mt-32 { margin-top: 32px; }
+.dsh-section-label.dsh-mt-24 { margin-top: 24px; }
+
+.dsh-mod-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;
+  transition: background 0.15s;
+}
+[data-theme="light"] .dsh-mod-row { border-bottom-color: rgba(0,0,0,0.06); }
+.dsh-mod-row:hover { background: rgba(255,255,255,0.02); }
+[data-theme="light"] .dsh-mod-row:hover { background: rgba(0,0,0,0.02); }
+.dsh-mod-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dsh-mod-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dsh-mod-text { min-width: 0; }
+.dsh-mod-name { font-size: 13px; color: var(--ob-text); font-weight: 600; }
+.dsh-mod-type {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ob-muted); margin-left: 8px; vertical-align: middle;
+}
+.dsh-mod-insight { font-size: 12px; font-style: italic; color: var(--ob-muted); margin-top: 3px; }
+.dsh-mod-right { font-size: 13px; font-weight: 600; flex-shrink: 0; white-space: nowrap; }
+
+@keyframes dsh-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.dsh-mod-generating { animation: dsh-pulse 1.4s ease-in-out infinite; }
+
+.dsh-mod-row.dsh-mod-locked { cursor: default; }
+.dsh-mod-row.dsh-mod-locked:hover { background: none; }
+
+.dsh-continue-btn {
+  width: 100%; background: var(--ob-gold); color: #1a1612; border: none; border-radius: var(--radius-sm);
+  height: 52px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 32px;
+  transition: filter 0.15s;
+}
+.dsh-continue-btn:hover { filter: brightness(1.08); }
 
 /* ============================================================
    APP TOP BAR (wizard / library / campaign modes)
@@ -821,10 +979,10 @@ var CLARITY_SAMPLE_INTELLIGENCE = {
 var appState = {
   mode: 'onboarding',
   cpOverlayOpen: false,
+  user: null,
   onboarding: { step: 1, authMode: 'signup' },
-  business: { name: '', description: '', type: null },
-  strategy: { priorities: [], goal: '', positioning: '' },
-  persona:  { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' },
+  concepts: [],
+  activeConceptId: null,
   createBrief: {
     goal: 'Drive weekend pre-orders',
     message: 'Sourdough Saturday is back — 72-hour cold ferment, stone-baked, limited batch. Craft over convenience.',
@@ -832,6 +990,48 @@ var appState = {
     whyNow: 'Seasonal launch · Summer 2026'
   },
   intelligence: JSON.parse(JSON.stringify(CLARITY_SAMPLE_INTELLIGENCE))
+};
+
+/* ===================== CONCEPTS ===================== */
+/* A "concept" bundles one business idea's full Launchpad data — business
+   info, the three Strategic Planning modules, the persona, and whether
+   GTM has been reached. A user can have multiple concepts; only one is
+   "active" (being worked on) at a time. */
+function clarityFreshConcept(overrides) {
+  var o = overrides || {};
+  return {
+    id: 'concept_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+    createdAt: Date.now(),
+    business: {
+      name: (o.business && o.business.name) || '',
+      description: (o.business && o.business.description) || '',
+      type: (o.business && o.business.type) || null,
+      locations: (o.business && o.business.locations) || []
+    },
+    strategy: { marketScan: null, customerIntelligence: null, competition: null },
+    persona: { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' },
+    gtm: { plan: { actions: [] }, pricing: { inputs: {}, suggestions: [] } },
+    gtmComplete: false
+  };
+}
+
+/* Create a new concept, register it, and make it the active one */
+window.clarityCreateConcept = function (overrides) {
+  var concept = clarityFreshConcept(overrides);
+  if (!appState.concepts) appState.concepts = [];
+  appState.concepts.push(concept);
+  appState.activeConceptId = concept.id;
+  return concept;
+};
+
+/* Return the currently active concept object, or null */
+window.clarityActiveConcept = function () {
+  if (!appState.concepts || !appState.concepts.length) return null;
+  var found = null;
+  appState.concepts.forEach(function (c) {
+    if (c.id === appState.activeConceptId) found = c;
+  });
+  return found;
 };
 
 /* ===================== STYLED CONFIRM MODAL ===================== */
@@ -910,6 +1110,8 @@ function setMode(mode) {
   else if (mode === 'strategic-plan') appState.screen = 'strategic-plan';
   else if (mode === 'persona-studio') appState.screen = 'persona-studio';
   else if (mode === 'gtm-strategy') appState.screen = 'gtm-strategy';
+  else if (mode === 'launchpad-home') appState.screen = 'launchpad-home';
+  else if (mode === 'dashboard') appState.screen = 'dashboard';
   else appState.screen = 'home';
   renderApp();
 }
@@ -956,13 +1158,15 @@ function screenHome() {
   var cardsHtml = '';
 
   /* ---- State C: Launchpad complete — strategy + persona built via the real flow ---- */
-  var strat        = appState.strategy || {};
-  var pData        = appState.persona  || {};
+  var activeConcept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  var activeBiz     = (activeConcept && activeConcept.business)  || {};
+  var strat        = (activeConcept && activeConcept.strategy) || {};
+  var pData        = (activeConcept && activeConcept.persona)  || {};
   var launchpadDone = !!(strat.marketScan && pData.name && pData.name.trim());
 
   if (launchpadDone) {
     var lpPersonaName = pData.name.trim();
-    var lpBizName     = (appState.business && appState.business.name) ? appState.business.name.trim() : '';
+    var lpBizName     = (activeBiz.name) ? activeBiz.name.trim() : '';
     var lpGap         = strat.marketScan.gapHeadline || 'Market opportunity identified';
     var lpTrigger     = (strat.customerIntelligence && strat.customerIntelligence.topTrigger)
       ? strat.customerIntelligence.topTrigger
@@ -993,7 +1197,7 @@ function screenHome() {
       + '<div class="home-intel-card">'
       + '<div class="home-intel-card-label">Market Gap</div>'
       + '<div class="home-intel-card-val">' + lpGap + '</div>'
-      + '<div class="home-intel-card-sub">' + (lpBizName ? lpBizName + ' \u00b7 ' : '') + ((appState.business && appState.business.type) || '') + '</div>'
+      + '<div class="home-intel-card-sub">' + (lpBizName ? lpBizName + ' \u00b7 ' : '') + (activeBiz.type || '') + '</div>'
       + '</div>'
       + '<div class="home-intel-card">'
       + '<div class="home-intel-card-label">Customer Trigger</div>'
@@ -1068,8 +1272,9 @@ function screenHome() {
 
 /* ===================== REPORT LIBRARY ===================== */
 function screenReportLibrary() {
-  var biz    = appState.business  || {};
-  var strat  = appState.strategy  || {};
+  var activeConcept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  var biz    = (activeConcept && activeConcept.business) || {};
+  var strat  = (activeConcept && activeConcept.strategy) || {};
   var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'your business';
   var months  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -1177,56 +1382,289 @@ function screenReportLibrary() {
     + '</div>';
 }
 
-/* ===================== GTM STRATEGY STUB ===================== */
+/* ===================== GTM STRATEGY ===================== */
+/* Thin passthrough — the real implementation lives in studio-gtm/gtm-flow.js,
+   registered the same way strategy-flow.js and persona-flow.js are. */
 function screenGtmStrategy() {
-  var p   = appState.persona  || {};
-  var biz = appState.business || {};
+  return window.screenGtmFlow ? window.screenGtmFlow() : '';
+}
 
-  var personaName = (p.name && p.name.trim()) ? p.name.trim() : 'Your Persona';
-  var personaBio  = (p.description && p.description.trim()) ? p.description.trim() : 'No description yet.';
+/* ===================== LAUNCHPAD HOME ===================== */
+/* The one proactive "your strategy is ready" moment — shown only when the
+   active concept has finished all three research modules, has a persona,
+   and has reached GTM. This is the graduation screen into Content Studio. */
+function _lpFirstMoveChannel(bizType) {
+  var reach = window.SPR_REACH_DATA && (window.SPR_REACH_DATA[bizType] || window.SPR_REACH_DATA.other);
+  if (!reach || !reach.channels || !reach.channels.length) return 'Start with content';
+  var name = String(reach.channels[0]).split(/\s*\u2014\s*/)[0].trim();
+  return name || 'Start with content';
+}
 
-  /* Top 3 cares-about as chips */
-  var caresAbout  = (p.caresAbout && p.caresAbout.length > 0) ? p.caresAbout : [];
-  var topCares    = caresAbout.slice(0, 3);
-  var caresChips  = topCares.length
-    ? topCares.map(function (c) { return '<span class="gtm-card-chip">' + c + '</span>'; }).join('')
-    : '<span style="font-size:11px;color:var(--muted);font-style:italic;">None selected</span>';
+function screenLaunchpadHome() {
+  var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  var biz = (concept && concept.business) || {};
+  var s   = (concept && concept.strategy) || {};
+  var p   = (concept && concept.persona)  || {};
 
-  var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
+  var bizName     = (biz.name && biz.name.trim()) ? biz.name.trim() : 'your business';
+  var gapText     = (s.marketScan && s.marketScan.gapHeadline) ? s.marketScan.gapHeadline : 'Market gap identified';
+  var personaLine = (p.name && p.name.trim() ? p.name.trim() : 'Your customer') + (p.ageRange ? ' \u00b7 ' + p.ageRange : '');
+  var firstMove   = _lpFirstMoveChannel(biz.type || 'other');
 
-  var topbar = '<div class="app-topbar">'
-    + '<span class="app-topbar-brand">Clarity</span>'
-    + '<button class="app-topbar-back" onclick="setMode(\'home\')">Start creating content &#8594;</button>'
+  return '<div class="lp-wrap">'
+    + '<div class="lp-badge"><span class="lp-badge-dot"></span>Strategy complete</div>'
+    + '<h1 class="lp-heading">Your strategy is ready, ' + bizName + '.</h1>'
+    + '<p class="lp-sub">You\u2019ve identified your market, defined your customer, and mapped your path. Here\u2019s what we think you should create first.</p>'
+    + '<div class="lp-cards">'
+    + '<div class="lp-card lp-card-amber"><div class="lp-card-label">Your Market Gap</div><div class="lp-card-text">' + gapText + '</div></div>'
+    + '<div class="lp-card lp-card-teal"><div class="lp-card-label">Your Customer</div><div class="lp-card-text">' + personaLine + '</div></div>'
+    + '<div class="lp-card lp-card-purple"><div class="lp-card-label">First Move</div><div class="lp-card-text">' + firstMove + '</div></div>'
+    + '</div>'
+    + '<button class="lp-cta" onclick="setMode(\'home\')">Yes, show me what to create &#8594;</button>'
+    + '<div class="lp-links">'
+    + '<a onclick="setMode(\'strategic-plan-report\')">Review your strategic plan</a>'
+    + '<span class="lp-links-sep">\u00b7</span>'
+    + '<a onclick="setMode(\'persona-studio\')">Edit your persona</a>'
+    + '</div>'
     + '</div>';
+}
 
-  var body = '<div class="gtm-body">'
-    + '<div class="gtm-badge"><span class="gtm-badge-dot"></span>Up next</div>'
-    + '<div class="gtm-title">Go-to-Market Strategy</div>'
-    + '<p class="gtm-sub">Clarity will build a channel strategy, messaging framework, and launch cadence for ' + bizName + ' — grounded in your persona and strategic priorities.</p>'
-    + '<div class="gtm-cards">'
-    + '<div class="gtm-card">'
-    + '<div class="gtm-card-label">Persona</div>'
-    + '<div class="gtm-card-val">' + personaName + '</div>'
-    + '<div class="gtm-card-sub">' + personaBio + '</div>'
-    + '</div>'
-    + '<div class="gtm-card">'
-    + '<div class="gtm-card-label">Key Values</div>'
-    + '<div class="gtm-card-chips">' + caresChips + '</div>'
-    + (caresAbout.length > 3 ? '<div class="gtm-card-sub" style="margin-top:6px;">+' + (caresAbout.length - 3) + ' more</div>' : '')
-    + '</div>'
-    + '<div class="gtm-card">'
-    + '<div class="gtm-card-label">GTM Strategy</div>'
-    + '<div class="gtm-card-val">Building&hellip;</div>'
-    + '<div class="gtm-card-sub">Channel mix, messaging, launch timing</div>'
-    + '</div>'
-    + '</div>'
+/* ===================== DASHBOARD ===================== */
+/* The returning user's home base — a fixed sidebar listing every concept in
+   flight, and a right panel showing the active concept's research progress
+   with a single "Continue" action that routes to the correct next step. */
+var DSH_TYPE_LABELS = { food: 'Food & Hospitality', retail: 'Retail & Products', creative: 'Creative & Design', tech: 'Tech & Software', trades: 'Trades & Services', other: 'Other' };
+
+function _dshPinIcon() {
+  return '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 10.3c0 6.5-8.9 12-8.9 12s-8.9-5.5-8.9-12a8.9 8.9 0 1117.8 0z"/><circle cx="12" cy="10.3" r="3"/></svg>';
+}
+
+/* Where "Continue" (and the fully-complete state) should take the user */
+function _dshContinueDest(concept) {
+  var s = (concept && concept.strategy) || {};
+  var p = (concept && concept.persona) || {};
+  var allThree = !!(s.marketScan && s.customerIntelligence && s.competition);
+  var hasPersona = !!(p.name && p.name.trim());
+  if (!allThree) return 'strategic-plan';
+  if (!hasPersona) return 'persona-studio';
+  if (!concept.gtmComplete) return 'gtm-strategy';
+  return 'launchpad-home';
+}
+
+/* Reset the shared UI-position trackers (strategyFlow/personaFlow) to match
+   whichever concept is active, so jumping into a module always lands somewhere sane */
+function _dshSyncFlowsForConcept(concept) {
+  var s = (concept && concept.strategy) || {};
+  var g = (concept && concept.gtm) || {};
+  appState.strategyFlow = {
+    screen: 'hub',
+    marketScan:    { step: s.marketScan           ? 3 : 1, focus: '' },
+    customerIntel: { step: s.customerIntelligence ? 3 : 1, focus: '' },
+    competition:   { step: s.competition          ? 3 : 1, focus: '' }
+  };
+  appState.personaFlow = { step: 1, subStep: 1, screen: 'entry', suggestionActive: false };
+
+  /* GTM: resume at Pricing if the plan was already generated, otherwise start fresh */
+  var planDone = !!(g.plan && g.plan.actions && g.plan.actions.length);
+  var savedPricingInputs = (g.pricing && g.pricing.inputs) || {};
+  appState.gtmFlow = {
+    step: planDone ? 'pricing-context' : 'plan-context',
+    planFocus: '',
+    pricingInputs: {
+      avgOrder:   savedPricingInputs.avgOrder   || '',
+      marketAvg:  savedPricingInputs.marketAvg  || '',
+      margin:     savedPricingInputs.margin     || '',
+      bestSeller: savedPricingInputs.bestSeller || ''
+    }
+  };
+}
+
+function _dshSidebarConceptItem(concept) {
+  var biz = concept.business || {};
+  var rawName = (biz.name || '').trim();
+  var nameHtml = rawName.length > 1 ? rawName : '<span class="dsh-unnamed">Unnamed concept</span>';
+  var typeLabel = DSH_TYPE_LABELS[biz.type] || (biz.type ? biz.type : 'Untitled');
+  var isActive = concept.id === appState.activeConceptId;
+  return '<div class="dsh-concept-item' + (isActive ? ' active' : '') + '" onclick="dshSelectConcept(\'' + concept.id + '\')">'
+    + '<div class="dsh-concept-name' + (rawName.length > 1 ? '' : ' dsh-unnamed') + '">' + nameHtml + '</div>'
+    + '<div class="dsh-concept-type">' + typeLabel + '</div>'
     + '</div>';
+}
 
-  return '<div class="gtm-wrap">' + topbar + body + '</div>';
+function _dshSidebar(concepts) {
+  var userEmail = (appState.user && appState.user.email) ? appState.user.email : '';
+  var listHtml = concepts.map(_dshSidebarConceptItem).join('');
+
+  return '<div class="dsh-sidebar">'
+    + '<div class="dsh-brand">Clarity</div>'
+    + (userEmail ? '<div class="dsh-user-email">' + userEmail + '</div>' : '')
+    + '<div class="dsh-concepts-label">Concepts</div>'
+    + '<div class="dsh-concept-list">' + listHtml + '</div>'
+    + '<button class="dsh-new-concept-btn" onclick="dshCreateConcept()">&#43; New concept</button>'
+    + '</div>';
+}
+
+function _dshModRow(label, typeLabel, color, done, inProgress, insightText, onclickJs) {
+  var rightHtml;
+  if (done) {
+    rightHtml = '<span class="dsh-mod-right" style="color:var(--ob-teal)">Ready \u2713</span>';
+  } else if (inProgress) {
+    rightHtml = '<span class="dsh-mod-right dsh-mod-generating" style="color:var(--ob-muted)">Generating...</span>';
+  } else {
+    rightHtml = '<span class="dsh-mod-right" style="color:var(--ob-gold)">Start &#8594;</span>';
+  }
+  var insightHtml = (done && insightText) ? '<div class="dsh-mod-insight">' + insightText + '</div>' : '';
+  return '<div class="dsh-mod-row" onclick="' + onclickJs + '">'
+    + '<div class="dsh-mod-left">'
+    + '<div class="dsh-mod-dot" style="background:' + color + '"></div>'
+    + '<div class="dsh-mod-text"><div class="dsh-mod-name">' + label + '<span class="dsh-mod-type">' + typeLabel + '</span></div>' + insightHtml + '</div>'
+    + '</div>'
+    + rightHtml
+    + '</div>';
+}
+
+/* Sixth research-progress row — Compare Concepts entry point */
+function _dshCompareRow(concept) {
+  var concepts = appState.concepts || [];
+  var s = (concept && concept.strategy) || {};
+  var allThreeDone = !!(s.marketScan && s.customerIntelligence && s.competition);
+  var available = concepts.length >= 2 && allThreeDone;
+  var rightHtml = available
+    ? '<span class="dsh-mod-right" style="color:var(--ob-gold)">Compare &#8594;</span>'
+    : '<span class="dsh-mod-right" style="color:var(--ob-muted)">Locked</span>';
+  return '<div class="dsh-mod-row' + (available ? '' : ' dsh-mod-locked') + '"' + (available ? ' onclick="viewConceptComparison()"' : '') + '>'
+    + '<div class="dsh-mod-left">'
+    + '<div class="dsh-mod-dot" style="background:var(--ob-muted)"></div>'
+    + '<div class="dsh-mod-text"><div class="dsh-mod-name">Concept Comparison<span class="dsh-mod-type">COMPARISON</span></div></div>'
+    + '</div>'
+    + rightHtml
+    + '</div>';
+}
+
+function _dshTruncate(str, n) {
+  if (!str) return '';
+  str = String(str).trim();
+  return str.length > n ? str.slice(0, n).trim() + '\u2026' : str;
+}
+
+function _dshContentPanel(concept) {
+  if (!concept) return '<div class="dsh-content"></div>';
+
+  var biz = concept.business || {};
+  var s   = concept.strategy || {};
+  var p   = concept.persona  || {};
+
+  var rawName = (biz.name || '').trim();
+  var nameHtml = rawName.length > 1 ? rawName : '<span class="dsh-unnamed">Unnamed concept</span>';
+  var descText = (biz.description && biz.description.trim()) ? biz.description.trim() : 'No description added';
+  var locs = biz.locations || [];
+  var locLabel = locs.length ? (locs[0] === 'Global' ? 'Global / Worldwide' : locs.join(', ')) : '';
+  var locLine = locLabel ? '<div class="dsh-biz-loc">' + _dshPinIcon() + '<span>' + locLabel + '</span></div>' : '';
+
+  var marketDone = !!s.marketScan;
+  var custDone   = !!s.customerIntelligence;
+  var compDone   = !!s.competition;
+  var personaDone = !!(p.name && p.name.trim());
+  var gtmDone    = !!concept.gtmComplete;
+
+  var marketInsight  = marketDone ? (s.marketScan.gapHeadline || 'Market gap identified') : '';
+  var custInsight    = custDone   ? _dshTruncate(s.customerIntelligence.topTrigger, 60) : '';
+  var compInsight    = compDone   ? _dshTruncate(s.competition.whitespace, 60) : '';
+  var personaInsight = personaDone ? 'Built for: ' + p.name.trim() : '';
+  var gtmInsight     = gtmDone ? 'Strategy ready \u2014 content unlocked' : '';
+
+  var sf = appState.strategyFlow || {};
+  var marketInProgress = sf.screen === 'market-scan'    && !!sf.marketScan    && sf.marketScan.step    === 2;
+  var custInProgress   = sf.screen === 'customer-intel' && !!sf.customerIntel && sf.customerIntel.step === 2;
+  var compInProgress   = sf.screen === 'competition'    && !!sf.competition   && sf.competition.step   === 2;
+
+  var researchRows = _dshModRow('Market Scan',            'MARKET',     'var(--ob-gold)',  marketDone,  marketInProgress, marketInsight, 'dshGoModule(\'strategic-plan\')')
+    + _dshModRow('Customer Intelligence', 'CUSTOMER',   'var(--ob-teal)',   custDone,    custInProgress,   custInsight,   'dshGoModule(\'strategic-plan\')')
+    + _dshModRow('Competition',           'COMPETITOR', 'var(--ob-coral)',  compDone,    compInProgress,   compInsight,   'dshGoModule(\'strategic-plan\')')
+    + _dshCompareRow(concept);
+
+  var personaRow = _dshModRow('Persona', 'PERSONA', 'var(--ob-green)',  personaDone, false, personaInsight, 'dshGoModule(\'persona-studio\')');
+  var gtmRow     = _dshModRow('GTM',     'GTM',     'var(--ob-purple)', gtmDone,     false, gtmInsight,     'dshGoModule(\'gtm-strategy\')');
+
+  var dest = _dshContinueDest(concept);
+  var continueLabel = dest === 'launchpad-home' ? 'View your launchpad &#8594;' : 'Continue &#8594;';
+
+  return '<div class="dsh-content">'
+    + '<div class="dsh-biz-name' + (rawName.length > 1 ? '' : ' dsh-unnamed') + '">' + nameHtml + '</div>'
+    + '<div class="dsh-biz-desc">' + descText + '</div>'
+    + locLine
+    + '<div class="dsh-section-label dsh-mt-32">Research Progress</div>'
+    + researchRows
+    + '<div class="dsh-section-label dsh-mt-24">Persona</div>'
+    + personaRow
+    + '<div class="dsh-section-label dsh-mt-24">GTM Strategy</div>'
+    + gtmRow
+    + '<button class="dsh-continue-btn" onclick="dshContinue()">' + continueLabel + '</button>'
+    + '</div>';
+}
+
+function screenDashboard() {
+  var concepts = appState.concepts || [];
+  var active = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+
+  return '<div class="dsh-wrap">'
+    + _dshSidebar(concepts)
+    + _dshContentPanel(active)
+    + '</div>';
+}
+
+/* ---- Handlers ---- */
+window.dshSelectConcept = function (id) {
+  appState.activeConceptId = id;
+  renderApp();
+};
+
+window.dshGoModule = function (mode) {
+  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  _dshSyncFlowsForConcept(c);
+  setMode(mode);
+};
+
+window.dshContinue = function () {
+  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  if (!c) return;
+  _dshSyncFlowsForConcept(c);
+  setMode(_dshContinueDest(c));
+};
+
+window.dshCreateConcept = function () {
+  window.clarityCreateConcept({});
+  appState.onboarding = { step: 3, subStep: 1, authMode: (appState.onboarding && appState.onboarding.authMode) || 'signup' };
+  _saveLaunchpadState();
+  setMode('onboarding');
+};
+
+/* ===================== LAUNCHPAD PERSISTENCE ===================== */
+/* Snapshot the Launchpad journey (onboarding → strategic planning →
+   persona → handoff) to localStorage so a refresh resumes where the
+   user left off. Content Studio state (createFlow, campaigns, etc.)
+   is intentionally excluded — that stays as hardcoded demo data. */
+function _saveLaunchpadState() {
+  try {
+    var toSave = {
+      mode: appState.mode,
+      concepts: appState.concepts,
+      activeConceptId: appState.activeConceptId,
+      personaFlow: appState.personaFlow,
+      strategyFlow: appState.strategyFlow,
+      gtmFlow: appState.gtmFlow,
+      onboarding: appState.onboarding,
+      user: appState.user,
+      _transition: appState._transition || null
+    };
+    localStorage.setItem('clarity_launchpad_state', JSON.stringify(toSave));
+  } catch (e) { /* localStorage unavailable/full — fail silently */ }
 }
 
 /* ===================== RENDER DISPATCHER ===================== */
 function renderApp() {
+  _saveLaunchpadState();
+
   var el = document.getElementById('content');
   var mode = appState.mode;
 
@@ -1253,6 +1691,17 @@ function renderApp() {
 
   if (mode === 'gtm-strategy') {
     el.innerHTML = screenGtmStrategy();
+    if (window.gtmCheckLoadingHook) window.gtmCheckLoadingHook();
+    return;
+  }
+
+  if (mode === 'launchpad-home') {
+    el.innerHTML = screenLaunchpadHome();
+    return;
+  }
+
+  if (mode === 'dashboard') {
+    el.innerHTML = screenDashboard();
     return;
   }
 
@@ -1342,39 +1791,116 @@ window.clarityToggleTheme = function() {
 };
 
 /* ===================== INIT ===================== */
-function init() {
-  /* Apply saved theme before first render to avoid flash */
+/* Apply saved theme before first render to avoid flash */
+function _applySavedTheme() {
   if (localStorage.getItem('clarity_theme') === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
   }
   _updateThemeIcon();
+}
 
-  /* Restore intelligence toggle from localStorage */
+/* Fresh boot — no valid saved Launchpad session, start at onboarding Screen 1 */
+function _initFresh() {
+  appState.mode = 'onboarding';
+  appState.onboarding = { step: 1, authMode: 'signup', subStep: 1 };
+  appState.concepts        = [];
+  appState.activeConceptId = null;
+  appState.strategyFlow = { screen: 'hub', marketScan: { step: 1, focus: '' }, customerIntel: { step: 1, focus: '' }, competition: { step: 1, focus: '' } };
+  appState.personaFlow  = { step: 1, subStep: 1, screen: 'entry' };
+  appState.user         = null;
+  renderApp();
+}
+
+/* Try to restore a saved Launchpad session. Returns true if it did. */
+function _restoreLaunchpadState() {
+  try {
+    var saved = localStorage.getItem('clarity_launchpad_state');
+    if (!saved) return false;
+
+    var parsed = JSON.parse(saved);
+    if (!parsed) return false;
+
+    /* ---- Backward compatibility: migrate a pre-concepts flat save (business/
+       strategy/persona at the top level) into a single concept object ---- */
+    var concepts  = parsed.concepts;
+    var activeId  = parsed.activeConceptId;
+    if ((!concepts || !concepts.length) && parsed.business) {
+      if (!parsed.business.name) return false; /* nothing worth restoring */
+      var migrated = clarityFreshConcept({ business: parsed.business });
+      migrated.strategy    = parsed.strategy || migrated.strategy;
+      migrated.persona     = parsed.persona  || migrated.persona;
+      migrated.gtmComplete = (parsed.mode === 'gtm-strategy' || parsed.mode === 'home');
+      concepts = [migrated];
+      activeId = migrated.id;
+    }
+
+    if (!concepts || !concepts.length) return false;
+
+    /* Backfill .gtm on concepts saved before the GTM Strategy flow existed */
+    concepts.forEach(function (c) {
+      if (!c.gtm) c.gtm = { plan: { actions: [] }, pricing: { inputs: {}, suggestions: [] } };
+      if (!c.gtm.plan) c.gtm.plan = { actions: [] };
+      if (!c.gtm.pricing) c.gtm.pricing = { inputs: {}, suggestions: [] };
+    });
+
+    var active = null;
+    concepts.forEach(function (c) { if (c.id === activeId) active = c; });
+    if (!active) active = concepts[0];
+    if (!active || !active.business || !active.business.name) return false;
+
+    appState.concepts        = concepts;
+    appState.activeConceptId = active.id;
+    appState.personaFlow     = parsed.personaFlow  || { step: 1, subStep: 1, screen: 'entry' };
+    appState.strategyFlow    = parsed.strategyFlow || { screen: 'hub', marketScan: { step: 1, focus: '' }, customerIntel: { step: 1, focus: '' }, competition: { step: 1, focus: '' } };
+    appState.gtmFlow          = parsed.gtmFlow || { step: 'plan-context', planFocus: '', pricingInputs: { avgOrder: '', marketAvg: '', margin: '', bestSeller: '' } };
+    appState.onboarding       = parsed.onboarding   || { step: 1, authMode: 'signup', subStep: 1 };
+    appState.user             = parsed.user || null;
+
+    /* The returning user always lands on the Dashboard — their home base for
+       managing every concept — regardless of which screen they were on when
+       they left. (Launchpad Home is reachable from there via "Continue".) */
+    appState.mode = 'dashboard';
+
+    return true;
+  } catch (e) {
+    return false; /* malformed JSON or storage error — fall through to fresh init */
+  }
+}
+
+function init() {
+  _applySavedTheme();
+
+  /* Restore intelligence toggle from localStorage (Content Studio setting, independent of Launchpad state) */
   if (clarityGetIntelMode() === 'off') {
     appState.intelligence = null;
   }
-  /* Always boot to onboarding Screen 1 on fresh load */
-  appState.mode = 'onboarding';
-  appState.onboarding = { step: 1, authMode: 'signup', subStep: 1 };
-  appState.business   = { name: '', description: '', type: null, locations: [] };
-  appState.strategyFlow = { screen: 'hub', marketScan: { step: 1, focus: '' }, customerIntel: { step: 1, focus: '' }, competition: { step: 1, focus: '' } };
-  appState.strategy     = { marketScan: null, customerIntelligence: null, competition: null };
-  appState.personaFlow  = { step: 1, subStep: 1, screen: 'entry' };
-  appState.persona      = { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' };
-  renderApp();
+
+  if (_restoreLaunchpadState()) {
+    renderApp();
+    return;
+  }
+
+  _initFresh();
 }
 window.addEventListener('load', init);
 
+/* Console/testing helper — clears the saved Launchpad session and reloads to Screen 1 */
+window.clarityResetAll = function () {
+  localStorage.removeItem('clarity_launchpad_state');
+  location.reload();
+};
+
 </script>
-<script src="onboarding/onboarding.js?v=6"></script>
-<script src="studio-strategy/strategy-flow.js?v=13"></script>
-<script src="studio-persona/persona-flow.js?v=4"></script>
+<script src="onboarding/onboarding.js?v=10"></script>
+<script src="studio-strategy/strategy-flow.js?v=16"></script>
+<script src="studio-persona/persona-flow.js?v=6"></script>
+<script src="studio-gtm/gtm-flow.js?v=1"></script>
 <script src="studio-create/create-flow.js?v=13"></script>
 <script src="studio-campaign/campaign-flow.js?v=13"></script>
 <script src="studio-text/studio-text.js?v=9"></script>
 <script src="studio-image/studio-image.js?v=8"></script>
 <script src="studio-video/studio-video.js?v=6"></script>
-<script>OnboardingFlow.init(appState); StrategyFlow.init(appState); PersonaFlow.init(appState); CreateFlow.init(appState); CampaignFlow.init(appState); StudioText.init(appState); StudioImage.init(appState); StudioVideo.init(appState);</script>
+<script>OnboardingFlow.init(appState); StrategyFlow.init(appState); PersonaFlow.init(appState); GtmFlow.init(appState); CreateFlow.init(appState); CampaignFlow.init(appState); StudioText.init(appState); StudioImage.init(appState); StudioVideo.init(appState);</script>
 
 <!-- Clarity Content Studio — Text, Image, Video, Audio -->
 

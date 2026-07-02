@@ -63,6 +63,10 @@
   animation: ob-enter 0.42s cubic-bezier(.22,.68,0,1.2) both;
 }
 
+.pf-entry-inner--wide {
+  max-width: 600px;
+}
+
 .pf-entry-heading {
   font-family: 'Cormorant Garamond', serif;
   font-size: 46px;
@@ -98,6 +102,86 @@
 .pf-entry-btn:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
+}
+
+.pf-entry-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: transparent;
+  color: var(--ob-muted);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.pf-entry-btn-outline:hover {
+  color: var(--ob-text);
+  border-color: var(--ob-gold-rim);
+}
+
+/* ============================================================
+   SUGGESTED PERSONA PREVIEW (entry screen)
+   ============================================================ */
+.pf-suggest-card {
+  position: relative;
+  text-align: left;
+  background: var(--ob-surface);
+  border: 1px dashed var(--ob-gold-rim);
+  border-radius: var(--radius);
+  overflow: hidden;
+  opacity: 0.92;
+  margin-bottom: 22px;
+  animation: ob-enter 0.36s 0.05s cubic-bezier(.22,.68,0,1.2) both;
+}
+.pf-suggest-card .pf-profile-header {
+  background: transparent;
+  border-bottom: 1px dashed var(--ob-border);
+}
+.pf-suggest-card .pf-profile-section {
+  border-bottom: 1px dashed var(--ob-border);
+}
+.pf-suggest-card .pf-profile-section:last-of-type { border-bottom: none; }
+
+.pf-suggest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ob-gold);
+  background: var(--ob-gold-dim);
+  border: 1px solid var(--ob-gold-rim);
+  padding: 5px 12px;
+  margin: 14px 14px 0;
+  border-radius: 20px;
+}
+
+.pf-suggest-badge--inline {
+  margin: 0 auto 16px;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  justify-content: center;
+  width: fit-content;
+}
+
+.pf-suggest-actions {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.pf-suggest-actions .pf-entry-btn,
+.pf-suggest-actions .pf-entry-btn-outline {
+  margin-top: 0;
 }
 
 /* ============================================================

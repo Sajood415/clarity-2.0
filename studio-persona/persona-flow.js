@@ -3,6 +3,24 @@
    Screens: entry → steps (1 Who, 2 Cares About, 3 Trigger, 4 Summary)
    Step 1 uses 3 conversational sub-steps (a name, b age, c description)
    ============================================================ */
+/* ---- Active-concept accessors — persona/business/strategy data all live
+   on the active concept; personaFlow (UI position) stays global. ---- */
+function pfActiveConcept() {
+  return (window.clarityActiveConcept && window.clarityActiveConcept()) || null;
+}
+function pfBiz() {
+  var c = pfActiveConcept();
+  return (c && c.business) || {};
+}
+function pfStrategy() {
+  var c = pfActiveConcept();
+  return (c && c.strategy) || { marketScan: null, customerIntelligence: null, competition: null };
+}
+function pfPersona() {
+  var c = pfActiveConcept();
+  return (c && c.persona) || { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' };
+}
+
 var PersonaFlow = (function () {
   var state;
 
@@ -18,23 +36,26 @@ var PersonaFlow = (function () {
   function init(s) {
     state = s;
     if (!state.personaFlow) {
-      state.personaFlow = { step: 1, subStep: 1, screen: 'entry' };
+      state.personaFlow = { step: 1, subStep: 1, screen: 'entry', suggestionActive: false };
     }
     if (!state.personaFlow.subStep) state.personaFlow.subStep = 1;
     if (!state.personaFlow.screen) state.personaFlow.screen = 'entry';
-    if (!state.persona) {
-      state.persona = { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' };
-    }
   }
 
   function pfFlow() {
-    if (!state.personaFlow) state.personaFlow = { step: 1, subStep: 1, screen: 'entry' };
+    if (!state.personaFlow) state.personaFlow = { step: 1, subStep: 1, screen: 'entry', suggestionActive: false };
     return state.personaFlow;
   }
 
   /* ---- CI data helper ---- */
   function getCIData() {
-    return (state.strategy && state.strategy.customerIntelligence) || null;
+    return (pfStrategy() && pfStrategy().customerIntelligence) || null;
+  }
+
+  /* ---- Is Strategic Planning fully complete? (all 3 modules saved) ---- */
+  function pfStrategyComplete() {
+    var strat = pfStrategy() || {};
+    return !!(strat.marketScan && strat.customerIntelligence && strat.competition);
   }
 
   /* ---- Initials from name ---- */
@@ -84,22 +105,67 @@ var PersonaFlow = (function () {
   /* ============================================================
      ENTRY SCREEN
      ============================================================ */
+  /* ---- Suggested-persona preview card (entry screen) ---- */
+  function buildSuggestedPersonaCard(sugg) {
+    var chipsHtml = (sugg.caresAbout || []).map(function (c) {
+      return '<span class="pf-profile-chip">' + c + '</span>';
+    }).join('');
+    var triggerHtml = sugg.trigger
+      ? '<div class="pf-trigger-quote">\u201c' + sugg.trigger + '\u201d</div>'
+      : '<span class="pf-summary-empty">Not specified</span>';
+
+    return '<div class="pf-suggest-card">'
+      + '<div class="pf-suggest-badge">&#10024; Suggested from your research</div>'
+      + '<div class="pf-profile-header">'
+      + pfAvatar(sugg.name, 56)
+      + '<div class="pf-profile-header-meta">'
+      + '<div class="pf-profile-name">' + sugg.name + '</div>'
+      + '<div class="pf-profile-age">' + sugg.ageRange + '</div>'
+      + '<div class="pf-profile-bio">' + sugg.description + '</div>'
+      + '</div>'
+      + '</div>'
+      + '<div class="pf-profile-section">'
+      + '<div class="pf-profile-section-body">'
+      + '<div class="pf-profile-section-label">Cares about</div>'
+      + '<div class="pf-profile-chips">' + chipsHtml + '</div>'
+      + '</div></div>'
+      + '<div class="pf-profile-section">'
+      + '<div class="pf-profile-section-body">'
+      + '<div class="pf-profile-section-label">Buying trigger</div>'
+      + triggerHtml
+      + '</div></div>'
+      + '</div>'
+      + '<div class="pf-suggest-actions">'
+      + '<button class="pf-entry-btn" onclick="pfUseSuggested()">Use this persona &#8594;</button>'
+      + '<button class="pf-entry-btn-outline" onclick="pfBuildOwnFromEntry()">Build my own</button>'
+      + '</div>';
+  }
+
   function screenEntry() {
     var ci  = getCIData();
-    var biz = state.business || {};
+    var biz = pfBiz() || {};
     var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
     var locParts = (biz.locations && biz.locations.length > 0)
       ? (biz.locations[0] === 'Global' ? 'globally' : biz.locations.join(', '))
       : null;
 
-    var ciCard;
-    if (ci && ci.topTrigger) {
-      ciCard = pfCICard('Your customers are motivated by: <strong>' + ci.topTrigger + '</strong>');
+    var strategyComplete = pfStrategyComplete();
+
+    var lowerBody;
+    if (strategyComplete) {
+      var sugg = pfBuildSuggestedPersona();
+      lowerBody = buildSuggestedPersonaCard(sugg);
     } else {
-      ciCard = pfCICard(
-        'Run Customer Intelligence first for the best results \u2014 but you can still build a persona now.',
-        true
-      );
+      var ciCard;
+      if (ci && ci.topTrigger) {
+        ciCard = pfCICard('Your customers are motivated by: <strong>' + ci.topTrigger + '</strong>');
+      } else {
+        ciCard = pfCICard(
+          'Run Customer Intelligence first for the best results \u2014 but you can still build a persona now.',
+          true
+        );
+      }
+      lowerBody = ciCard + '<button class="pf-entry-btn" onclick="pfEnterFlow()">Build my persona &#8594;</button>';
     }
 
     return '<div class="pf-wrap">'
@@ -109,11 +175,10 @@ var PersonaFlow = (function () {
       + '<div style="width:130px"></div>'
       + '</div>'
       + '<div class="pf-entry-body">'
-      + '<div class="pf-entry-inner">'
+      + '<div class="pf-entry-inner' + (strategyComplete ? ' pf-entry-inner--wide' : '') + '">'
       + '<div class="pf-entry-heading">Now let\u2019s define who<br>you\u2019re building for</div>'
       + '<div class="pf-entry-ref">' + bizName + (locParts ? ' \u00b7 ' + locParts : '') + '</div>'
-      + ciCard
-      + '<button class="pf-entry-btn" onclick="pfEnterFlow()">Build my persona &#8594;</button>'
+      + lowerBody
       + '</div>'
       + '</div>'
       + '</div>';
@@ -125,7 +190,7 @@ var PersonaFlow = (function () {
   function pfStep1() {
     var f = pfFlow();
     var sub = f.subStep || 1;
-    var p   = state.persona;
+    var p   = pfPersona();
     var ci  = getCIData();
 
     /* Demo reference card — shown on sub-step 1a only */
@@ -181,13 +246,17 @@ var PersonaFlow = (function () {
      STEP 2 — CARES ABOUT
      ============================================================ */
   function pfStep2() {
-    var p    = state.persona;
+    var p    = pfPersona();
     var ci   = getCIData();
     var selected = p.caresAbout || [];
     var otherVal = (p.otherTraits || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     var ciCard = (ci && ci.topTrigger)
       ? pfCICard('Your customers are emotionally driven by: <strong>' + ci.topTrigger + '</strong>')
+      : '';
+
+    var suggestBadge = (pfFlow().suggestionActive)
+      ? '<div class="pf-suggest-badge pf-suggest-badge--inline" id="pf-suggest-inline-badge">&#10024; Suggested from your research</div>'
       : '';
 
     var chipsHtml = PF_CARES.map(function (c) {
@@ -199,6 +268,7 @@ var PersonaFlow = (function () {
     return '<div class="pf-step-wrap">'
       + '<div class="pf-step-question">What matters most to them?</div>'
       + ciCard
+      + suggestBadge
       + '<div class="pf-care-grid">' + chipsHtml + '</div>'
       + '<div class="pf-field">'
       + '<div class="pf-field-label">Anything else? <span class="pf-field-optional">(optional)</span></div>'
@@ -213,7 +283,7 @@ var PersonaFlow = (function () {
      STEP 3 — TRIGGER
      ============================================================ */
   function pfStep3() {
-    var p  = state.persona;
+    var p  = pfPersona();
     var ci = getCIData();
     var trigVal = (p.trigger || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -234,8 +304,8 @@ var PersonaFlow = (function () {
      STEP 4 — PERSONA SUMMARY
      ============================================================ */
   function pfStep4() {
-    var p   = state.persona;
-    var biz = state.business || {};
+    var p   = pfPersona();
+    var biz = pfBiz() || {};
     var name = (p.name && p.name.trim()) ? p.name.trim() : 'Your Persona';
 
     /* Location line */
@@ -303,7 +373,7 @@ var PersonaFlow = (function () {
      ============================================================ */
   function pfCanContinue() {
     var f = pfFlow();
-    var p = state.persona;
+    var p = pfPersona();
     var sub = f.subStep || 1;
     if (f.step === 1) {
       if (sub === 1) return !!(p.name && p.name.trim());
@@ -394,6 +464,78 @@ window.pfEnterFlow = function () {
   }, 80);
 };
 
+/* ---- Build a suggested persona from Strategic Planning data ---- */
+function pfBuildSuggestedPersona() {
+  var biz  = pfBiz() || {};
+  var type = biz.type || 'other';
+  var ci   = (pfStrategy() && pfStrategy().customerIntelligence) || null;
+  var trigger = (ci && ci.topTrigger) ? ci.topTrigger : '';
+
+  var presets = {
+    food:     { name: 'Maya H.',   ageRange: '28\u201342', description: 'A local food lover who values quality ingredients and supports small businesses', caresAbout: ['Quality', 'Community', 'Trust'] },
+    tech:     { name: 'Alex R.',   ageRange: '30\u201345', description: 'A busy founder or ops lead who needs tools that work immediately without complex setup', caresAbout: ['Speed', 'Convenience', 'Trust'] },
+    retail:   { name: 'Sarah K.',  ageRange: '25\u201340', description: 'A value-conscious shopper who researches before buying and loves brands with a clear story', caresAbout: ['Quality', 'Price', 'Sustainability'] },
+    creative: { name: 'Jordan M.', ageRange: '26\u201338', description: 'A creative professional looking for clients who appreciate craft and are willing to pay for quality', caresAbout: ['Quality', 'Personal Service', 'Community'] },
+    trades:   { name: 'Dan W.',    ageRange: '35\u201355', description: 'A local business owner who values reputation and repeat customers above everything else', caresAbout: ['Trust', 'Personal Service', 'Quality'] },
+    other:    { name: 'Sam P.',    ageRange: '28\u201345', description: 'An entrepreneur building something new who needs early adopters willing to try something different', caresAbout: ['Trust', 'Speed', 'Price'] }
+  };
+  var preset = presets[type] || presets.other;
+
+  return {
+    name: preset.name,
+    ageRange: preset.ageRange,
+    description: preset.description,
+    caresAbout: preset.caresAbout.slice(),
+    trigger: trigger
+  };
+}
+
+/* "Use this persona" — accept the suggestion wholesale, skip straight to Summary */
+window.pfUseSuggested = function () {
+  var sugg = pfBuildSuggestedPersona();
+  var c = pfActiveConcept();
+  if (c) {
+    c.persona = {
+      name: sugg.name,
+      ageRange: sugg.ageRange,
+      description: sugg.description,
+      caresAbout: sugg.caresAbout.slice(),
+      otherTraits: '',
+      trigger: sugg.trigger
+    };
+  }
+  appState.personaFlow.suggestionActive = true;
+  appState.personaFlow.screen = 'steps';
+  appState.personaFlow.step = 4;
+  appState.personaFlow.subStep = 1;
+  renderContent();
+};
+
+/* "Build my own" — pre-fill Step 1 (and beyond) with the suggestion, but walk through the flow normally */
+window.pfBuildOwnFromEntry = function () {
+  var sugg = pfBuildSuggestedPersona();
+  var c = pfActiveConcept();
+  if (c) {
+    c.persona = {
+      name: sugg.name,
+      ageRange: sugg.ageRange,
+      description: sugg.description,
+      caresAbout: sugg.caresAbout.slice(),
+      otherTraits: '',
+      trigger: sugg.trigger
+    };
+  }
+  appState.personaFlow.suggestionActive = true;
+  appState.personaFlow.screen = 'steps';
+  appState.personaFlow.step = 1;
+  appState.personaFlow.subStep = 1;
+  renderContent();
+  setTimeout(function () {
+    var el = document.getElementById('pf-name');
+    if (el) { el.focus(); el.select(); }
+  }, 80);
+};
+
 /* Jump to a specific step (from Edit links in summary) */
 window.pfGoStep = function (step) {
   pfFlushLiveInputs();
@@ -479,7 +621,7 @@ window.pfStep1Advance = function () {
 /* Confirm persona → transition */
 window.pfConfirmPersona = function () {
   pfFlushLiveInputs();
-  var name = (appState.persona.name || '').trim();
+  var name = (pfPersona().name || '').trim();
   setTransition({
     title:    'Persona locked in',
     summary:  name
@@ -492,49 +634,65 @@ window.pfConfirmPersona = function () {
 
 /* Start over — reset persona and return to entry */
 window.pfStartOver = function () {
-  appState.persona = {
-    name: '', ageRange: '', description: '',
-    caresAbout: [], otherTraits: '', trigger: ''
-  };
-  appState.personaFlow = { step: 1, subStep: 1, screen: 'entry' };
+  var c = pfActiveConcept();
+  if (c) {
+    c.persona = {
+      name: '', ageRange: '', description: '',
+      caresAbout: [], otherTraits: '', trigger: ''
+    };
+  }
+  appState.personaFlow = { step: 1, subStep: 1, screen: 'entry', suggestionActive: false };
   renderContent();
 };
 
+/* Clear the "suggested" badge the moment the user manually touches anything */
+function pfClearSuggestion() {
+  if (appState.personaFlow) appState.personaFlow.suggestionActive = false;
+}
+
 /* ---- Input handlers ---- */
 window.pfNameInput = function (val) {
-  appState.persona.name = val;
+  pfPersona().name = val;
+  pfClearSuggestion();
   var btn = document.getElementById('pf-step1-btn');
   if (btn) btn.disabled = !val.trim();
 };
 
 window.pfAgeInput = function (val) {
-  appState.persona.ageRange = val;
+  pfPersona().ageRange = val;
+  pfClearSuggestion();
   var btn = document.getElementById('pf-step1-btn');
   if (btn) btn.disabled = !val.trim();
 };
 
 window.pfDescInput = function (val) {
-  appState.persona.description = val;
+  pfPersona().description = val;
+  pfClearSuggestion();
   var btn = document.getElementById('pf-step1-btn');
   if (btn) btn.disabled = !val.trim();
 };
 
 window.pfToggleCare = function (el, val) {
-  var arr = appState.persona.caresAbout;
+  var arr = pfPersona().caresAbout;
   var idx = arr.indexOf(val);
   if (idx === -1) arr.push(val);
   else arr.splice(idx, 1);
   el.classList.toggle('selected', arr.indexOf(val) !== -1);
+  pfClearSuggestion();
+  var badge = document.getElementById('pf-suggest-inline-badge');
+  if (badge) badge.remove();
   var btn = document.getElementById('pf-continue-btn');
   if (btn) btn.disabled = arr.length === 0;
 };
 
 window.pfOtherInput = function (val) {
-  appState.persona.otherTraits = val;
+  pfPersona().otherTraits = val;
+  pfClearSuggestion();
 };
 
 window.pfTriggerInput = function (val) {
-  appState.persona.trigger = val;
+  pfPersona().trigger = val;
+  pfClearSuggestion();
   var btn = document.getElementById('pf-continue-btn');
   if (btn) btn.disabled = !val.trim();
 };
@@ -546,9 +704,9 @@ function pfFlushLiveInputs() {
   var descEl    = document.getElementById('pf-desc');
   var otherEl   = document.getElementById('pf-other');
   var triggerEl = document.getElementById('pf-trigger');
-  if (nameEl)    appState.persona.name        = nameEl.value;
-  if (ageEl)     appState.persona.ageRange    = ageEl.value;
-  if (descEl)    appState.persona.description = descEl.value;
-  if (otherEl)   appState.persona.otherTraits = otherEl.value;
-  if (triggerEl) appState.persona.trigger     = triggerEl.value;
+  if (nameEl)    pfPersona().name        = nameEl.value;
+  if (ageEl)     pfPersona().ageRange    = ageEl.value;
+  if (descEl)    pfPersona().description = descEl.value;
+  if (otherEl)   pfPersona().otherTraits = otherEl.value;
+  if (triggerEl) pfPersona().trigger     = triggerEl.value;
 }

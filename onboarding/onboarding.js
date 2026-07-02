@@ -2,6 +2,24 @@
    ONBOARDING FLOW  —  IIFE module
    Screens: 1=Welcome  2=Auth  3=Business Setup (3 sub-steps)  4=Confirm
    ============================================================ */
+
+/* ---- Active-concept accessors — all business data lives on the active
+   concept, not on a flat top-level property ---- */
+function obActiveConcept() {
+  return (window.clarityActiveConcept && window.clarityActiveConcept()) || null;
+}
+function obBiz() {
+  var c = obActiveConcept();
+  return (c && c.business) || {};
+}
+/* Guarantee an active concept exists before the user starts filling in
+   business details — created blank at Auth, then filled in through Setup */
+function obEnsureConcept() {
+  if (!obActiveConcept() && window.clarityCreateConcept) {
+    window.clarityCreateConcept({});
+  }
+}
+
 var OnboardingFlow = (function () {
   var state;
 
@@ -112,11 +130,6 @@ var OnboardingFlow = (function () {
     if (!state.onboarding) {
       state.onboarding = { step: 1, authMode: 'signup', subStep: 1 };
     }
-    if (!state.business) {
-      state.business = { name: '', description: '', type: null, locations: [] };
-    } else if (!state.business.locations) {
-      state.business.locations = [];
-    }
   }
 
   /* ---- Progress indicator (4 dots, one per screen) ---- */
@@ -127,6 +140,11 @@ var OnboardingFlow = (function () {
       html += '<div class="ob-prog-dot ' + cls + '"></div>';
     }
     return html + '</div>';
+  }
+
+  /* ---- Sub-step progress bar (Business Setup: name/desc/type/location) ---- */
+  function subStepBar(percent) {
+    return '<div class="ob-substep-bar"><div class="ob-substep-fill" style="width:' + percent + '%"></div></div>';
   }
 
   /* ============================================================
@@ -211,12 +229,12 @@ var OnboardingFlow = (function () {
 
   /* Sub-step 3a — Business name */
   function screenSetupName() {
-    var nameVal = ((state.business && state.business.name) || '').replace(/"/g, '&quot;');
+    var nameVal = ((obBiz() && obBiz().name) || '').replace(/"/g, '&quot;');
     var hasName = nameVal.trim().length > 0;
     return '<div class="ob-conv-screen">'
       + '<button class="ob-back" onclick="obGoStep(2)">&#8592; Back</button>'
-      + progressDots(3)
       + '<div class="ob-conv-wrap">'
+      + subStepBar(25)
       + '<div class="ob-conv-question">What&rsquo;s your business called?</div>'
       + '<input type="text" id="ob-biz-name" class="ob-conv-input"'
       + ' value="' + nameVal + '" placeholder="e.g. Hearth Bakery"'
@@ -231,13 +249,13 @@ var OnboardingFlow = (function () {
 
   /* Sub-step 3b — Description */
   function screenSetupDesc() {
-    var name     = (state.business && state.business.name) ? state.business.name.trim() : '';
-    var descVal  = (state.business && state.business.description) || '';
+    var name     = (obBiz() && obBiz().name) ? obBiz().name.trim() : '';
+    var descVal  = (obBiz() && obBiz().description) || '';
     var refLine  = name ? '<div class="ob-conv-ref">' + escHtml(name) + ' &#8594;</div>' : '';
     return '<div class="ob-conv-screen">'
       + '<button class="ob-back" onclick="obBackToName()">&#8592; Back</button>'
-      + progressDots(3)
       + '<div class="ob-conv-wrap">'
+      + subStepBar(50)
       + refLine
       + '<div class="ob-conv-question">What do you sell or offer?</div>'
       + '<textarea id="ob-biz-desc" class="ob-conv-textarea" rows="3"'
@@ -250,8 +268,8 @@ var OnboardingFlow = (function () {
 
   /* Sub-step 3c — Business type grid */
   function screenSetupType() {
-    var name     = (state.business && state.business.name) ? state.business.name.trim() : '';
-    var desc     = (state.business && state.business.description) ? state.business.description.trim() : '';
+    var name     = (obBiz() && obBiz().name) ? obBiz().name.trim() : '';
+    var desc     = (obBiz() && obBiz().description) ? obBiz().description.trim() : '';
     var shortDesc = desc.length > 52 ? desc.substring(0, 49) + '\u2026' : desc;
 
     var refParts = [];
@@ -264,7 +282,7 @@ var OnboardingFlow = (function () {
       : '';
 
     var tilesHtml = OB_TYPES.map(function (t) {
-      var sel = (state.business && state.business.type) === t.id;
+      var sel = (obBiz() && obBiz().type) === t.id;
       return '<div id="ob-type-tile-' + t.id + '" class="ob-type-tile' + (sel ? ' selected' : '') + '"'
         + ' onclick="obSelectTypeAndAdvance(\'' + t.id + '\')">'
         + '<div class="ob-type-icon">' + OB_TYPE_ICONS[t.id] + '</div>'
@@ -276,8 +294,8 @@ var OnboardingFlow = (function () {
 
     return '<div class="ob-conv-screen">'
       + '<button class="ob-back" onclick="obBackToDesc()">&#8592; Back</button>'
-      + progressDots(3)
       + '<div class="ob-conv-wrap ob-conv-wrap-wide">'
+      + subStepBar(75)
       + refLine
       + '<div class="ob-conv-question">What kind of business is it?</div>'
       + '<div class="ob-conv-sub">Tap a tile to continue — no extra button needed.</div>'
@@ -288,9 +306,9 @@ var OnboardingFlow = (function () {
 
   /* Sub-step 3d — Location picker */
   function screenSetupLocation() {
-    var locs     = (state.business && state.business.locations) || [];
-    var name     = (state.business && state.business.name) ? state.business.name.trim() : '';
-    var type     = (state.business && state.business.type) || '';
+    var locs     = (obBiz() && obBiz().locations) || [];
+    var name     = (obBiz() && obBiz().name) ? obBiz().name.trim() : '';
+    var type     = (obBiz() && obBiz().type) || '';
     var typeLabels = { food: 'Food & Hospitality', retail: 'Retail & Products', creative: 'Creative & Services', tech: 'Tech & Software', trades: 'Trades & Local', other: 'Other' };
     var typeLabel  = typeLabels[type] || '';
 
@@ -324,8 +342,8 @@ var OnboardingFlow = (function () {
 
     return '<div class="ob-conv-screen">'
       + '<button class="ob-back" onclick="obBackToType()">&#8592; Back</button>'
-      + progressDots(3)
       + '<div class="ob-conv-wrap">'
+      + subStepBar(100)
       + refLine
       + '<div class="ob-conv-question">Where do you operate?</div>'
       + chipsHtml
@@ -352,10 +370,10 @@ var OnboardingFlow = (function () {
      Screen 4 — Confirmation
      ============================================================ */
   function screenConfirm() {
-    var name = (state.business && state.business.name && state.business.name.trim())
-      ? state.business.name.trim()
+    var name = (obBiz() && obBiz().name && obBiz().name.trim())
+      ? obBiz().name.trim()
       : 'there';
-    var locs = (state.business && state.business.locations) || [];
+    var locs = (obBiz() && obBiz().locations) || [];
     var locLine = locs.length
       ? '<div class="ob-confirm-location">'
         + (locs[0] === 'Global' ? 'Operating globally.' : 'Operating in: ' + locs.join(', ') + '.')
@@ -454,6 +472,11 @@ window.obSwitchAuth = function (mode) {
 
 /* Screen 2 → Screen 3 (Google button or Continue) */
 window.obAdvanceFromAuth = function () {
+  var emailEl = document.getElementById('ob-email');
+  var email = (emailEl && emailEl.value && emailEl.value.trim()) ? emailEl.value.trim() : 'user@clarity.app';
+  appState.user = { email: email, authMethod: appState.onboarding.authMode };
+  obEnsureConcept();
+
   appState.onboarding.step         = 'launching';
   appState.onboarding.launchingText = 'Signing you in\u2026';
   renderContent();
@@ -482,7 +505,7 @@ window.obCheckAuthFields = function () {
 /* ---- Sub-step 3a handlers ---- */
 
 window.obBizNameInput = function (val) {
-  appState.business.name = val;
+  obBiz().name = val;
   var btn = document.getElementById('ob-name-btn');
   if (btn) btn.disabled = !val.trim();
 };
@@ -490,15 +513,15 @@ window.obBizNameInput = function (val) {
 /* Allow pressing Enter to advance from name field */
 window.obBizNameKey = function (e) {
   if (e.key === 'Enter') {
-    var val = (appState.business.name || '').trim();
+    var val = (obBiz().name || '').trim();
     if (val) window.obAdvanceToDesc();
   }
 };
 
 window.obAdvanceToDesc = function () {
   var nameEl = document.getElementById('ob-biz-name');
-  if (nameEl) appState.business.name = nameEl.value;
-  if (!(appState.business.name || '').trim()) return;
+  if (nameEl) obBiz().name = nameEl.value;
+  if (!(obBiz().name || '').trim()) return;
   appState.onboarding.subStep = 2;
   renderContent();
   setTimeout(function () {
@@ -510,12 +533,12 @@ window.obAdvanceToDesc = function () {
 /* ---- Sub-step 3b handlers ---- */
 
 window.obBizDescInput = function (val) {
-  appState.business.description = val;
+  obBiz().description = val;
 };
 
 window.obAdvanceToType = function () {
   var descEl = document.getElementById('ob-biz-desc');
-  if (descEl) appState.business.description = descEl.value;
+  if (descEl) obBiz().description = descEl.value;
   appState.onboarding.subStep = 3;
   renderContent();
 };
@@ -533,7 +556,7 @@ window.obBackToName = function () {
 
 /* Selecting a tile immediately advances to Screen 4 after brief visual confirmation */
 window.obSelectTypeAndAdvance = function (id) {
-  appState.business.type = id;
+  obBiz().type = id;
 
   /* Visual: mark tile selected in DOM */
   var allIds = ['food', 'retail', 'creative', 'tech', 'trades', 'other'];
@@ -580,7 +603,7 @@ window.obBackToType = function () {
 
 /* Update chips, list highlights, and Continue button without a full re-render */
 window.obUpdateLocationUI = function () {
-  var locs = appState.business.locations || [];
+  var locs = obBiz().locations || [];
 
   /* Chips */
   var chipsEl = document.getElementById('ob-location-chips');
@@ -618,10 +641,10 @@ window.obUpdateLocationUI = function () {
 };
 
 window.obToggleLocation = function (name) {
-  if (!appState.business.locations) appState.business.locations = [];
-  var locs = appState.business.locations;
+  if (!obBiz().locations) obBiz().locations = [];
+  var locs = obBiz().locations;
   if (name === 'Global') {
-    appState.business.locations = locs.indexOf('Global') > -1 ? [] : ['Global'];
+    obBiz().locations = locs.indexOf('Global') > -1 ? [] : ['Global'];
   } else {
     var gi = locs.indexOf('Global');
     if (gi > -1) locs.splice(gi, 1);
@@ -632,9 +655,9 @@ window.obToggleLocation = function (name) {
 };
 
 window.obRemoveLocation = function (name) {
-  if (!appState.business.locations) return;
-  var i = appState.business.locations.indexOf(name);
-  if (i > -1) appState.business.locations.splice(i, 1);
+  if (!obBiz().locations) return;
+  var i = obBiz().locations.indexOf(name);
+  if (i > -1) obBiz().locations.splice(i, 1);
   window.obUpdateLocationUI();
 };
 
@@ -648,7 +671,7 @@ window.obLocationSearch = function (val) {
 };
 
 window.obAdvanceFromLocation = function () {
-  if (!appState.business.locations || !appState.business.locations.length) return;
+  if (!obBiz().locations || !obBiz().locations.length) return;
   appState.onboarding.step = 4;
   appState.onboarding.subStep = 1;
   renderContent();
@@ -656,11 +679,18 @@ window.obAdvanceFromLocation = function () {
 
 /* ---- Screen 4 ---- */
 
-/* "Let's get started" → show "Building your workspace..." → transition to Strategic Planning */
+/* "Let's get started" → show "Building your workspace..." → hand off.
+   The active concept was created back at obAdvanceFromAuth() (or, for a
+   second-or-later concept, by the Dashboard's "+ New concept" flow) and has
+   been filled in throughout Setup. First concept ever → skip straight into
+   Strategic Planning. Any concept after that → back to the Dashboard, since
+   the user already has other concepts to manage alongside this new one. */
 window.obLaunchWorkspace = function () {
+  obEnsureConcept();
   appState.onboarding.step = 'launching';
   renderContent();
   setTimeout(function () {
-    setMode('strategic-plan');
+    var isFirstConcept = !!(appState.concepts && appState.concepts.length === 1);
+    setMode(isFirstConcept ? 'strategic-plan' : 'dashboard');
   }, 1800);
 };

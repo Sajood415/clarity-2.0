@@ -1337,12 +1337,386 @@
 }
 
 /* ============================================================
+   TABBED REPORT UI  —  shared by Market Scan, Customer Intelligence,
+   Competition, and the Unified Strategic Plan report.
+   prefix: sp-tab- / sp-
+   ============================================================ */
+.sp-report-tabs-wrap {
+  margin-bottom: 4px;
+}
+
+.sp-tabs-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--ob-border);
+  margin-bottom: 20px;
+}
+
+.sp-tabs-bar {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sp-tabs-bar::-webkit-scrollbar { display: none; }
+
+.sp-tab-btn {
+  flex-shrink: 0;
+  padding: 11px 14px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ob-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.sp-tab-btn:hover { color: var(--ob-text); }
+.sp-tab-btn.active {
+  color: var(--tab-accent, var(--ob-gold));
+  border-bottom-color: var(--tab-accent, var(--ob-gold));
+}
+
+.sp-viewall-btn {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ob-muted);
+  background: none;
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: 10px;
+  white-space: nowrap;
+}
+.sp-viewall-btn:hover { color: var(--ob-text); border-color: rgba(255,255,255,0.2); }
+
+.sp-tabs-content { position: relative; }
+
+.sp-tab-panel {
+  transition: opacity 0.15s ease;
+}
+
+.sp-tab-content-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 16px;
+}
+
+/* ---- "View all" document mode: stack every panel, hide the tab bar ---- */
+.sp-view-all .sp-tabs-bar { display: none; }
+.sp-view-all .sp-tab-panel {
+  display: block !important;
+  opacity: 1 !important;
+  margin-bottom: 30px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid var(--ob-border);
+}
+.sp-view-all .sp-tab-panel:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* ---- Market size figure card (Market Scan — The Market) ---- */
+.sp-marketsize-card {
+  background: var(--ob-gold-dim);
+  border: 1px solid var(--ob-gold-rim);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-top: 14px;
+}
+.sp-marketsize-figure {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ob-gold);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.sp-marketsize-text {
+  font-size: 13px;
+  color: var(--ob-text);
+  line-height: 1.6;
+}
+
+/* ---- Large hero headline + body (The Opportunity / Where You Win) ---- */
+.sp-opp-headline {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 25px;
+  font-weight: 600;
+  color: var(--ob-text);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+.sp-opp-body {
+  font-size: 14px;
+  color: var(--ob-muted);
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
+/* ---- Generic module-colored stat chip (Market Scan buyer chips, etc.) ---- */
+.sp-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+/* ---- Psychographics bullet list ---- */
+.sp-psych-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 14px;
+}
+.sp-psych-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--ob-border);
+  font-size: 13px;
+  color: var(--ob-text);
+  line-height: 1.55;
+}
+.sp-psych-item:last-child { border-bottom: none; }
+.sp-psych-bullet {
+  flex-shrink: 0;
+  color: var(--ob-gold);
+  font-size: 14px;
+  line-height: 1.4;
+  margin-top: 1px;
+}
+
+/* ---- Key Findings numbered list (Market Scan) ---- */
+.sp-findings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.sp-finding-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--ob-border);
+}
+.sp-finding-row:last-child { border-bottom: none; }
+.sp-finding-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ob-gold-dim);
+  border: 1px solid var(--ob-gold-rim);
+  color: var(--ob-gold);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.sp-finding-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ob-text);
+  line-height: 1.5;
+}
+
+/* ---- Customer Segments cards (Customer Intelligence) ---- */
+.sp-segments-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.sp-segment-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius);
+  padding: 16px 16px 14px;
+}
+.sp-segment-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ob-teal);
+  margin-bottom: 10px;
+}
+.sp-segment-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ob-border);
+}
+.sp-segment-row:last-child { border-bottom: none; }
+.sp-segment-row-label {
+  color: var(--ob-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.sp-segment-row-val {
+  color: var(--ob-text);
+  text-align: right;
+}
+.sp-segment-trigger {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ob-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.sp-segment-trigger + .sp-segment-trigger { margin-top: 6px; }
+
+/* ---- Generic data table (Market Scan / Customer Intel / Competition report content) ---- */
+.sp-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.sp-table-row {
+  display: grid;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--ob-border);
+  align-items: center;
+}
+.sp-table-row:last-child { border-bottom: none; }
+.sp-table-head-row {
+  background: rgba(255,255,255,0.035);
+}
+.sp-table-cell {
+  font-size: 12.5px;
+  color: var(--ob-text);
+  line-height: 1.55;
+}
+.sp-table-cell-head {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ob-muted);
+}
+
+/* ---- Finding row with headline + explanation body (Key Findings tabs) ---- */
+.sp-finding-body {
+  font-size: 12.5px;
+  color: var(--ob-muted);
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
+/* ---- Note / callout beneath a table (e.g. "how to read Opportunity Score") ---- */
+.sp-table-note {
+  font-size: 12px;
+  color: var(--ob-muted);
+  line-height: 1.6;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  margin-bottom: 4px;
+}
+.sp-table-note strong { color: var(--ob-text); font-weight: 600; }
+
+/* ---- Drivers / Barriers dual-column layout (Customer Intel "What Drives Them") ---- */
+.sp-dual-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.sp-dual-col-block {
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.sp-dual-col-head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--ob-border);
+  background: rgba(255,255,255,0.035);
+}
+.sp-driver-row {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ob-border);
+}
+.sp-driver-row:last-child { border-bottom: none; }
+.sp-driver-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.sp-driver-factor {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ob-text);
+}
+.sp-driver-weight {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.sp-driver-quote {
+  font-size: 12px;
+  color: var(--ob-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ---- Persona preview cards (Customer Intel "Who's Buying") ---- */
+.sp-persona-meta {
+  font-size: 11px;
+  color: var(--ob-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+.sp-persona-desc {
+  font-size: 12.5px;
+  color: var(--ob-text);
+  line-height: 1.55;
+  margin-bottom: 10px;
+}
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 700px) {
   .sp-modules-grid   { grid-template-columns: 1fr; }
   .ms-comp-grid      { grid-template-columns: 1fr; }
   .comp-players-grid { grid-template-columns: 1fr; }
+  .sp-segments-grid  { grid-template-columns: 1fr; }
   .ms-body           { padding: 24px 20px; }
   .sp-hub-body       { padding: 28px 20px 40px; }
   .ms-report-header  { flex-direction: column; gap: 10px; }
@@ -1350,6 +1724,20 @@
   .ci-journey-flow   { gap: 0; }
   .ci-journey-arrow  { padding: 0 4px; font-size: 14px; }
   .comp-map-field    { height: 220px; }
+  .sp-tabs-bar-row   { flex-wrap: wrap; gap: 8px; }
+  .sp-viewall-btn    { margin-bottom: 6px; }
+  .sp-dual-col       { grid-template-columns: 1fr; }
+  .sp-table-head-row { display: none; }
+  .sp-table-row:not(.sp-table-head-row) {
+    grid-template-columns: 1fr !important;
+    gap: 3px;
+    padding: 12px 16px;
+  }
+  .sp-table-cell[data-label]::before {
+    content: attr(data-label) ": ";
+    font-weight: 700;
+    color: var(--ob-muted);
+  }
 }
 
 /* ============================================================
@@ -1358,6 +1746,20 @@
 @media print {
   /* Force sections visible regardless of animation state */
   .ms-stage-section { opacity: 1 !important; transform: none !important; }
+
+  /* Tabbed reports — force every tab panel visible so the PDF captures
+     the full report, not just the currently active tab */
+  .sp-tabs-bar-row { display: none !important; }
+  .sp-tab-panel {
+    display: block !important;
+    opacity: 1 !important;
+    margin-bottom: 22px !important;
+    padding-bottom: 22px !important;
+    border-bottom: 1px solid #ddd !important;
+    page-break-inside: avoid;
+  }
+  .sp-tab-panel:last-child { border-bottom: none !important; }
+  .sp-tab-content-title { color: #1a1a1a !important; }
 
   /* Hide chrome */
   .cf-topbar,
@@ -1429,6 +1831,33 @@
   .comp-dot-label { color: #333 !important; background: #fff !important; border-color: #ddd !important; }
 
   strong[style] { /* keep color hints but ensure readability */ }
+
+  /* New tabbed-report content pieces — force readable light-mode colors */
+  .sp-marketsize-card { background: #f9f9f9 !important; border-color: #e5cfa0 !important; }
+  .sp-marketsize-figure { color: #8a6420 !important; }
+  .sp-marketsize-text,
+  .sp-opp-body,
+  .sp-psych-item,
+  .sp-segment-row-val,
+  .sp-segment-trigger { color: #444 !important; }
+  .sp-opp-headline,
+  .sp-finding-text { color: #1a1a1a !important; }
+  .sp-stat-chip { background: #f5ecd8 !important; color: #8a6420 !important; border-color: #e5cfa0 !important; }
+  .sp-finding-num { background: #f5ecd8 !important; color: #8a6420 !important; border-color: #e5cfa0 !important; }
+  .sp-segment-card { background: #f9f9f9 !important; border-color: #ddd !important; }
+  .sp-segment-name { color: #1a1a1a !important; }
+  .spr-risk-item .spr-risk-text { color: #1a1a1a !important; }
+  .spr-risk-chip { background: #eee !important; color: #555 !important; border-color: #ccc !important; }
+
+  /* Generic data table + dual-column driver/barrier content */
+  .sp-table, .sp-dual-col-block { border-color: #ddd !important; }
+  .sp-table-head-row, .sp-dual-col-head { background: #f2f2f2 !important; }
+  .sp-table-row { border-color: #eee !important; }
+  .sp-table-cell { color: #333 !important; }
+  .sp-table-cell-head, .sp-dual-col-head { color: #555 !important; }
+  .sp-finding-body, .sp-driver-quote, .sp-persona-desc, .sp-table-note { color: #555 !important; }
+  .sp-driver-factor { color: #1a1a1a !important; }
+  .sp-table-note { background: #f9f9f9 !important; }
 }
 
 /* ============================================================
@@ -1456,8 +1885,20 @@
 /* Report section cards — ensure surface reads against cream bg */
 [data-theme="light"] .ms-section-card,
 [data-theme="light"] .comp-player-card,
-[data-theme="light"] .ci-journey-step-inner {
+[data-theme="light"] .ci-journey-step-inner,
+[data-theme="light"] .sp-segment-card {
   background: var(--ob-surface2);
+  border-color: var(--ob-border);
+}
+
+[data-theme="light"] .sp-table-head-row,
+[data-theme="light"] .sp-dual-col-head,
+[data-theme="light"] .sp-table-note {
+  background: var(--ob-surface2);
+}
+[data-theme="light"] .sp-table,
+[data-theme="light"] .sp-dual-col-block,
+[data-theme="light"] .sp-table-note {
   border-color: var(--ob-border);
 }
 

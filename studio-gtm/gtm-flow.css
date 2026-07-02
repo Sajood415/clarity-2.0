@@ -1,0 +1,244 @@
+/* ============================================================
+   GTM STRATEGY FLOW
+   Reuses: .cf-screen chrome pattern, .app-topbar-back
+   Visual language matches onboarding.css / strategy-flow.css (ob-* tokens)
+   ============================================================ */
+
+.gtm-screen { padding: 0; min-height: 100%; display: flex; flex-direction: column; background: var(--ob-bg); }
+
+.gtm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--ob-border);
+  background: var(--ob-surface);
+}
+.gtm-topbar-side { flex: 1; display: flex; align-items: center; }
+.gtm-topbar-left { justify-content: flex-start; }
+.gtm-topbar-right { justify-content: flex-end; }
+.gtm-topbar-label {
+  flex-shrink: 0;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ob-gold);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.gtm-body { flex: 1; padding: 40px 24px 60px; overflow-y: auto; }
+.gtm-content-wrap { max-width: 640px; margin: 0 auto; width: 100%; animation: cf-step-fade 0.25s ease both; }
+.gtm-content-wrap-wide { max-width: 780px; }
+
+.gtm-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ob-gold);
+  margin-bottom: 10px;
+}
+.gtm-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--ob-text);
+  line-height: 1.2;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+.gtm-sub { font-size: 14px; color: var(--ob-muted); line-height: 1.6; margin-bottom: 28px; max-width: 560px; }
+
+/* ---- Research summary card ---- */
+.gtm-research-card {
+  background: var(--ob-surface);
+  border: 1px solid var(--ob-border);
+  border-left: 3px solid var(--ob-gold);
+  border-radius: var(--radius);
+  padding: 6px 0;
+  margin-bottom: 28px;
+}
+.gtm-research-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--ob-border);
+}
+.gtm-research-row:last-child { border-bottom: none; }
+.gtm-research-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 5px;
+}
+.gtm-research-text { min-width: 0; }
+.gtm-research-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ob-muted); margin-bottom: 3px;
+}
+.gtm-research-val { font-size: 13px; color: var(--ob-text); line-height: 1.5; }
+.gtm-research-chip {
+  display: inline-block;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 9px; margin-left: 6px;
+  border-radius: 20px;
+  background: var(--ob-teal-dim); border: 1px solid var(--ob-teal-rim);
+  color: var(--ob-teal);
+  vertical-align: middle;
+}
+
+/* ---- Focus textarea (My Plan) ---- */
+.gtm-focus-wrap { margin-bottom: 28px; }
+.gtm-focus-label {
+  display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ob-muted); margin-bottom: 8px;
+}
+.gtm-optional { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ob-muted); opacity: 0.7; }
+.gtm-focus-input {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--ob-text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.gtm-focus-input:focus { border-color: var(--ob-gold-rim); box-shadow: 0 0 0 3px var(--ob-gold-dim); }
+.gtm-focus-input::placeholder { color: var(--ob-muted); opacity: 0.55; }
+
+/* ---- Buttons ---- */
+.gtm-btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 13px 28px;
+  border-radius: var(--radius-sm);
+  background: var(--ob-gold);
+  color: #12100e;
+  font-size: 14px; font-weight: 600;
+  border: none;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.gtm-btn-primary:hover { background: #e6be7a; }
+.gtm-btn-primary:active { transform: scale(0.98); }
+.gtm-btn-lg { width: 100%; padding: 15px 28px; font-size: 15px; margin-top: 4px; }
+
+/* ============================================================
+   LOADING SCREEN (independent 700ms/phase engine, gtm- prefixed hooks)
+   ============================================================ */
+.gtm-loading-screen {
+  min-height: 100vh;
+  background: var(--ob-bg);
+  display: flex; align-items: center; justify-content: center;
+  animation: cf-step-fade 0.25s ease both;
+}
+.gtm-loading-inner { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 380px; width: 100%; }
+.gtm-loading-orb { position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+.gtm-orb-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid rgba(212,168,83,0.55);
+  animation: gtm-orb-pulse 2s ease-in-out infinite;
+}
+.gtm-orb-ring.delay1 { inset: -10px; border-color: rgba(212,168,83,0.3); animation: gtm-orb-pulse 2s 0.4s ease-in-out infinite; }
+.gtm-orb-ring.delay2 { inset: -22px; border-color: rgba(212,168,83,0.14); animation: gtm-orb-pulse-2 2s 0.8s ease-in-out infinite; }
+@keyframes gtm-orb-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.5; } }
+@keyframes gtm-orb-pulse-2 { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.1); opacity: 0.3; } }
+
+.gtm-loading-brand { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--ob-gold); letter-spacing: 0.04em; margin-bottom: 20px; }
+.gtm-loading-phase { font-size: 15px; color: var(--ob-text); font-weight: 500; margin-bottom: 24px; transition: opacity 0.22s ease, transform 0.22s ease; min-height: 24px; }
+.gtm-loading-bar-track { width: 240px; height: 3px; background: var(--ob-border); border-radius: 2px; overflow: hidden; margin-bottom: 28px; }
+.gtm-loading-bar { height: 100%; background: linear-gradient(90deg, var(--ob-gold), #deb86a); border-radius: 2px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+.gtm-loading-phases-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.gtm-phase-item { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ob-muted); opacity: 0.35; transition: opacity 0.25s ease; }
+.gtm-phase-dot { font-size: 8px; color: var(--ob-muted); width: 14px; flex-shrink: 0; text-align: center; transition: color 0.2s; }
+.gtm-phase-dot.active { color: var(--ob-gold); }
+.gtm-phase-dot.done { color: var(--ob-teal); font-size: 10px; }
+
+/* ============================================================
+   PLAN OUTPUT — 90-day action cards
+   ============================================================ */
+.gtm-action-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
+.gtm-action-card {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--ob-surface); border: 1px solid var(--ob-border);
+  border-radius: var(--radius); padding: 20px 22px;
+}
+.gtm-action-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 30px; font-weight: 700; color: var(--ob-gold);
+  flex-shrink: 0; line-height: 1; min-width: 34px;
+}
+.gtm-action-body { min-width: 0; flex: 1; }
+.gtm-action-title { font-size: 16px; font-weight: 700; color: var(--ob-text); line-height: 1.35; margin-bottom: 6px; }
+.gtm-action-desc { font-size: 14px; color: var(--ob-muted); line-height: 1.55; margin-bottom: 12px; }
+.gtm-action-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.gtm-chip {
+  font-size: 11px; font-weight: 600; color: var(--ob-muted);
+  padding: 4px 11px; border-radius: 20px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--ob-border);
+}
+.gtm-chip-priority, .gtm-chip-outline { background: transparent; font-weight: 700; }
+
+/* ============================================================
+   PRICING CONTEXT — input grid
+   ============================================================ */
+.gtm-price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+.gtm-price-card {
+  background: var(--ob-surface); border: 1px solid var(--ob-border);
+  border-radius: var(--radius); padding: 16px 18px;
+}
+.gtm-price-input-wrap { display: flex; align-items: center; gap: 8px; }
+.gtm-price-prefix {
+  font-size: 13px; font-weight: 600; color: var(--ob-muted);
+  flex-shrink: 0;
+}
+.gtm-price-input { margin: 0; }
+.gtm-price-error {
+  font-size: 12px; color: var(--ob-coral); margin: 4px 0 18px;
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--ob-coral-dim); border: 1px solid var(--ob-coral-rim);
+}
+
+/* ============================================================
+   PRICING OUTPUT — adjustment cards
+   ============================================================ */
+.gtm-adjust-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+.gtm-adjust-card {
+  background: var(--ob-surface); border: 1px solid var(--ob-border);
+  border-radius: var(--radius); padding: 22px 24px;
+}
+.gtm-adjust-eyebrow {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ob-muted); margin-bottom: 8px;
+}
+.gtm-adjust-headline {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 600; color: var(--ob-text);
+  line-height: 1.3; margin-bottom: 10px;
+}
+.gtm-adjust-explain { font-size: 14px; color: var(--ob-muted); line-height: 1.6; margin-bottom: 10px; }
+.gtm-adjust-persona {
+  font-size: 13px; color: var(--ob-text); line-height: 1.55;
+  font-style: italic; margin-bottom: 14px;
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--ob-gold-dim); border: 1px solid var(--ob-gold-rim);
+}
+
+/* ============================================================
+   LIGHT MODE OVERRIDES
+   ============================================================ */
+[data-theme="light"] .gtm-focus-input { background: rgba(0,0,0,0.02); }
+[data-theme="light"] .gtm-chip { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .gtm-orb-ring { border-color: rgba(184,137,58,0.5); }
+[data-theme="light"] .gtm-orb-ring.delay1 { border-color: rgba(184,137,58,0.28); }
+[data-theme="light"] .gtm-orb-ring.delay2 { border-color: rgba(184,137,58,0.14); }
+
+@media (max-width: 640px) {
+  .gtm-price-grid { grid-template-columns: 1fr; }
+  .gtm-action-card { flex-direction: column; gap: 10px; }
+  .gtm-topbar-label { display: none; }
+}
