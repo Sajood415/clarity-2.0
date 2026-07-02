@@ -449,22 +449,29 @@ a { text-decoration: none; color: inherit; }
 }
 .dsh-journey-btn:hover { filter: brightness(1.08); }
 
-.dsh-journey-insight-cards { display: flex; gap: 12px; margin-bottom: 28px; }
+.dsh-journey-insight-cards {
+  display: flex; gap: 12px;
+  padding-bottom: 20px; margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
 .dsh-journey-insight-card {
   flex: 1; background: var(--ob-surface); border-radius: 10px;
-  padding: 16px; border-top: 3px solid transparent;
+  padding: 12px; border-top: 3px solid transparent; min-height: 90px;
 }
 .dsh-journey-insight-card-eye {
   font-size: 9px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.1em; margin-bottom: 8px;
 }
 .dsh-journey-insight-card-val {
-  font-size: 14px; font-weight: 700; color: var(--ob-text); line-height: 1.35;
+  font-size: 13px; font-weight: 700; color: var(--ob-text); line-height: 1.35;
 }
 .dsh-journey-insight-card-sub {
   font-size: 12px; font-style: italic; color: var(--ob-muted); margin-top: 6px; line-height: 1.4;
 }
-.dsh-journey-moves { margin-bottom: 24px; }
+.dsh-journey-moves {
+  padding-bottom: 20px; margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
 .dsh-journey-moves-label {
   font-size: 9px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--ob-muted); margin-bottom: 12px;
@@ -489,23 +496,30 @@ a { text-decoration: none; color: inherit; }
 }
 .dsh-journey-moves-link:hover { opacity: 0.72; }
 
-.dsh-journey-completed { margin-top: 24px; }
+.dsh-journey-completed {
+  padding-bottom: 20px; margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
 .dsh-journey-completed-label {
   font-size: 9px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--ob-muted); margin-bottom: 10px;
 }
 .dsh-journey-done-item {
-  display: flex; align-items: center; gap: 8px; padding: 4px 8px;
-  cursor: pointer; border-radius: 6px; transition: background 0.15s;
+  padding: 4px 8px; cursor: pointer; border-radius: 6px;
+  transition: background 0.15s; margin-bottom: 6px;
 }
+.dsh-journey-done-item:last-child { margin-bottom: 0; }
 .dsh-journey-done-item:hover { background: rgba(255,255,255,0.03); }
+.dsh-journey-done-top {
+  display: flex; align-items: center; gap: 8px;
+}
 .dsh-journey-done-check {
   color: var(--ob-teal); font-size: 12px; font-weight: 700; flex-shrink: 0;
 }
-.dsh-journey-done-name { font-size: 13px; color: var(--ob-text); font-weight: 500; }
+.dsh-journey-done-name { font-size: 13px; color: var(--ob-text); font-weight: 600; }
 .dsh-journey-done-insight {
-  font-size: 12px; font-style: italic; color: var(--ob-muted);
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11px; font-style: italic; color: var(--ob-muted);
+  padding-left: 20px; margin-top: 2px; line-height: 1.4;
 }
 
 /* Light mode — journey panel */
@@ -514,6 +528,9 @@ a { text-decoration: none; color: inherit; }
 [data-theme="light"] .dsh-journey-next-card {
   border-color: rgba(184,137,58,0.25); border-left-color: var(--ob-gold);
 }
+[data-theme="light"] .dsh-journey-insight-cards { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .dsh-journey-moves { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .dsh-journey-completed { border-bottom-color: rgba(0,0,0,0.06); }
 [data-theme="light"] .dsh-journey-move-owner { border-color: rgba(0,0,0,0.1); }
 [data-theme="light"] .dsh-journey-done-item:hover { background: rgba(0,0,0,0.03); }
 [data-theme="light"] .dsh-journey-btn { color: #1a1612; }
@@ -1830,40 +1847,35 @@ function _dshContentPanel(concept) {
     if (marketDone) {
       var mI = _dshTruncate(s.marketScan.gapHeadline, 50) || '';
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
-        + '<span class="dsh-journey-done-check">\u2713</span>'
-        + '<span class="dsh-journey-done-name">Market Scan</span>'
-        + (mI ? '<span class="dsh-journey-done-insight">' + mI + '</span>' : '')
+        + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Market Scan</span></div>'
+        + (mI ? '<div class="dsh-journey-done-insight">' + mI + '</div>' : '')
         + '</div>';
     }
     if (custDone) {
       var cI = _dshTruncate(s.customerIntelligence.topTrigger, 50) || '';
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
-        + '<span class="dsh-journey-done-check">\u2713</span>'
-        + '<span class="dsh-journey-done-name">Customer Intelligence</span>'
-        + (cI ? '<span class="dsh-journey-done-insight">' + cI + '</span>' : '')
+        + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Customer Intelligence</span></div>'
+        + (cI ? '<div class="dsh-journey-done-insight">' + cI + '</div>' : '')
         + '</div>';
     }
     if (compDone) {
       var coI = _dshTruncate(s.competition.whitespace, 50) || '';
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
-        + '<span class="dsh-journey-done-check">\u2713</span>'
-        + '<span class="dsh-journey-done-name">Competition</span>'
-        + (coI ? '<span class="dsh-journey-done-insight">' + coI + '</span>' : '')
+        + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Competition</span></div>'
+        + (coI ? '<div class="dsh-journey-done-insight">' + coI + '</div>' : '')
         + '</div>';
     }
     if (personaDone) {
       var pI = p.name.trim() + ((p.caresAbout && p.caresAbout.length) ? ' \u00b7 ' + p.caresAbout[0] : '');
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'persona-studio\')">'
-        + '<span class="dsh-journey-done-check">\u2713</span>'
-        + '<span class="dsh-journey-done-name">Persona</span>'
-        + '<span class="dsh-journey-done-insight">' + _dshTruncate(pI, 50) + '</span>'
+        + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Persona</span></div>'
+        + '<div class="dsh-journey-done-insight">' + _dshTruncate(pI, 50) + '</div>'
         + '</div>';
     }
     if (gtmDone) {
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'gtm-strategy\')">'
-        + '<span class="dsh-journey-done-check">\u2713</span>'
-        + '<span class="dsh-journey-done-name">GTM</span>'
-        + '<span class="dsh-journey-done-insight">Plan + Pricing locked in.</span>'
+        + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">GTM</span></div>'
+        + '<div class="dsh-journey-done-insight">Plan + Pricing locked in.</div>'
         + '</div>';
     }
 
