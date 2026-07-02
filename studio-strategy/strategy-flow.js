@@ -125,15 +125,28 @@ var StrategyFlow = (function () {
       + moduleCard({ slug: 'ci',   icon: custIcon, title: 'Customer Intelligence', status: ciStatus,   onclick: 'spGoCustomerIntel()', desc: 'Understand who is buying, what motivates them, and how they make decisions — so your content speaks their language.' })
       + moduleCard({ slug: 'comp', icon: compIcon, title: 'Competition',            status: compStatus, onclick: 'spGoCompetition()',    desc: 'Map your competitive landscape, identify whitespace, and understand how to position against key players.' });
 
+    /* When entered from the dashboard, this hub is a revisit — hide the
+       forward "Continue to Persona Studio" step and send the home button
+       back to the dashboard instead of the first-time landing flow. */
+    var fromDashboard = !!(spFlow() && spFlow().returnTo === 'dashboard');
+
+    var personaBtn = fromDashboard
+      ? ''
+      : '<button class="btn sp-btn-save" onclick="spGoToPersona()">Continue to Persona Studio &#8594;</button>';
+
     var continueBtn = allComplete
       ? '<div class="sp-hub-continue">'
         + '<button class="sp-btn-plan-view" onclick="viewStrategicPlanReport()">View Your Strategic Plan &#8594;</button>'
-        + '<button class="btn sp-btn-save" onclick="spGoToPersona()">Continue to Persona Studio &#8594;</button>'
+        + personaBtn
         + '</div>'
       : '';
 
+    var topbar = fromDashboard
+      ? spTopbar('Back to Dashboard', 'setMode(\'dashboard\')')
+      : spTopbar('Home', 'spGoWelcome()');
+
     return '<div class="sp-hub-wrap">'
-      + spTopbar('Home', 'spGoWelcome()')
+      + topbar
       + '<div class="sp-hub-body">'
       + '<div class="sp-hub-eyebrow">Strategic Planning</div>'
       + '<div class="sp-hub-title">Build your strategic foundation</div>'

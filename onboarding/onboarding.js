@@ -688,6 +688,10 @@ window.obAdvanceFromLocation = function () {
 window.obLaunchWorkspace = function () {
   obEnsureConcept();
   appState.onboarding.step = 'launching';
+  /* First-time entry into Strategic Planning: clear any stale dashboard
+     "returnTo" flag so the hub shows its normal Home button and the
+     "Continue to Persona Studio" step (not the dashboard revisit chrome). */
+  if (appState.strategyFlow) appState.strategyFlow.returnTo = null;
   renderContent();
   setTimeout(function () {
     /* Always land on Strategic Planning after finishing onboarding, no matter

@@ -1547,6 +1547,7 @@ function _dshSyncFlowsForConcept(concept) {
   var g = (concept && concept.gtm) || {};
   appState.strategyFlow = {
     screen: 'hub',
+    returnTo: 'dashboard',
     marketScan:    { step: s.marketScan           ? 3 : 1, focus: '' },
     customerIntel: { step: s.customerIntelligence ? 3 : 1, focus: '' },
     competition:   { step: s.competition          ? 3 : 1, focus: '' }
