@@ -66,18 +66,20 @@
   gap: 12px;
   padding: 13px 18px;
   border-bottom: 1px solid var(--ob-border);
+  text-align: left;
 }
 .gtm-research-row:last-child { border-bottom: none; }
 .gtm-research-dot {
   width: 8px; height: 8px; border-radius: 50%;
   flex-shrink: 0; margin-top: 5px;
 }
-.gtm-research-text { min-width: 0; }
+.gtm-research-text { min-width: 0; text-align: left; }
 .gtm-research-label {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--ob-muted); margin-bottom: 3px;
+  text-align: left;
 }
-.gtm-research-val { font-size: 13px; color: var(--ob-text); line-height: 1.5; }
+.gtm-research-val { font-size: 13px; color: var(--ob-text); line-height: 1.5; text-align: left; }
 .gtm-research-chip {
   display: inline-block;
   font-size: 10px; font-weight: 600;
@@ -172,9 +174,9 @@
   flex-shrink: 0; line-height: 1; min-width: 34px;
 }
 .gtm-action-body { min-width: 0; flex: 1; }
-.gtm-action-title { font-size: 16px; font-weight: 700; color: var(--ob-text); line-height: 1.35; margin-bottom: 6px; }
-.gtm-action-desc { font-size: 14px; color: var(--ob-muted); line-height: 1.55; margin-bottom: 12px; }
-.gtm-action-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gtm-action-title { font-size: 16px; font-weight: 700; color: var(--ob-text); line-height: 1.35; margin-bottom: 6px; text-align: center; }
+.gtm-action-desc { font-size: 14px; color: var(--ob-muted); line-height: 1.55; margin-bottom: 12px; text-align: left; }
+.gtm-action-chips { display: flex; align-items: center; justify-content: flex-start; gap: 8px; flex-wrap: wrap; text-align: left; }
 
 .gtm-chip {
   font-size: 11px; font-weight: 600; color: var(--ob-muted);
@@ -197,6 +199,7 @@
   flex-shrink: 0;
 }
 .gtm-price-input { margin: 0; }
+.gtm-price-note { font-size: 11px; color: var(--ob-muted); font-style: italic; margin-top: 6px; }
 .gtm-price-error {
   font-size: 12px; color: var(--ob-coral); margin: 4px 0 18px;
   padding: 10px 14px; border-radius: var(--radius-sm);

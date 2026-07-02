@@ -373,14 +373,16 @@ var GtmFlow = (function () {
   /* ============================================================
      STEP 4 — PRICING CONTEXT
      ============================================================ */
-  function gtmPricingField(id, label, placeholder, value, prefix) {
+  function gtmPricingField(id, label, placeholder, value, prefix, note) {
     return '<div class="gtm-price-card">'
       + '<label class="gtm-focus-label">' + label + '</label>'
       + '<div class="gtm-price-input-wrap">'
       + (prefix ? '<span class="gtm-price-prefix">' + prefix + '</span>' : '')
       + '<input type="text" class="gtm-focus-input gtm-price-input" id="' + id + '" value="' + gtmAttrEsc(value) + '"'
       + ' placeholder="' + gtmAttrEsc(placeholder) + '" oninput="gtmSetPricingInput(\'' + id.replace('gtm-price-', '') + '\', this.value)" />'
-      + '</div></div>';
+      + '</div>'
+      + (note ? '<div class="gtm-price-note">' + note + '</div>' : '')
+      + '</div>';
   }
 
   function screenPricingContext() {
@@ -394,7 +396,7 @@ var GtmFlow = (function () {
 
     var grid = '<div class="gtm-price-grid">'
       + gtmPricingField('gtm-price-avgOrder',   'AVG ORDER', 'Your typical sale value', inputs.avgOrder || '', '$')
-      + gtmPricingField('gtm-price-marketAvg',  'MARKET AVG', 'Typical sale value for your category', inputs.marketAvg || '', '$')
+      + gtmPricingField('gtm-price-marketAvg',  'MARKET AVG', 'Typical sale value for your category', inputs.marketAvg || '', '$', 'AI suggested based on your competitor scan')
       + gtmPricingField('gtm-price-margin',     'MARGIN', 'Your profit margin', inputs.margin || '', '%')
       + gtmPricingField('gtm-price-bestSeller', 'BEST SELLER', 'Your top product or service', inputs.bestSeller || '', '')
       + '</div>';
