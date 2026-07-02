@@ -369,6 +369,75 @@ var PersonaFlow = (function () {
   }
 
   /* ============================================================
+     COMPLETED VIEW — read-only revisit from the dashboard
+     Same profile card as Step 4, minus stepper / edit / confirm /
+     start-over / back-into-steps. Only "Back to Dashboard" up top.
+     ============================================================ */
+  function screenPersonaCompleted() {
+    var p   = pfPersona();
+    var biz = pfBiz() || {};
+    var name = (p.name && p.name.trim()) ? p.name.trim() : 'Your Persona';
+
+    var locLine = '';
+    if (biz.locations && biz.locations.length > 0) {
+      var loc = biz.locations[0] === 'Global' ? 'Globally' : biz.locations.join(', ');
+      locLine = '<div class="pf-profile-footer"><div class="pf-summary-loc">Operating in: ' + loc + '</div></div>';
+    }
+
+    var chipsHtml = (p.caresAbout && p.caresAbout.length > 0)
+      ? p.caresAbout.map(function (c) {
+          return '<span class="pf-profile-chip">' + c + '</span>';
+        }).join('')
+      : '<span class="pf-summary-empty">None selected</span>';
+
+    var triggerHtml = (p.trigger && p.trigger.trim())
+      ? '<div class="pf-trigger-quote">\u201c' + p.trigger.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;') + '\u201d</div>'
+      : '<span class="pf-summary-empty">Not specified</span>';
+
+    var topbar = '<div class="cf-topbar">'
+      + '<div class="cf-brand">Clarity <span>Persona Studio</span></div>'
+      + '<button class="app-topbar-back" onclick="setMode(\'dashboard\')">&#8592; Back to Dashboard</button>'
+      + '</div>';
+
+    var card = '<div class="pf-profile-card">'
+      /* Header: avatar + name / age / bio (no Edit button) */
+      + '<div class="pf-profile-header">'
+      + pfAvatar(p.name, 64)
+      + '<div class="pf-profile-header-meta">'
+      + '<div class="pf-profile-name">' + name + '</div>'
+      + (p.ageRange ? '<div class="pf-profile-age">' + p.ageRange + '</div>' : '')
+      + (p.description ? '<div class="pf-profile-bio">' + p.description.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' : '')
+      + '</div>'
+      + '</div>'
+      /* Cares about (no Edit button) */
+      + '<div class="pf-profile-section">'
+      + '<div class="pf-profile-section-body">'
+      + '<div class="pf-profile-section-label">Cares about</div>'
+      + '<div class="pf-profile-chips">' + chipsHtml + '</div>'
+      + '</div>'
+      + '</div>'
+      /* Buying trigger (no Edit button) */
+      + '<div class="pf-profile-section">'
+      + '<div class="pf-profile-section-body">'
+      + '<div class="pf-profile-section-label">Buying trigger</div>'
+      + triggerHtml
+      + '</div>'
+      + '</div>'
+      + locLine
+      + '</div>';
+
+    return '<div class="cf-screen">'
+      + topbar
+      + '<div class="pf-body">'
+      + '<div class="pf-step-wrap">'
+      + '<div class="pf-summary-heading">Your customer persona</div>'
+      + card
+      + '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  /* ============================================================
      VALIDATION
      ============================================================ */
   function pfCanContinue() {
@@ -391,6 +460,12 @@ var PersonaFlow = (function () {
   function screenPersonaFlow() {
     var f = pfFlow();
 
+    /* Revisiting a finished persona from the dashboard → clean read-only profile */
+    if (f.returnTo === 'dashboard') {
+      var pc = pfPersona();
+      if (pc && pc.name && pc.name.trim()) return screenPersonaCompleted();
+    }
+
     /* Entry screen has its own shell */
     if (f.screen === 'entry') return screenEntry();
 
@@ -400,12 +475,9 @@ var PersonaFlow = (function () {
       : step === 3 ? pfStep3()
       : pfStep4();
 
-    var backToDash = (step === 4 && f.returnTo === 'dashboard');
     var topbar = '<div class="cf-topbar">'
       + '<div class="cf-brand">Clarity <span>Persona Studio</span></div>'
-      + (backToDash
-          ? '<button class="app-topbar-back" onclick="setMode(\'dashboard\')">&#8592; Back to Dashboard</button>'
-          : '<button class="app-topbar-back" onclick="setMode(\'strategic-plan\')">&#8592; Back to Strategic Planning</button>')
+      + '<button class="app-topbar-back" onclick="setMode(\'strategic-plan\')">&#8592; Back to Strategic Planning</button>'
       + '</div>';
 
     /* For step 1, Continue lives inline — footer only shows Back */

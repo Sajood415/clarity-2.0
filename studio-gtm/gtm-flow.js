@@ -340,12 +340,10 @@ var GtmFlow = (function () {
     return '<span class="gtm-chip gtm-chip-priority" style="color:' + color + ';border-color:' + color + '">' + priority + '</span>';
   }
 
-  function screenPlanOutput() {
-    var biz = gtmBiz();
-    var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
+  /* Read-only plan action cards — shared by plan-output and the completed view */
+  function gtmPlanCardsHtml() {
     var actions = gtmBuildPlanActions();
-
-    var cards = actions.map(function (a, i) {
+    return actions.map(function (a, i) {
       return '<div class="gtm-action-card">'
         + '<div class="gtm-action-num">' + (i + 1) + '</div>'
         + '<div class="gtm-action-body">'
@@ -358,10 +356,15 @@ var GtmFlow = (function () {
         + '</div>'
         + '</div></div>';
     }).join('');
+  }
+
+  function screenPlanOutput() {
+    var biz = gtmBiz();
+    var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
 
     var body = '<div class="gtm-eyebrow">MY PLAN</div>'
       + '<div class="gtm-heading">' + gtmEsc(bizName) + ' \u2014 90-Day Action Plan</div>'
-      + '<div class="gtm-action-list">' + cards + '</div>'
+      + '<div class="gtm-action-list">' + gtmPlanCardsHtml() + '</div>'
       + '<button class="gtm-btn-primary gtm-btn-lg" onclick="gtmContinueToPricing()">Continue to My Pricing &#8594;</button>';
 
     return '<div class="gtm-screen">'
@@ -462,10 +465,10 @@ var GtmFlow = (function () {
     return '<span class="gtm-chip gtm-chip-outline" style="color:' + color + ';border-color:' + color + '">' + label + '</span>';
   }
 
-  function screenPricingOutput() {
+  /* Read-only pricing suggestion cards — shared by pricing-output and the completed view */
+  function gtmPricingCardsHtml() {
     var suggestions = gtmBuildPricingSuggestions();
-
-    var cards = suggestions.map(function (s, i) {
+    return suggestions.map(function (s, i) {
       return '<div class="gtm-adjust-card">'
         + '<div class="gtm-adjust-eyebrow">ADJUSTMENT ' + (i + 1) + '</div>'
         + '<div class="gtm-adjust-headline">' + gtmEsc(s.headline) + '</div>'
@@ -477,20 +480,40 @@ var GtmFlow = (function () {
         + '</div>'
         + '</div>';
     }).join('');
+  }
 
+  function screenPricingOutput() {
     var body = '<div class="gtm-eyebrow">MY PRICING</div>'
       + '<div class="gtm-heading">Three ways to grow your revenue.</div>'
-      + '<div class="gtm-adjust-list">' + cards + '</div>'
+      + '<div class="gtm-adjust-list">' + gtmPricingCardsHtml() + '</div>'
       + '<button class="gtm-btn-primary gtm-btn-lg" onclick="gtmLockInStrategy()">Lock in my GTM strategy &#8594;</button>';
 
-    var fromDashboard = gtmFlowState().returnTo === 'dashboard';
-    var topbar = fromDashboard
-      ? gtmTopbar('Back to Dashboard', 'setMode(\'dashboard\')')
-      : gtmTopbar('Back to Pricing setup', 'gtmBackToPricingContext()');
+    return '<div class="gtm-screen">'
+      + gtmTopbar('Back to Pricing setup', 'gtmBackToPricingContext()')
+      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-wide">' + body + '</div></div>'
+      + '</div>';
+  }
+
+  /* ============================================================
+     COMPLETED VIEW — read-only revisit from the dashboard
+     Plan (5 action cards) + Pricing (3 suggestion cards) stacked,
+     no forward/edit buttons; only "Back to Dashboard" up top.
+     ============================================================ */
+  function screenGtmCompletedView() {
+    var biz = gtmBiz();
+    var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
+
+    var planSection = '<div class="gtm-eyebrow">MY PLAN</div>'
+      + '<div class="gtm-heading">' + gtmEsc(bizName) + ' \u2014 90-Day Action Plan</div>'
+      + '<div class="gtm-action-list">' + gtmPlanCardsHtml() + '</div>';
+
+    var pricingSection = '<div class="gtm-eyebrow gtm-section-gap">MY PRICING</div>'
+      + '<div class="gtm-heading">Three ways to grow your revenue.</div>'
+      + '<div class="gtm-adjust-list">' + gtmPricingCardsHtml() + '</div>';
 
     return '<div class="gtm-screen">'
-      + topbar
-      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-wide">' + body + '</div></div>'
+      + gtmTopbar('Back to Dashboard', 'setMode(\'dashboard\')')
+      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-wide">' + planSection + pricingSection + '</div></div>'
       + '</div>';
   }
 
@@ -498,7 +521,12 @@ var GtmFlow = (function () {
      DISPATCH
      ============================================================ */
   function screenGtmFlow() {
-    var step = gtmFlowState().step;
+    var st = gtmFlowState();
+    var c = gtmActiveConcept();
+    /* Revisiting a finished GTM strategy from the dashboard → read-only combined view */
+    if (st.returnTo === 'dashboard' && c && c.gtmComplete) return screenGtmCompletedView();
+
+    var step = st.step;
     if (step === 'plan-loading')    return screenPlanLoading();
     if (step === 'plan-output')     return screenPlanOutput();
     if (step === 'pricing-context') return screenPricingContext();

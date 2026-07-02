@@ -40,6 +40,8 @@
   color: var(--ob-gold);
   margin-bottom: 10px;
 }
+/* Divider spacing between the two sections in the read-only completed view */
+.gtm-eyebrow.gtm-section-gap { margin-top: 48px; }
 .gtm-heading {
   font-family: 'Cormorant Garamond', serif;
   font-size: 32px;
