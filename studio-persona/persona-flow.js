@@ -426,12 +426,15 @@ var PersonaFlow = (function () {
       + locLine
       + '</div>';
 
+    var talkBtn = '<button class="pfc-prompt-btn pfc-prompt-btn--primary" style="margin-top:20px;width:100%" onclick="pfcStartChatFromDashboard()">Talk to ' + name + ' &#8594;</button>';
+
     return '<div class="cf-screen">'
       + topbar
       + '<div class="pf-body">'
       + '<div class="pf-step-wrap">'
       + '<div class="pf-summary-heading">Your customer persona</div>'
       + card
+      + talkBtn
       + '</div>'
       + '</div>'
       + '</div>';
@@ -696,15 +699,7 @@ window.pfStep1Advance = function () {
 /* Confirm persona → transition */
 window.pfConfirmPersona = function () {
   pfFlushLiveInputs();
-  var name = (pfPersona().name || '').trim();
-  setTransition({
-    title:    'Persona locked in',
-    summary:  name
-      ? '\u201c' + name + '\u201d is your customer lens from here on.'
-      : 'Your persona is confirmed.',
-    nextBadge: 'Next: GTM Strategy',
-    nextMode: 'gtm-strategy'
-  });
+  setMode('persona-chat-prompt');
 };
 
 /* Start over — reset persona and return to entry */

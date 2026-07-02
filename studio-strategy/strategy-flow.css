@@ -1429,6 +1429,60 @@
   padding-bottom: 0;
 }
 
+/* ---- View-all floating anchor sidebar ---- */
+.sp-anchor-sidebar {
+  position: fixed;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 140px;
+  background: var(--ob-surface);
+  border-radius: 10px;
+  padding: 16px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  z-index: 100;
+}
+.sp-anchor-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ob-muted);
+  margin-bottom: 12px;
+}
+.sp-anchor-link {
+  display: block;
+  font-size: 12px;
+  color: var(--ob-muted);
+  padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s, border-left-color 0.15s;
+}
+.sp-anchor-link:hover {
+  color: var(--ob-text);
+  border-left-color: rgba(212,168,83,0.4);
+}
+.sp-anchor-link.sp-anchor-active {
+  color: var(--ob-gold);
+  border-left-color: var(--ob-gold);
+}
+@media (max-width: 1100px) {
+  .sp-anchor-sidebar { display: none; }
+}
+
+/* Light mode — anchor sidebar */
+[data-theme="light"] .sp-anchor-sidebar {
+  background: var(--ob-surface);
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+[data-theme="light"] .sp-anchor-link:hover {
+  border-left-color: rgba(184,137,58,0.4);
+}
+
 /* ---- Market size figure card (Market Scan — The Market) ---- */
 .sp-marketsize-card {
   background: var(--ob-gold-dim);

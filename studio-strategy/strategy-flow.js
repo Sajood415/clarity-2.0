@@ -292,7 +292,7 @@ var StrategyFlow = (function () {
 
     var panels = opts.tabs.map(function (t, i) {
       var style = i === 0 ? 'display:block;opacity:1' : 'display:none;opacity:0';
-      return '<div class="sp-tab-panel' + (i === 0 ? ' active' : '') + '" style="' + style + '">' + t.content + '</div>';
+      return '<div class="sp-tab-panel' + (i === 0 ? ' active' : '') + '" id="' + opts.wrapId + '-panel-' + i + '" style="' + style + '">' + t.content + '</div>';
     }).join('');
 
     /* opts.hideViewAll omits the View-all toggle (used by read-only embeds like the GTM completed view) */
@@ -300,7 +300,8 @@ var StrategyFlow = (function () {
       ? ''
       : '<button class="sp-viewall-btn" onclick="spToggleViewAll(\'' + opts.wrapId + '\')">View all</button>';
 
-    return '<div class="sp-report-tabs-wrap" id="' + opts.wrapId + '">'
+    var tabLabelsAttr = opts.tabs.map(function (t) { return t.label; }).join('||');
+    return '<div class="sp-report-tabs-wrap" id="' + opts.wrapId + '" data-tab-labels="' + tabLabelsAttr + '">'
       + '<div class="sp-tabs-bar-row">'
       + '<div class="sp-tabs-bar">' + tabBtns + '</div>'
       + viewAllBtn
@@ -1931,12 +1932,72 @@ window.spSwitchTab = function (wrapId, idx) {
   tabs.forEach(function (t, i) { t.classList.toggle('active', i === idx); });
 };
 
+var _spAnchorObservers = {};
+
+window.spDestroyAnchorSidebar = function () {
+  Object.keys(_spAnchorObservers).forEach(function (k) {
+    _spAnchorObservers[k].disconnect();
+    delete _spAnchorObservers[k];
+  });
+  var sidebars = document.querySelectorAll('.sp-anchor-sidebar');
+  sidebars.forEach(function (el) { el.remove(); });
+  var viewAllWraps = document.querySelectorAll('.sp-view-all');
+  viewAllWraps.forEach(function (w) { w.classList.remove('sp-view-all'); });
+};
+
 window.spToggleViewAll = function (wrapId) {
   var wrap = document.getElementById(wrapId);
   if (!wrap) return;
   var isViewAll = wrap.classList.toggle('sp-view-all');
   var btn = wrap.querySelector('.sp-viewall-btn');
   if (btn) btn.textContent = isViewAll ? 'Tabbed view' : 'View all';
+
+  if (isViewAll) {
+    var labels = (wrap.getAttribute('data-tab-labels') || '').split('||');
+    var panelEls = Array.prototype.slice.call(wrap.querySelectorAll('.sp-tab-panel'));
+
+    var anchorLinks = labels.map(function (lbl, i) {
+      var panelId = wrapId + '-panel-' + i;
+      return '<a class="sp-anchor-link' + (i === 0 ? ' sp-anchor-active' : '') + '" data-panel="' + panelId + '" onclick="spScrollToPanel(\'' + panelId + '\')">' + lbl + '</a>';
+    }).join('');
+
+    var sidebar = document.createElement('div');
+    sidebar.className = 'sp-anchor-sidebar';
+    sidebar.id = 'sp-anchor-' + wrapId;
+    sidebar.innerHTML = '<div class="sp-anchor-label">SECTIONS</div>' + anchorLinks;
+    document.body.appendChild(sidebar);
+
+    if (_spAnchorObservers[wrapId]) _spAnchorObservers[wrapId].disconnect();
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var sb = document.getElementById('sp-anchor-' + wrapId);
+          if (!sb) return;
+          var links = sb.querySelectorAll('.sp-anchor-link');
+          links.forEach(function (l) { l.classList.remove('sp-anchor-active'); });
+          var active = sb.querySelector('.sp-anchor-link[data-panel="' + entry.target.id + '"]');
+          if (active) active.classList.add('sp-anchor-active');
+        }
+      });
+    }, { threshold: 0.2 });
+
+    panelEls.forEach(function (p) { observer.observe(p); });
+    _spAnchorObservers[wrapId] = observer;
+
+  } else {
+    if (_spAnchorObservers[wrapId]) {
+      _spAnchorObservers[wrapId].disconnect();
+      delete _spAnchorObservers[wrapId];
+    }
+
+    var oldSidebar = document.getElementById('sp-anchor-' + wrapId);
+    if (oldSidebar) oldSidebar.remove();
+  }
+};
+
+window.spScrollToPanel = function (panelId) {
+  var el = document.getElementById(panelId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 /* Staged reveal for the unified report — targets .spr-stage-section + #spr-bar */

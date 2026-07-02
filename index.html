@@ -398,53 +398,125 @@ a { text-decoration: none; color: inherit; }
 
 /* ---- Content area ---- */
 .dsh-content { flex: 1; min-width: 0; padding: 48px; }
-.dsh-biz-name {
-  font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 700;
+/* ---- Journey panel (right content) ---- */
+.dsh-journey-identity {
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.dsh-journey-biz-name {
+  font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 700;
   color: var(--ob-text); line-height: 1.15; overflow-wrap: break-word;
 }
-.dsh-biz-name.dsh-unnamed { font-style: italic; font-weight: 500; color: var(--ob-muted); }
-.dsh-biz-desc { font-size: 15px; font-style: italic; color: var(--ob-muted); margin-top: 8px; max-width: 600px; line-height: 1.5; }
-.dsh-biz-loc { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ob-muted); margin-top: 10px; }
-.dsh-biz-loc svg { color: var(--ob-gold); flex-shrink: 0; }
+.dsh-journey-biz-name.dsh-unnamed { font-style: italic; font-weight: 500; color: var(--ob-muted); }
+.dsh-journey-biz-meta { font-size: 13px; color: var(--ob-muted); margin-top: 6px; }
+.dsh-journey-amber-line { width: 48px; height: 2px; background: var(--ob-gold); margin-top: 14px; }
 
-.dsh-section-label {
-  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--ob-gold); margin-bottom: 6px;
+.dsh-journey-progress { margin-top: 24px; margin-bottom: 28px; }
+.dsh-journey-progress-label { font-size: 13px; color: var(--ob-muted); margin-bottom: 10px; }
+.dsh-journey-progress-track {
+  width: 100%; height: 4px; background: rgba(255,255,255,0.06);
+  border-radius: 2px; overflow: hidden;
 }
-.dsh-section-label.dsh-mt-32 { margin-top: 32px; }
-.dsh-section-label.dsh-mt-24 { margin-top: 24px; }
-
-.dsh-mod-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 14px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;
-  transition: background 0.15s;
+.dsh-journey-progress-fill {
+  height: 100%; background: var(--ob-gold); border-radius: 2px;
+  animation: dsh-journey-fill-anim 600ms ease;
 }
-[data-theme="light"] .dsh-mod-row { border-bottom-color: rgba(0,0,0,0.06); }
-.dsh-mod-row:hover { background: rgba(255,255,255,0.02); }
-[data-theme="light"] .dsh-mod-row:hover { background: rgba(0,0,0,0.02); }
-.dsh-mod-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.dsh-mod-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.dsh-mod-text { min-width: 0; }
-.dsh-mod-name { font-size: 13px; color: var(--ob-text); font-weight: 600; }
-.dsh-mod-type {
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--ob-muted); margin-left: 8px; vertical-align: middle;
+@keyframes dsh-journey-fill-anim { from { width: 0; } }
+
+.dsh-journey-next-card {
+  background: var(--ob-surface); border: 1px solid rgba(212,168,83,0.2);
+  border-radius: 12px; padding: 24px; border-left: 3px solid var(--ob-gold);
 }
-.dsh-mod-insight { font-size: 12px; font-style: italic; color: var(--ob-muted); margin-top: 3px; }
-.dsh-mod-right { font-size: 13px; font-weight: 600; flex-shrink: 0; white-space: nowrap; }
-
-@keyframes dsh-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.dsh-mod-generating { animation: dsh-pulse 1.4s ease-in-out infinite; }
-
-.dsh-mod-row.dsh-mod-locked { cursor: default; }
-.dsh-mod-row.dsh-mod-locked:hover { background: none; }
-
-.dsh-continue-btn {
-  width: 100%; background: var(--ob-gold); color: #1a1612; border: none; border-radius: var(--radius-sm);
-  height: 52px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 32px;
-  transition: filter 0.15s;
+.dsh-journey-next-eyebrow {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ob-gold); margin-bottom: 10px;
 }
-.dsh-continue-btn:hover { filter: brightness(1.08); }
+.dsh-journey-next-name {
+  font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600;
+  color: var(--ob-text); margin-bottom: 8px;
+}
+.dsh-journey-next-desc {
+  font-size: 14px; color: var(--ob-muted); line-height: 1.6; margin-bottom: 12px;
+}
+.dsh-journey-next-teaser {
+  font-size: 12px; font-style: italic; color: var(--ob-muted);
+  margin-bottom: 16px; line-height: 1.5;
+}
+.dsh-journey-btn {
+  width: 100%; background: var(--ob-gold); color: #1a1612; border: none;
+  border-radius: 6px; height: 44px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: filter 0.15s; font-family: 'DM Sans', sans-serif;
+}
+.dsh-journey-btn:hover { filter: brightness(1.08); }
+
+.dsh-journey-insight-cards { display: flex; gap: 12px; margin-bottom: 28px; }
+.dsh-journey-insight-card {
+  flex: 1; background: var(--ob-surface); border-radius: 10px;
+  padding: 16px; border-top: 3px solid transparent;
+}
+.dsh-journey-insight-card-eye {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 8px;
+}
+.dsh-journey-insight-card-val {
+  font-size: 14px; font-weight: 700; color: var(--ob-text); line-height: 1.35;
+}
+.dsh-journey-insight-card-sub {
+  font-size: 12px; font-style: italic; color: var(--ob-muted); margin-top: 6px; line-height: 1.4;
+}
+.dsh-journey-moves { margin-bottom: 24px; }
+.dsh-journey-moves-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ob-muted); margin-bottom: 12px;
+}
+.dsh-journey-move-row {
+  background: var(--ob-surface); border-radius: 8px; padding: 12px 16px;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
+}
+.dsh-journey-move-num {
+  font-size: 13px; font-weight: 700; color: var(--ob-gold); flex-shrink: 0;
+}
+.dsh-journey-move-title {
+  font-size: 13px; color: var(--ob-text); flex: 1; min-width: 0;
+}
+.dsh-journey-move-owner {
+  font-size: 10px; color: var(--ob-muted); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px; padding: 2px 8px; flex-shrink: 0;
+}
+.dsh-journey-moves-link {
+  font-size: 12px; color: var(--ob-gold); cursor: pointer; margin-top: 4px;
+  transition: opacity 0.15s;
+}
+.dsh-journey-moves-link:hover { opacity: 0.72; }
+
+.dsh-journey-completed { margin-top: 24px; }
+.dsh-journey-completed-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ob-muted); margin-bottom: 10px;
+}
+.dsh-journey-done-item {
+  display: flex; align-items: center; gap: 8px; padding: 4px 8px;
+  cursor: pointer; border-radius: 6px; transition: background 0.15s;
+}
+.dsh-journey-done-item:hover { background: rgba(255,255,255,0.03); }
+.dsh-journey-done-check {
+  color: var(--ob-teal); font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+.dsh-journey-done-name { font-size: 13px; color: var(--ob-text); font-weight: 500; }
+.dsh-journey-done-insight {
+  font-size: 12px; font-style: italic; color: var(--ob-muted);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Light mode — journey panel */
+[data-theme="light"] .dsh-journey-identity { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .dsh-journey-progress-track { background: rgba(0,0,0,0.06); }
+[data-theme="light"] .dsh-journey-next-card {
+  border-color: rgba(184,137,58,0.25); border-left-color: var(--ob-gold);
+}
+[data-theme="light"] .dsh-journey-move-owner { border-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .dsh-journey-done-item:hover { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .dsh-journey-btn { color: #1a1612; }
 
 /* ============================================================
    APP TOP BAR (wizard / library / campaign modes)
@@ -1013,7 +1085,8 @@ var appState = {
     persona: 'Maya Holloway',
     whyNow: 'Seasonal launch · Summer 2026'
   },
-  intelligence: JSON.parse(JSON.stringify(CLARITY_SAMPLE_INTELLIGENCE))
+  intelligence: JSON.parse(JSON.stringify(CLARITY_SAMPLE_INTELLIGENCE)),
+  personaChat: { messages: [] }
 };
 
 /* ===================== CONCEPTS ===================== */
@@ -1133,6 +1206,8 @@ function setMode(mode) {
   else if (mode === 'onboarding') appState.screen = 'onboarding';
   else if (mode === 'strategic-plan') appState.screen = 'strategic-plan';
   else if (mode === 'persona-studio') appState.screen = 'persona-studio';
+  else if (mode === 'persona-chat-prompt') appState.screen = 'persona-chat-prompt';
+  else if (mode === 'persona-chat') appState.screen = 'persona-chat';
   else if (mode === 'gtm-strategy') appState.screen = 'gtm-strategy';
   else if (mode === 'launchpad-home') appState.screen = 'launchpad-home';
   else if (mode === 'dashboard') appState.screen = 'dashboard';
@@ -1604,58 +1679,6 @@ function _dshSidebar(concepts) {
     + '</div>';
 }
 
-function _dshModRow(label, typeLabel, color, done, inProgress, insightText, onclickJs) {
-  var rightHtml;
-  if (done) {
-    rightHtml = '<span class="dsh-mod-right" style="color:var(--ob-teal)">Ready \u2713</span>';
-  } else if (inProgress) {
-    rightHtml = '<span class="dsh-mod-right dsh-mod-generating" style="color:var(--ob-muted)">Generating...</span>';
-  } else {
-    rightHtml = '<span class="dsh-mod-right" style="color:var(--ob-gold)">Start &#8594;</span>';
-  }
-  var insightHtml = (done && insightText) ? '<div class="dsh-mod-insight">' + insightText + '</div>' : '';
-  return '<div class="dsh-mod-row" onclick="' + onclickJs + '">'
-    + '<div class="dsh-mod-left">'
-    + '<div class="dsh-mod-dot" style="background:' + color + '"></div>'
-    + '<div class="dsh-mod-text"><div class="dsh-mod-name">' + label + '<span class="dsh-mod-type">' + typeLabel + '</span></div>' + insightHtml + '</div>'
-    + '</div>'
-    + rightHtml
-    + '</div>';
-}
-
-/* Sixth research-progress row — Compare Concepts entry point */
-function _dshCompareRow(concept) {
-  var concepts = appState.concepts || [];
-  var s = (concept && concept.strategy) || {};
-  var allThreeDone = !!(s.marketScan && s.customerIntelligence && s.competition);
-  var available = concepts.length >= 2 && allThreeDone;
-  var rightHtml = available
-    ? '<span class="dsh-mod-right" style="color:var(--ob-gold)">Compare &#8594;</span>'
-    : '<span class="dsh-mod-right" style="color:var(--ob-muted)">Locked</span>';
-  return '<div class="dsh-mod-row' + (available ? '' : ' dsh-mod-locked') + '"' + (available ? ' onclick="viewConceptComparison()"' : '') + '>'
-    + '<div class="dsh-mod-left">'
-    + '<div class="dsh-mod-dot" style="background:var(--ob-muted)"></div>'
-    + '<div class="dsh-mod-text"><div class="dsh-mod-name">Concept Comparison<span class="dsh-mod-type">COMPARISON</span></div></div>'
-    + '</div>'
-    + rightHtml
-    + '</div>';
-}
-
-/* Content Studio pillar row — unlocks once GTM Strategy is complete */
-function _dshContentStudioRow(concept) {
-  var available = !!(concept && concept.gtmComplete);
-  var rightHtml = available
-    ? '<span class="dsh-mod-right" style="color:var(--ob-gold)">Start &#8594;</span>'
-    : '<span class="dsh-mod-right" style="color:var(--ob-muted)">Locked</span>';
-  return '<div class="dsh-mod-row' + (available ? '' : ' dsh-mod-locked') + '"' + (available ? ' onclick="setMode(\'home\')"' : '') + '>'
-    + '<div class="dsh-mod-left">'
-    + '<div class="dsh-mod-dot" style="background:#6b7fd4"></div>'
-    + '<div class="dsh-mod-text"><div class="dsh-mod-name">Content Studio<span class="dsh-mod-type">CONTENT</span></div></div>'
-    + '</div>'
-    + rightHtml
-    + '</div>';
-}
-
 function _dshTruncate(str, n) {
   if (!str) return '';
   str = String(str).trim();
@@ -1668,57 +1691,190 @@ function _dshContentPanel(concept) {
   var biz = concept.business || {};
   var s   = concept.strategy || {};
   var p   = concept.persona  || {};
+  var g   = concept.gtm      || {};
 
   var rawName = (biz.name || '').trim();
   var nameHtml = rawName.length > 1 ? rawName : '<span class="dsh-unnamed">Unnamed concept</span>';
-  var descText = (biz.description && biz.description.trim()) ? biz.description.trim() : 'No description added';
+  var typeLabel = DSH_TYPE_LABELS[biz.type] || '';
   var locs = biz.locations || [];
-  var locLabel = locs.length ? (locs[0] === 'Global' ? 'Global / Worldwide' : locs.join(', ')) : '';
-  var locLine = locLabel ? '<div class="dsh-biz-loc">' + _dshPinIcon() + '<span>' + locLabel + '</span></div>' : '';
+  var locLabel = locs.length ? (locs[0] === 'Global' ? 'Global' : locs.join(', ')) : '';
+  var metaParts = [];
+  if (typeLabel) metaParts.push(typeLabel);
+  if (locLabel) metaParts.push(locLabel);
+  var metaLine = metaParts.length ? metaParts.join(' \u00b7 ') : '';
 
-  var marketDone = !!s.marketScan;
-  var custDone   = !!s.customerIntelligence;
-  var compDone   = !!s.competition;
+  var marketDone  = !!s.marketScan;
+  var custDone    = !!s.customerIntelligence;
+  var compDone    = !!s.competition;
   var personaDone = !!(p.name && p.name.trim());
-  var gtmDone    = !!concept.gtmComplete;
+  var gtmDone     = !!concept.gtmComplete;
 
-  var marketInsight  = marketDone ? (s.marketScan.gapHeadline || 'Market gap identified') : '';
-  var custInsight    = custDone   ? _dshTruncate(s.customerIntelligence.topTrigger, 60) : '';
-  var compInsight    = compDone   ? _dshTruncate(s.competition.whitespace, 60) : '';
-  var personaInsight = personaDone ? 'Built for: ' + p.name.trim() : '';
-  var gtmInsight     = gtmDone ? 'Strategy ready \u2014 content unlocked' : '';
+  var pillars = [
+    { key: 'market',   name: 'Market Scan',          done: marketDone,  mode: 'strategic-plan' },
+    { key: 'customer', name: 'Customer Intelligence', done: custDone,    mode: 'strategic-plan' },
+    { key: 'comp',     name: 'Competition',           done: compDone,    mode: 'strategic-plan' },
+    { key: 'persona',  name: 'Persona',               done: personaDone, mode: 'persona-studio' },
+    { key: 'gtm',      name: 'GTM',                   done: gtmDone,    mode: 'gtm-strategy' }
+  ];
 
-  var sf = appState.strategyFlow || {};
-  var marketInProgress = sf.screen === 'market-scan'    && !!sf.marketScan    && sf.marketScan.step    === 2;
-  var custInProgress   = sf.screen === 'customer-intel' && !!sf.customerIntel && sf.customerIntel.step === 2;
-  var compInProgress   = sf.screen === 'competition'    && !!sf.competition   && sf.competition.step   === 2;
+  var doneCount = 0;
+  var nextPillar = null;
+  pillars.forEach(function (pil) {
+    if (pil.done) doneCount++;
+    if (!pil.done && !nextPillar) nextPillar = pil;
+  });
+  var allDone = doneCount === 5;
+  var pct = doneCount * 20;
 
-  var researchRows = _dshModRow('Market Scan',            'MARKET',     'var(--ob-gold)',  marketDone,  marketInProgress, marketInsight, 'dshGoModule(\'strategic-plan\')')
-    + _dshModRow('Customer Intelligence', 'CUSTOMER',   'var(--ob-teal)',   custDone,    custInProgress,   custInsight,   'dshGoModule(\'strategic-plan\')')
-    + _dshModRow('Competition',           'COMPETITOR', 'var(--ob-coral)',  compDone,    compInProgress,   compInsight,   'dshGoModule(\'strategic-plan\')')
-    + _dshCompareRow(concept);
+  /* SECTION 1 — Identity bar */
+  var sec1 = '<div class="dsh-journey-identity">'
+    + '<div class="dsh-journey-biz-name' + (rawName.length > 1 ? '' : ' dsh-unnamed') + '">' + nameHtml + '</div>'
+    + (metaLine ? '<div class="dsh-journey-biz-meta">' + metaLine + '</div>' : '')
+    + '<div class="dsh-journey-amber-line"></div>'
+    + '</div>';
 
-  var personaRow = _dshModRow('Persona', 'PERSONA', 'var(--ob-green)',  personaDone, false, personaInsight, 'dshGoModule(\'persona-studio\')');
-  var gtmRow     = _dshModRow('GTM',     'GTM',     'var(--ob-purple)', gtmDone,     false, gtmInsight,     'dshGoModule(\'gtm-strategy\')');
+  /* SECTION 2 — Progress moment */
+  var sec2 = '<div class="dsh-journey-progress">'
+    + '<div class="dsh-journey-progress-label">Your strategy is ' + pct + '% complete.</div>'
+    + '<div class="dsh-journey-progress-track"><div class="dsh-journey-progress-fill" style="width:' + pct + '%"></div></div>'
+    + '</div>';
 
-  var continueLabel = gtmDone ? 'Go to Content Engine &#8594;' : 'Continue &#8594;';
-  /* Once the whole journey is complete, the Content Studio row below is the
-     direct entry point — a Continue button at that point is redundant. */
-  var continueBtnHtml = gtmDone ? '' : '<button class="dsh-continue-btn" onclick="dshContinue()">' + continueLabel + '</button>';
+  /* SECTION 3 — Insight cards (complete) or next step card (incomplete) */
+  var sec3 = '';
+  var secMoves = '';
+  var secCta = '';
+  if (allDone) {
+    var gapText = (s.marketScan && s.marketScan.gapHeadline && s.marketScan.gapHeadline.trim())
+      ? s.marketScan.gapHeadline.trim() : 'Your opportunity identified.';
+    var personaLine = (p.name ? p.name.trim() : '') + (p.ageRange ? ', ' + p.ageRange : '');
+    if (!personaLine) personaLine = 'Your customer';
+    var personaSub = '';
+    var psCare = (p.caresAbout && p.caresAbout.length) ? p.caresAbout[0] : '';
+    var psTrigger = (p.trigger && p.trigger.trim()) ? p.trigger.trim() : '';
+    if (psCare || psTrigger) personaSub = _dshTruncate((psCare && psTrigger ? psCare + ' \u00b7 ' + psTrigger : psCare || psTrigger), 60);
+    var edgeText = (s.competition && s.competition.whitespace && s.competition.whitespace.trim())
+      ? _dshTruncate(s.competition.whitespace.trim(), 80) : 'Whitespace identified in your market.';
+
+    sec3 = '<div class="dsh-journey-insight-cards">'
+      + '<div class="dsh-journey-insight-card" style="border-top-color:var(--ob-gold)">'
+      + '<div class="dsh-journey-insight-card-eye" style="color:var(--ob-gold)">MARKET GAP</div>'
+      + '<div class="dsh-journey-insight-card-val">' + gapText + '</div>'
+      + '</div>'
+      + '<div class="dsh-journey-insight-card" style="border-top-color:var(--ob-teal)">'
+      + '<div class="dsh-journey-insight-card-eye" style="color:var(--ob-teal)">YOUR CUSTOMER</div>'
+      + '<div class="dsh-journey-insight-card-val">' + personaLine + '</div>'
+      + (personaSub ? '<div class="dsh-journey-insight-card-sub">' + personaSub + '</div>' : '')
+      + '</div>'
+      + '<div class="dsh-journey-insight-card" style="border-top-color:var(--ob-coral)">'
+      + '<div class="dsh-journey-insight-card-eye" style="color:var(--ob-coral)">YOUR EDGE</div>'
+      + '<div class="dsh-journey-insight-card-val">' + edgeText + '</div>'
+      + '</div>'
+      + '</div>';
+
+    var actions = (g.plan && g.plan.actions && g.plan.actions.length) ? g.plan.actions : [];
+    if (actions.length) {
+      var moveRows = '';
+      for (var mi = 0; mi < Math.min(2, actions.length); mi++) {
+        var act = actions[mi];
+        var ownerChip = (act.owner && act.owner.trim())
+          ? '<span class="dsh-journey-move-owner">' + act.owner.trim() + '</span>' : '';
+        moveRows += '<div class="dsh-journey-move-row">'
+          + '<span class="dsh-journey-move-num">' + (mi + 1) + '</span>'
+          + '<span class="dsh-journey-move-title">' + (act.title || '') + '</span>'
+          + ownerChip
+          + '</div>';
+      }
+      secMoves = '<div class="dsh-journey-moves">'
+        + '<div class="dsh-journey-moves-label">YOUR FIRST MOVES</div>'
+        + moveRows
+        + '<a class="dsh-journey-moves-link" onclick="dshGoModule(\'gtm-strategy\')">View full GTM plan &#8594;</a>'
+        + '</div>';
+    }
+
+    secCta = '<button class="dsh-journey-btn" style="margin-top:24px" onclick="setMode(\'home\')">Go to Content Studio &#8594;</button>';
+  } else if (nextPillar) {
+    var _desc = {
+      market:   'Understand what\u2019s happening in your market before making any moves.',
+      customer: 'Find out exactly who is buying and what makes them decide.',
+      comp:     'Map the landscape and find the gap only you can own.',
+      persona:  'Turn your research into a real person you are building for.',
+      gtm:      'Turn everything you know into a 90-day action plan and pricing strategy.'
+    };
+
+    var teaser = '';
+    if (nextPillar.key === 'customer' && marketDone && s.marketScan.gapHeadline) {
+      teaser = 'Your market gap is: ' + s.marketScan.gapHeadline;
+    } else if (nextPillar.key === 'comp' && custDone && s.customerIntelligence.topTrigger) {
+      teaser = 'Your top customer trigger is: ' + s.customerIntelligence.topTrigger;
+    } else if (nextPillar.key === 'persona' && compDone && s.competition.whitespace) {
+      teaser = 'Your whitespace opportunity: ' + _dshTruncate(s.competition.whitespace, 80);
+    } else if (nextPillar.key === 'gtm' && personaDone) {
+      var caresFirst = (p.caresAbout && p.caresAbout.length) ? p.caresAbout[0] : '';
+      teaser = 'Building for: ' + p.name.trim() + ', ' + (p.ageRange || '') + (caresFirst ? ' \u2014 responds to ' + caresFirst : '');
+    }
+    var teaserHtml = teaser ? '<div class="dsh-journey-next-teaser">' + teaser + '</div>' : '';
+
+    sec3 = '<div class="dsh-journey-next-card">'
+      + '<div class="dsh-journey-next-eyebrow">&#8599; UP NEXT</div>'
+      + '<div class="dsh-journey-next-name">' + nextPillar.name + '</div>'
+      + '<div class="dsh-journey-next-desc">' + _desc[nextPillar.key] + '</div>'
+      + teaserHtml
+      + '<button class="dsh-journey-btn" onclick="dshGoModule(\'' + nextPillar.mode + '\')">Continue &#8594;</button>'
+      + '</div>';
+  }
+
+  /* SECTION 4 — Completed pillars */
+  var sec4 = '';
+  if (doneCount > 0) {
+    var lines = '';
+    if (marketDone) {
+      var mI = _dshTruncate(s.marketScan.gapHeadline, 50) || '';
+      lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
+        + '<span class="dsh-journey-done-check">\u2713</span>'
+        + '<span class="dsh-journey-done-name">Market Scan</span>'
+        + (mI ? '<span class="dsh-journey-done-insight">' + mI + '</span>' : '')
+        + '</div>';
+    }
+    if (custDone) {
+      var cI = _dshTruncate(s.customerIntelligence.topTrigger, 50) || '';
+      lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
+        + '<span class="dsh-journey-done-check">\u2713</span>'
+        + '<span class="dsh-journey-done-name">Customer Intelligence</span>'
+        + (cI ? '<span class="dsh-journey-done-insight">' + cI + '</span>' : '')
+        + '</div>';
+    }
+    if (compDone) {
+      var coI = _dshTruncate(s.competition.whitespace, 50) || '';
+      lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
+        + '<span class="dsh-journey-done-check">\u2713</span>'
+        + '<span class="dsh-journey-done-name">Competition</span>'
+        + (coI ? '<span class="dsh-journey-done-insight">' + coI + '</span>' : '')
+        + '</div>';
+    }
+    if (personaDone) {
+      var pI = p.name.trim() + ((p.caresAbout && p.caresAbout.length) ? ' \u00b7 ' + p.caresAbout[0] : '');
+      lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'persona-studio\')">'
+        + '<span class="dsh-journey-done-check">\u2713</span>'
+        + '<span class="dsh-journey-done-name">Persona</span>'
+        + '<span class="dsh-journey-done-insight">' + _dshTruncate(pI, 50) + '</span>'
+        + '</div>';
+    }
+    if (gtmDone) {
+      lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'gtm-strategy\')">'
+        + '<span class="dsh-journey-done-check">\u2713</span>'
+        + '<span class="dsh-journey-done-name">GTM</span>'
+        + '<span class="dsh-journey-done-insight">Plan + Pricing locked in.</span>'
+        + '</div>';
+    }
+
+    sec4 = '<div class="dsh-journey-completed">'
+      + '<div class="dsh-journey-completed-label">COMPLETED</div>'
+      + lines
+      + '</div>';
+  }
 
   return '<div class="dsh-content">'
-    + '<div class="dsh-biz-name' + (rawName.length > 1 ? '' : ' dsh-unnamed') + '">' + nameHtml + '</div>'
-    + '<div class="dsh-biz-desc">' + descText + '</div>'
-    + locLine
-    + '<div class="dsh-section-label dsh-mt-32">Research Progress</div>'
-    + researchRows
-    + '<div class="dsh-section-label dsh-mt-24">Persona</div>'
-    + personaRow
-    + '<div class="dsh-section-label dsh-mt-24">GTM Strategy</div>'
-    + gtmRow
-    + '<div class="dsh-section-label dsh-mt-24">Content Studio</div>'
-    + _dshContentStudioRow(concept)
-    + continueBtnHtml
+    + sec1 + sec2 + sec3 + secMoves + sec4 + secCta
     + '</div>';
 }
 
@@ -1774,14 +1930,217 @@ function _saveLaunchpadState() {
       gtmFlow: appState.gtmFlow,
       onboarding: appState.onboarding,
       user: appState.user,
-      _transition: appState._transition || null
+      _transition: appState._transition || null,
+      personaChat: appState.personaChat || { messages: [] }
     };
     localStorage.setItem('clarity_launchpad_state', JSON.stringify(toSave));
   } catch (e) { /* localStorage unavailable/full — fail silently */ }
 }
 
+/* ===================== PERSONA CHAT ===================== */
+function _pfcPersona() {
+  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  return (c && c.persona) || {};
+}
+function _pfcInitials(name) {
+  var parts = (name || '').trim().split(/\s+/);
+  if (parts.length >= 2) return parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
+  if (parts[0] && parts[0].length >= 2) return parts[0].substring(0, 2).toUpperCase();
+  return '?';
+}
+
+function _pfcOpeningMessage(p) {
+  var first = (p.name || '').trim().split(/\s+/)[0] || 'I';
+  var age = p.ageRange || '';
+  var c0 = (p.caresAbout && p.caresAbout.length) ? p.caresAbout[0] : '';
+  var c1 = (p.caresAbout && p.caresAbout.length > 1) ? p.caresAbout[1] : '';
+  var msg = 'Hey. I\u2019m ' + first;
+  if (age) msg += ', ' + age;
+  msg += '.';
+  if (c0 && c1) msg += ' I care a lot about ' + c0 + ' and ' + c1 + '.';
+  else if (c0) msg += ' I care a lot about ' + c0 + '.';
+  msg += ' What do you want to know?';
+  return msg;
+}
+
+function _pfcRespond(userText, p, concept) {
+  var first = (p.name || '').trim().split(/\s+/)[0] || 'I';
+  var c0 = (p.caresAbout && p.caresAbout.length) ? p.caresAbout[0] : 'quality';
+  var trigger = (p.trigger || '').trim();
+  var desc = (p.description || '').trim();
+  var descFirst = desc ? desc.split('.')[0].trim() + '.' : '';
+  var ageRange = p.ageRange || '';
+  var ci = (concept && concept.strategy && concept.strategy.customerIntelligence) || {};
+  var text = (userText || '').toLowerCase();
+
+  if (text.indexOf('buy') !== -1) {
+    return first + ' here. Honestly? If it delivers on ' + c0 + ', yes, I\u2019d consider it. ' + (trigger || 'Something that feels right is usually what gets me to move.');
+  }
+  if (text.indexOf('put you off') !== -1 || text.indexOf('stop you') !== -1 || text.indexOf('barrier') !== -1) {
+    var opp = { Quality:'cheap or rushed', Price:'overpriced without proof', Community:'cold and transactional', Trust:'anonymous with no reviews', Convenience:'complicated or high-effort', Speed:'slow and unresponsive', Sustainability:'wasteful or careless', 'Personal Service':'generic and impersonal', Status:'basic and forgettable', Security:'risky and unverified' };
+    return first + ' here. What kills it for me is when something feels ' + (opp[c0] || 'off or inauthentic') + '. I\u2019ve been burned before.';
+  }
+  if (text.indexOf('how do you find') !== -1 || text.indexOf('discover') !== -1) {
+    var under35 = false;
+    if (ageRange) { var nums = ageRange.match(/\d+/g); if (nums && nums.length && parseInt(nums[0]) < 35) under35 = true; }
+    var plat = under35 ? 'Instagram and TikTok' : 'Google and recommendations from friends';
+    return first + ' here. Usually through people I already trust. Word of mouth is big for me. I also spend time on ' + plat + '. Ads don\u2019t really move me unless someone I know vouches for it.';
+  }
+  if (text.indexOf('pay') !== -1 || text.indexOf('price') !== -1 || text.indexOf('cost') !== -1) {
+    var wtp = ci.wtpLabel || 'a fair price';
+    return first + ' here. For something that genuinely delivers ' + c0 + '? I\u2019d go up to ' + wtp + '. But I\u2019d want to try it first if I can.';
+  }
+  return first + ' here. That\u2019s a good question. As someone who really values ' + c0 + ', I think about this stuff a lot. ' + (descFirst ? descFirst + ' ' : '') + 'What specifically are you trying to figure out?';
+}
+
+function screenPersonaChatPrompt() {
+  var p = _pfcPersona();
+  var name = (p.name || '').trim() || 'Your Persona';
+  var initials = _pfcInitials(p.name);
+  return '<div class="pfc-prompt-wrap">'
+    + '<div class="pf-avatar" style="width:72px;height:72px;font-size:24px">' + initials + '</div>'
+    + '<div class="pfc-prompt-name">' + name + '</div>'
+    + '<div class="pfc-prompt-sub">Want to see how ' + name + ' thinks before you build your plan?</div>'
+    + '<div class="pfc-prompt-actions">'
+    + '<button class="pfc-prompt-btn pfc-prompt-btn--primary" onclick="pfcStartChat()">Talk to ' + name + ' &#8594;</button>'
+    + '<button class="pfc-prompt-btn pfc-prompt-btn--outline" onclick="pfcSkipToGtm()">Continue to GTM &#8594;</button>'
+    + '</div>'
+    + '</div>';
+}
+
+function screenPersonaChat() {
+  var p = _pfcPersona();
+  var name = (p.name || '').trim() || 'Your Persona';
+  var initials = _pfcInitials(p.name);
+  var msgs = (appState.personaChat && appState.personaChat.messages) || [];
+
+  if (!msgs.length) {
+    msgs.push({ role: 'persona', text: _pfcOpeningMessage(p), timestamp: Date.now() });
+    appState.personaChat.messages = msgs;
+    _saveLaunchpadState();
+  }
+
+  var bubbles = msgs.map(function (m) {
+    var cls = m.role === 'persona' ? 'pfc-msg pfc-msg--persona' : 'pfc-msg pfc-msg--user';
+    return '<div class="' + cls + '">' + m.text.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+  }).join('');
+
+  var chipsHtml = (p.caresAbout || []).slice(0, 3).map(function (c) {
+    return '<span class="pfc-persona-chip">' + c + '</span>';
+  }).join('');
+
+  var backMode = (appState.personaFlow && appState.personaFlow.returnTo === 'dashboard') ? 'dashboard' : 'persona-studio';
+
+  return '<div class="pfc-screen">'
+    + '<div class="pfc-topbar">'
+    + '<button class="app-topbar-back" onclick="setMode(\'' + backMode + '\')">&#8592; Back</button>'
+    + '<div class="pfc-topbar-brand">Clarity <span>/ ' + name + '</span></div>'
+    + '<div style="width:80px"></div>'
+    + '</div>'
+    + '<div class="pfc-persona-bar">'
+    + '<div class="pf-avatar" style="width:36px;height:36px;font-size:13px">' + initials + '</div>'
+    + '<div class="pfc-persona-meta">'
+    + '<div class="pfc-persona-name">' + name + (p.ageRange ? ', ' + p.ageRange : '') + '</div>'
+    + '</div>'
+    + '<div class="pfc-persona-chips">' + chipsHtml + '</div>'
+    + '</div>'
+    + '<div class="pfc-chat" id="pfc-chat-area">' + bubbles + '</div>'
+    + '<div class="pfc-chips">'
+    + '<button class="pfc-chip" onclick="pfcSendChip(this)">Would you buy this?</button>'
+    + '<button class="pfc-chip" onclick="pfcSendChip(this)">What would put you off?</button>'
+    + '<button class="pfc-chip" onclick="pfcSendChip(this)">How do you find products like this?</button>'
+    + '<button class="pfc-chip" onclick="pfcSendChip(this)">What would you pay?</button>'
+    + '</div>'
+    + '<div class="pfc-input-row">'
+    + '<input class="pfc-input" id="pfc-input" placeholder="Ask ' + name + ' anything\u2026" onkeydown="if(event.key===\'Enter\'){event.preventDefault();pfcSendInput()}" />'
+    + '<button class="pfc-send-btn" onclick="pfcSendInput()">Send</button>'
+    + '</div>'
+    + '</div>';
+}
+
+function pfcScrollToBottom() {
+  setTimeout(function () {
+    var el = document.getElementById('pfc-chat-area');
+    if (el) el.scrollTop = el.scrollHeight;
+  }, 50);
+}
+
+window.pfcStartChat = function () {
+  appState.personaChat = { messages: [] };
+  setMode('persona-chat');
+};
+
+window.pfcStartChatFromDashboard = function () {
+  appState.personaChat = { messages: [] };
+  setMode('persona-chat');
+};
+
+window.pfcSkipToGtm = function () {
+  setTransition({
+    title: 'Persona locked in',
+    summary: ((_pfcPersona().name || '').trim() || 'Your persona') + ' is your customer lens from here on.',
+    nextBadge: 'Next: GTM Strategy',
+    nextMode: 'gtm-strategy'
+  });
+};
+
+window.pfcSendChip = function (el) {
+  var text = el.textContent;
+  _pfcSendMessage(text);
+};
+
+window.pfcSendInput = function () {
+  var input = document.getElementById('pfc-input');
+  if (!input) return;
+  var text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  _pfcSendMessage(text);
+};
+
+function _pfcSendMessage(text) {
+  var msgs = appState.personaChat.messages;
+  msgs.push({ role: 'user', text: text, timestamp: Date.now() });
+  _saveLaunchpadState();
+
+  var chatEl = document.getElementById('pfc-chat-area');
+  if (chatEl) {
+    var userBubble = document.createElement('div');
+    userBubble.className = 'pfc-msg pfc-msg--user';
+    userBubble.textContent = text;
+    chatEl.appendChild(userBubble);
+
+    var typing = document.createElement('div');
+    typing.className = 'pfc-typing';
+    typing.id = 'pfc-typing';
+    typing.textContent = '\u2026';
+    chatEl.appendChild(typing);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  var p = _pfcPersona();
+  var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  var response = _pfcRespond(text, p, concept);
+
+  setTimeout(function () {
+    msgs.push({ role: 'persona', text: response, timestamp: Date.now() });
+    _saveLaunchpadState();
+    var t = document.getElementById('pfc-typing');
+    if (t) t.remove();
+    var area = document.getElementById('pfc-chat-area');
+    if (area) {
+      var bubble = document.createElement('div');
+      bubble.className = 'pfc-msg pfc-msg--persona';
+      bubble.textContent = response;
+      area.appendChild(bubble);
+      area.scrollTop = area.scrollHeight;
+    }
+  }, 800 + Math.random() * 600);
+}
+
 /* ===================== RENDER DISPATCHER ===================== */
 function renderApp() {
+  if (window.spDestroyAnchorSidebar) window.spDestroyAnchorSidebar();
   _saveLaunchpadState();
 
   var el = document.getElementById('content');
@@ -1805,6 +2164,17 @@ function renderApp() {
 
   if (mode === 'persona-studio') {
     el.innerHTML = window.screenPersonaFlow ? window.screenPersonaFlow() : '';
+    return;
+  }
+
+  if (mode === 'persona-chat-prompt') {
+    el.innerHTML = screenPersonaChatPrompt();
+    return;
+  }
+
+  if (mode === 'persona-chat') {
+    el.innerHTML = screenPersonaChat();
+    pfcScrollToBottom();
     return;
   }
 
@@ -1974,6 +2344,7 @@ function _restoreLaunchpadState() {
     appState.gtmFlow          = parsed.gtmFlow || { step: 'plan-context', planFocus: '', pricingInputs: { avgOrder: '', marketAvg: '', margin: '', bestSeller: '' } };
     appState.onboarding       = parsed.onboarding   || { step: 1, authMode: 'signup', subStep: 1 };
     appState.user             = parsed.user || null;
+    appState.personaChat      = parsed.personaChat || { messages: [] };
 
     /* The returning user always lands on the Dashboard — their home base for
        managing every concept — regardless of which screen they were on when

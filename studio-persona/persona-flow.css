@@ -752,3 +752,137 @@
   .pf-body          { padding: 24px 20px 32px; }
   .gtm-cards        { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   PERSONA CHAT  —  prefix: pfc-
+   ============================================================ */
+.pfc-prompt-wrap {
+  min-height: 100vh; background: var(--ob-bg); color: var(--ob-text);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 60px 32px;
+  animation: nudge-enter 0.5s cubic-bezier(.22,.68,0,1.2) both;
+}
+.pfc-prompt-name {
+  font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600;
+  color: var(--ob-text); margin-top: 20px; margin-bottom: 12px;
+}
+.pfc-prompt-sub {
+  font-size: 14px; color: var(--ob-muted); line-height: 1.6;
+  max-width: 400px; margin-bottom: 28px;
+}
+.pfc-prompt-actions { display: flex; align-items: center; gap: 12px; }
+.pfc-prompt-btn {
+  padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: filter 0.15s, color 0.15s, border-color 0.15s;
+  font-family: 'DM Sans', sans-serif; border: none;
+}
+.pfc-prompt-btn--primary { background: var(--ob-gold); color: #1a1612; }
+.pfc-prompt-btn--primary:hover { filter: brightness(1.08); }
+.pfc-prompt-btn--outline {
+  background: none; color: var(--ob-muted); border: 1px solid var(--ob-border);
+}
+.pfc-prompt-btn--outline:hover { color: var(--ob-text); border-color: rgba(212,168,83,0.3); }
+
+/* Chat screen */
+.pfc-screen {
+  display: flex; flex-direction: column; height: 100vh;
+  background: var(--ob-bg); color: var(--ob-text);
+}
+.pfc-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; border-bottom: 1px solid var(--ob-border);
+  background: var(--ob-surface); flex-shrink: 0;
+}
+.pfc-topbar-brand {
+  font-family: 'Cormorant Garamond', serif; font-size: 18px;
+  font-weight: 600; color: var(--ob-gold);
+}
+.pfc-topbar-brand span {
+  color: var(--ob-muted); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 400; margin-left: 4px;
+}
+
+.pfc-persona-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 24px; border-bottom: 1px solid var(--ob-border);
+  background: var(--ob-surface); flex-shrink: 0;
+}
+.pfc-persona-meta { flex: 1; min-width: 0; }
+.pfc-persona-name { font-size: 14px; font-weight: 600; color: var(--ob-text); }
+.pfc-persona-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pfc-persona-chip {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  background: var(--ob-gold-dim); color: var(--ob-gold); font-weight: 500;
+}
+
+.pfc-chat {
+  flex: 1; overflow-y: auto; padding: 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.pfc-msg {
+  max-width: 70%; padding: 12px 16px; font-size: 14px; line-height: 1.55;
+  animation: pfc-msg-in 0.2s ease;
+}
+@keyframes pfc-msg-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.pfc-msg--persona {
+  align-self: flex-start; background: var(--ob-surface);
+  border-radius: 12px 12px 12px 4px; color: var(--ob-text);
+}
+.pfc-msg--user {
+  align-self: flex-end;
+  background: rgba(212,168,83,0.15); border: 1px solid rgba(212,168,83,0.2);
+  border-radius: 12px 12px 4px 12px; color: var(--ob-text);
+}
+.pfc-typing {
+  align-self: flex-start; background: var(--ob-surface);
+  border-radius: 12px 12px 12px 4px; padding: 12px 16px;
+  font-size: 14px; color: var(--ob-muted);
+  animation: pfc-pulse 1.2s ease-in-out infinite;
+}
+@keyframes pfc-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.pfc-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 12px 20px; border-top: 1px solid var(--ob-border); flex-shrink: 0;
+}
+.pfc-chip {
+  font-size: 12px; padding: 6px 14px; border-radius: 20px;
+  background: var(--ob-gold-dim); color: var(--ob-gold);
+  cursor: pointer; border: 1px solid rgba(212,168,83,0.2);
+  transition: background 0.15s; font-family: 'DM Sans', sans-serif;
+}
+.pfc-chip:hover { background: rgba(212,168,83,0.2); }
+
+.pfc-input-row {
+  display: flex; gap: 8px; padding: 12px 20px;
+  border-top: 1px solid var(--ob-border); flex-shrink: 0;
+}
+.pfc-input {
+  flex: 1; background: var(--ob-surface); border: 1px solid var(--ob-border);
+  border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--ob-text);
+  outline: none; font-family: 'DM Sans', sans-serif;
+}
+.pfc-input:focus { border-color: rgba(212,168,83,0.4); }
+.pfc-input::placeholder { color: var(--ob-muted); }
+.pfc-send-btn {
+  background: var(--ob-gold); color: #1a1612; border: none; border-radius: 8px;
+  padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: filter 0.15s; font-family: 'DM Sans', sans-serif; flex-shrink: 0;
+}
+.pfc-send-btn:hover { filter: brightness(1.08); }
+
+/* Light mode overrides */
+[data-theme="light"] .pfc-prompt-btn--primary { color: #1a1612; }
+[data-theme="light"] .pfc-prompt-btn--outline { border-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .pfc-prompt-btn--outline:hover { border-color: rgba(184,137,58,0.3); }
+[data-theme="light"] .pfc-msg--user {
+  background: rgba(184,137,58,0.12); border-color: rgba(184,137,58,0.2);
+}
+[data-theme="light"] .pfc-chip {
+  background: rgba(184,137,58,0.08); border-color: rgba(184,137,58,0.2);
+}
+[data-theme="light"] .pfc-chip:hover { background: rgba(184,137,58,0.16); }
+[data-theme="light"] .pfc-send-btn { color: #1a1612; }
