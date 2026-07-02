@@ -282,14 +282,21 @@ var StrategyFlow = (function () {
       return '<div class="sp-tab-panel' + (i === 0 ? ' active' : '') + '" style="' + style + '">' + t.content + '</div>';
     }).join('');
 
+    /* opts.hideViewAll omits the View-all toggle (used by read-only embeds like the GTM completed view) */
+    var viewAllBtn = opts.hideViewAll
+      ? ''
+      : '<button class="sp-viewall-btn" onclick="spToggleViewAll(\'' + opts.wrapId + '\')">View all</button>';
+
     return '<div class="sp-report-tabs-wrap" id="' + opts.wrapId + '">'
       + '<div class="sp-tabs-bar-row">'
       + '<div class="sp-tabs-bar">' + tabBtns + '</div>'
-      + '<button class="sp-viewall-btn" onclick="spToggleViewAll(\'' + opts.wrapId + '\')">View all</button>'
+      + viewAllBtn
       + '</div>'
       + '<div class="sp-tabs-content">' + panels + '</div>'
       + '</div>';
   }
+  /* Exposed so other modules (e.g. studio-gtm) can reuse the exact same tab UI */
+  window.buildTabsUI = buildTabsUI;
 
   /* ============================================================
      MARKET SCAN

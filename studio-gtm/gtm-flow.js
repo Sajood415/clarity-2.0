@@ -496,29 +496,36 @@ var GtmFlow = (function () {
 
   /* ============================================================
      COMPLETED VIEW — read-only revisit from the dashboard
-     Two-column split: Plan (left) + Pricing (right), each column
-     independently scrollable on desktop, stacked on mobile.
-     No forward/edit buttons; only "Back to Dashboard" up top.
+     Tabbed view reusing Strategic Planning's buildTabsUI()/spSwitchTab():
+     "My Plan" (default) + "My Pricing". No view-all toggle, no PDF,
+     no forward/edit buttons; only "Back to Dashboard" up top.
      ============================================================ */
   function screenGtmCompletedView() {
     var biz = gtmBiz();
     var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
+    var accent = 'var(--ob-gold)';
 
-    var leftCol = '<div class="gtm-split-col gtm-split-left">'
-      + '<div class="gtm-split-eyebrow">MY PLAN</div>'
-      + '<div class="gtm-split-title">' + gtmEsc(bizName) + '</div>'
-      + '<div class="gtm-action-list">' + gtmPlanCardsHtml() + '</div>'
-      + '</div>';
+    var planContent = '<div class="sp-tab-content-title" style="color:' + accent + '">' + gtmEsc(bizName) + '</div>'
+      + '<div class="gtm-action-list">' + gtmPlanCardsHtml() + '</div>';
 
-    var rightCol = '<div class="gtm-split-col gtm-split-right">'
-      + '<div class="gtm-split-eyebrow">MY PRICING</div>'
-      + '<div class="gtm-split-title">Three ways to grow your revenue.</div>'
-      + '<div class="gtm-adjust-list">' + gtmPricingCardsHtml() + '</div>'
-      + '</div>';
+    var pricingContent = '<div class="sp-tab-content-title" style="color:' + accent + '">Three ways to grow your revenue.</div>'
+      + '<div class="gtm-adjust-list">' + gtmPricingCardsHtml() + '</div>';
+
+    var tabsHtml = window.buildTabsUI
+      ? window.buildTabsUI({
+          wrapId: 'gtm-completed-tabs',
+          accentVar: accent,
+          hideViewAll: true,
+          tabs: [
+            { label: 'My Plan',    content: planContent },
+            { label: 'My Pricing', content: pricingContent }
+          ]
+        })
+      : '';
 
     return '<div class="gtm-screen">'
       + gtmTopbar('Back to Dashboard', 'setMode(\'dashboard\')')
-      + '<div class="gtm-split">' + leftCol + rightCol + '</div>'
+      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-wide">' + tabsHtml + '</div></div>'
       + '</div>';
   }
 
