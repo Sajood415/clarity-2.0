@@ -1792,6 +1792,10 @@ window.claritySetIntelMode = function(mode) {
 function screenHome() {
   var intel = appState.intelligence;
   var campaigns = appState.campaigns || [];
+  var createdItems = appState.createdItems || [];
+  var viewCreatedLinkHtml = createdItems.length
+    ? '<div style="margin-top:12px;"><a href="#" style="font-size:13px;color:var(--ob-gold);cursor:pointer;" onclick="setMode(\'library\'); return false;">View created content (' + createdItems.length + ' items) &#8594;</a></div>'
+    : '';
 
   var nudgeHtml;
   var cardsHtml = '';
@@ -1822,6 +1826,7 @@ function screenHome() {
       + '<button class="btn btn-primary btn-lg" onclick="claritySyncConceptToStudio(); setMode(\'wizard\')">Create content</button>'
       + '<button class="btn btn-outline" onclick="setMode(\'report-library\')">View your reports</button>'
       + '</div>'
+      + viewCreatedLinkHtml
       + (campaigns.length
           ? '<div class="home-campaigns-link">You have ' + campaigns.length + ' active campaign' + (campaigns.length === 1 ? '' : 's') + ' \u2014 <a href="#" onclick="setMode(\'campaign\'); return false;">view campaigns</a></div>'
           : '')
@@ -1858,6 +1863,7 @@ function screenHome() {
       + '<button class="btn btn-primary btn-lg" onclick="setMode(\'wizard\')">Create content</button>'
       + '<button class="btn btn-outline" onclick="setMode(\'library\')">View library</button>'
       + '</div>'
+      + viewCreatedLinkHtml
       + (campaigns.length
           ? '<div class="home-campaigns-link">You have ' + campaigns.length + ' active campaign' + (campaigns.length === 1 ? '' : 's') + ' \u2014 <a href="#" onclick="setMode(\'campaign\'); return false;">view campaigns</a></div>'
           : '')
@@ -1891,6 +1897,7 @@ function screenHome() {
       + '<div class="home-actions">'
       + '<button class="btn btn-primary btn-lg" onclick="setMode(\'wizard\')">Create content</button>'
       + '</div>'
+      + viewCreatedLinkHtml
       + '</div>';
   }
 
@@ -2186,6 +2193,7 @@ function _dshSyncFlowsForConcept(concept) {
   appState.gtmFlow = {
     step: gtmDone ? 'pricing-output' : (planDone ? 'pricing-context' : 'plan-context'),
     returnTo: gtmDone ? 'dashboard' : '',
+    _conceptId: concept ? concept.id : null,
     planFocus: '',
     pricingInputs: {
       avgOrder:   savedPricingInputs.avgOrder   || '',
@@ -2473,6 +2481,11 @@ window.dshSelectConcept = function (id) {
 window.dshGoModule = function (mode) {
   var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
   _dshSyncFlowsForConcept(c);
+  if (appState.strategyFlow) {
+    var s = (c && c.strategy) || {};
+    var allResearchComplete = !!(s.marketScan && s.customerIntelligence && s.competition);
+    appState.strategyFlow.returnTo = allResearchComplete ? 'dashboard' : null;
+  }
   setMode(mode);
 };
 

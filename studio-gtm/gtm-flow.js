@@ -533,8 +533,29 @@ var GtmFlow = (function () {
      DISPATCH
      ============================================================ */
   function screenGtmFlow() {
-    var st = gtmFlowState();
     var c = gtmActiveConcept();
+    var conceptId = c ? c.id : null;
+
+    /* Guard against a stale GTM flow state carried over from a different
+       concept (e.g. one that already completed GTM). Any entry point that
+       forgets to reset gtmFlow (like skipping straight in from Persona Chat)
+       would otherwise resume mid-flow or jump to a finished pricing-output
+       screen for a concept that has never touched GTM. Reset to fresh
+       defaults whenever the tracked concept doesn't match the active one
+       and this concept's GTM isn't actually complete. */
+    if (state.gtmFlow && state.gtmFlow._conceptId !== conceptId && !(c && c.gtmComplete)) {
+      state.gtmFlow = {
+        step: 'plan-context',
+        planFocus: '',
+        pricingInputs: { avgOrder: '', marketAvg: '', margin: '', bestSeller: '' },
+        returnTo: null,
+        _conceptId: conceptId
+      };
+    } else if (state.gtmFlow) {
+      state.gtmFlow._conceptId = conceptId;
+    }
+
+    var st = gtmFlowState();
     /* Revisiting a finished GTM strategy from the dashboard → read-only combined view */
     if (st.returnTo === 'dashboard' && c && c.gtmComplete) return screenGtmCompletedView();
 

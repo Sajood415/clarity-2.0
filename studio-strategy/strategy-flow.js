@@ -130,7 +130,10 @@ var StrategyFlow = (function () {
        back to the dashboard instead of the first-time landing flow. */
     var fromDashboard = !!(spFlow() && spFlow().returnTo === 'dashboard');
 
-    var personaBtn = fromDashboard
+    /* Hide the persona CTA only when the user is reviewing a fully completed
+       concept from the dashboard. If any research module is still incomplete,
+       always show it — regardless of how the returnTo flag got set. */
+    var personaBtn = (fromDashboard && allComplete)
       ? ''
       : '<button class="btn sp-btn-save" onclick="spGoToPersona()">Continue to Persona Studio &#8594;</button>';
 
@@ -2030,10 +2033,8 @@ window.spGoWelcome = function () {
 };
 
 window.spGoHub = function () {
+  if (appState.strategyFlow) appState.strategyFlow.returnTo = null;
   appState.strategyFlow.screen = 'hub';
-  if (appState.strategyFlow.returnTo === 'dashboard') {
-    appState.strategyFlow.returnTo = null;
-  }
   renderContent();
 };
 
@@ -2067,6 +2068,13 @@ window.spGoCompetition = function () {
 };
 
 window.spGoToPersona = function () {
+  appState.personaFlow = { step: 1, subStep: 1, screen: 'entry', suggestionActive: false, returnTo: null };
+  var c = spActiveConcept();
+  appState.gtmFlow = {
+    step: 'plan-context', planFocus: '',
+    pricingInputs: { avgOrder: '', marketAvg: '', margin: '', bestSeller: '' },
+    returnTo: null, _conceptId: c ? c.id : null
+  };
   setTransition({ title: 'Strategy locked in', summary: 'Your market, customer, and competitive research is ready to guide your persona.', nextBadge: 'Next: Persona Studio', nextMode: 'persona-studio' });
 };
 
