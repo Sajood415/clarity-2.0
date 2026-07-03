@@ -218,16 +218,29 @@ var CampaignFlow = (function () {
   function cpBriefFromIntelligence(state) {
     var intel = state.intelligence || {};
     var baseBrief = state.createBrief || {};
+    var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+    var cp = (concept && concept.persona) || {};
+    var cs = (concept && concept.strategy) || {};
+    var cg = (concept && concept.gtm) || {};
+    var caresAbout = (cp.caresAbout && cp.caresAbout.length) ? cp.caresAbout : [];
+
     var persona = intel.persona || {};
     var personaLabel = persona.name
-      ? persona.name + (persona.seg ? ' — ' + persona.seg : '')
-      : (baseBrief.persona || 'Maya Holloway');
+      ? persona.name + (persona.seg ? ' \u2014 ' + persona.seg : '')
+      : (cp.name && cp.name.trim())
+        ? cp.name.trim()
+        : (baseBrief.persona || 'Your customer');
+
+    var gapHeadline = (intel.market && intel.market.gap) || (cs.marketScan && cs.marketScan.gapHeadline) || '';
+    var firstAction = (cg.plan && cg.plan.actions && cg.plan.actions.length && cg.plan.actions[0] && cg.plan.actions[0].title)
+      ? cg.plan.actions[0].title : '';
+
     return {
-      objective: baseBrief.goal || 'Drive weekend pre-orders',
+      objective: baseBrief.goal || firstAction || 'Grow my customer base',
       persona: personaLabel,
-      message: baseBrief.message || '',
-      proof: baseBrief.proof || (intel.market && intel.market.gap) || '72-hour cold ferment, local flour, limited 120-loaf batch.',
-      cta: baseBrief.cta || 'Pre-order now — closes Friday at 6 PM.'
+      message: baseBrief.message || gapHeadline || '',
+      proof: baseBrief.proof || (caresAbout.length ? 'Your customer cares about ' + caresAbout.slice(0, 2).join(' and ') : '') || gapHeadline || '',
+      cta: baseBrief.cta || firstAction || ''
     };
   }
   function cpIntelHandoffCards(intel, brief, objective) {
@@ -329,7 +342,9 @@ var CampaignFlow = (function () {
     };
   }
   function cpFreshFlow(state) {
-    var defaultName = 'Summer Launch Sprint';
+    var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+    var cBiz = (concept && concept.business) || {};
+    var defaultName = (cBiz.name && cBiz.name.trim()) ? cBiz.name.trim() + ' Campaign' : 'Summer Launch Sprint';
     return {
       step: 1,
       name: defaultName,
@@ -358,7 +373,7 @@ var CampaignFlow = (function () {
   }
   function init(state) {
     if (!state.campaigns) state.campaigns = [];
-    state.campaignUI = { mode: 'home', selectedId: null };
+    state.campaignUI = { mode: 'home', selectedId: null, scheduleExpanded: false };
     if (typeof state.cpSidebarOpen === 'undefined') state.cpSidebarOpen = false;
     state.campaignFlow = cpFreshFlow(state);
   }
@@ -1379,6 +1394,11 @@ var CampaignFlow = (function () {
     appState.campaignFlow = cpFreshFlow(appState);
     renderContent();
   };
+  window.cpToggleScheduleExpanded = function () {
+    appState.campaignUI.scheduleExpanded = !appState.campaignUI.scheduleExpanded;
+    renderContent();
+  };
+
   function cpStepPublish() {
     cpEnsurePublishDefaults();
     var approved = cpApprovedAssets();
@@ -1396,7 +1416,29 @@ var CampaignFlow = (function () {
     }
     var f = cpFlow();
     var hasMultiSeries = f.series && f.series.length > 1;
+    var isMobile = window.innerWidth <= 760;
+    var expanded = !isMobile && !!appState.campaignUI.scheduleExpanded;
 
+    var platformMap = {};
+    approved.forEach(function (a) { platformMap[a.platform] = true; });
+    var platformCount = Object.keys(platformMap).length;
+
+    /* ---- Collapsed summary view (default) ---- */
+    var summaryView = '<div class="cp-schedule-summary">'
+      + '<div class="cp-schedule-summary-count">' + approved.length + ' asset' + (approved.length === 1 ? '' : 's') + ' ready to publish across ' + platformCount + ' platform' + (platformCount === 1 ? '' : 's') + '.</div>'
+      + '<div class="cp-schedule-summary-status">' + scheduledCount + ' of ' + approved.length + ' scheduled'
+      + (hasConflicts ? ' \u00b7 <span style="color:var(--ob-coral,#e07b6a);">conflicts detected</span>' : '') + '</div>'
+      + '<div class="cp-schedule-dates">'
+      + '<div class="cf-field"><label>Campaign starts</label>'
+      + '<input type="date" value="' + (f.startDate || '') + '" onchange="cpFlow().startDate=this.value"></div>'
+      + '<div class="cf-field"><label>Campaign ends</label>'
+      + '<input type="date" value="' + (f.endDate || '') + '" onchange="cpFlow().endDate=this.value"></div>'
+      + '</div>'
+      + '<button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="campaignAutoSpread()">Auto-spread schedule \u2192</button>'
+      + '<a class="cp-schedule-expand-link" onclick="cpToggleScheduleExpanded()">Review individual dates \u2192</a>'
+      + '</div>';
+
+    /* ---- Expanded per-asset view ---- */
     function renderAssetRow(a) {
       var conflictList = cpHasConflict(a, conflicts);
       var dateCol = a.paused
@@ -1417,10 +1459,10 @@ var CampaignFlow = (function () {
         + ' ondragleave="cpDragLeaveRow(this)"'
         + (!a.paused ? ' ondrop="cpDropOnRow(\'' + a.id + '\',event)"' : '')
         + '>'
-        + '<div class="cp-drag-handle">' + (a.paused ? '' : '⠿') + '</div>'
+        + '<div class="cp-drag-handle">' + (a.paused ? '' : '\u2807') + '</div>'
         + '<div class="cp-publish-main">'
         + '<div class="cp-generated-title">' + a.label + ' #' + a.seq + '</div>'
-        + '<div class="cp-generated-msg">' + a.platform + ' · ' + (a.title || '').substring(0, 80) + '</div>'
+        + '<div class="cp-generated-msg">' + a.platform + ' \u00b7 ' + (a.title || '').substring(0, 80) + '</div>'
         + '</div>'
         + dateCol
         + '</div>'
@@ -1431,11 +1473,10 @@ var CampaignFlow = (function () {
     if (hasMultiSeries) {
       publishBody = f.series.map(function (s) {
         var seriesAssets = approved.filter(function (a) { return a.seriesId === s.id; });
-        // Always render the series section — show empty state if no approved assets yet
         var allPaused = seriesAssets.length > 0 && seriesAssets.every(function (a) { return a.paused; });
         var assetRows = seriesAssets.length
           ? seriesAssets.map(renderAssetRow).join('')
-          : '<div class="cp-series-pub-empty">No approved assets in this series yet — go back to Edit and approve items from <strong>' + (s.name || 'this series') + '</strong>.</div>';
+          : '<div class="cp-series-pub-empty">No approved assets in this series yet \u2014 go back to Edit and approve items from <strong>' + (s.name || 'this series') + '</strong>.</div>';
         return '<div class="cp-series-pub-section">'
           + '<div class="cp-series-pub-header">'
           + '<span class="cp-series-pub-name">' + (s.name || 'Series') + '</span>'
@@ -1460,14 +1501,13 @@ var CampaignFlow = (function () {
       publishBody = approved.map(renderAssetRow).join('');
     }
 
-    return '<div class="cp-step-title">Publish</div>'
-      + '<div class="cp-step-sub">Schedule approved assets by platform and date before publishing campaign.</div>'
-      + '<div class="card">'
-      + '<div class="flex-between"><div><div class="label">Approved assets</div>'
+    var expandedView = '<div class="card">'
+      + '<a class="cp-schedule-expand-link" onclick="cpToggleScheduleExpanded()">\u2190 Collapse schedule</a>'
+      + '<div class="flex-between" style="margin-top:12px;"><div><div class="label">Approved assets</div>'
       + '<div class="cp-count-summary">' + scheduledCount + ' of ' + approved.length + ' scheduled</div></div>'
       + (hasConflicts ? '<button class="btn btn-outline btn-sm" onclick="campaignAutoSpread()">Auto-spread schedule</button>' : '<span class="pill pill-green">No conflicts</span>')
       + '</div>'
-      + (approved.length > 1 ? '<div class="cp-drag-hint"><span>⠿</span> Drag a row onto another to take that date · drop on the zone below to unschedule</div>' : '')
+      + (approved.length > 1 ? '<div class="cp-drag-hint"><span>\u2807</span> Drag a row onto another to take that date \u00b7 drop on the zone below to unschedule</div>' : '')
       + '<div class="cp-publish-list">' + publishBody + '</div>'
       + '<div class="cp-unschedule-zone"'
       + ' ondragover="event.preventDefault()"'
@@ -1475,6 +1515,10 @@ var CampaignFlow = (function () {
       + ' ondragleave="cpDragLeaveTrash(this)"'
       + ' ondrop="cpDropUnschedule(event)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2.5h4V4M5.5 6v4.5M8.5 6v4.5M3 4l.7 7.5h6.6L11 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Drop here to unschedule</div>'
       + '</div>';
+
+    return '<div class="cp-step-title">Publish</div>'
+      + '<div class="cp-step-sub">Schedule approved assets by platform and date before publishing campaign.</div>'
+      + (expanded ? expandedView : summaryView);
   }
 
   function canContinue() {
@@ -1534,6 +1578,10 @@ var CampaignFlow = (function () {
     renderContent();
   };
   function cpLoadAndSyncIntelligence() {
+    if (appState.intelligence && appState.intelligence.brand
+        && appState.intelligence.brand.name && appState.intelligence.brand.name !== 'Hearth Bakery') {
+      return;
+    }
     var sample = window.CLARITY_SAMPLE_INTELLIGENCE || CP_SAMPLE_INTELLIGENCE;
     appState.intelligence = JSON.parse(JSON.stringify(sample));
     if (window.localStorage) localStorage.setItem('clarity_intel_mode', 'on');
@@ -1897,7 +1945,7 @@ var CampaignFlow = (function () {
     var topbar = isOverlay
       ? '<div class="cf-topbar">'
         + '<button class="app-topbar-back" onclick="campaignCloseOverlay()">&#8592; Back to your content</button>'
-        + '<div style="font-size:13px;color:var(--muted);font-weight:500;">' + (f.name || 'New campaign') + '</div>'
+        + '<div style="font-size:13px;color:var(--muted);font-weight:500;padding-right:56px;">' + (f.name || 'New campaign') + '</div>'
         + '<div class="cf-topbar-right">'
         + '<button class="cf-overlay-close-x" onclick="campaignCloseOverlay()" title="Close campaign setup">&#x2715;</button>'
         + '</div></div>'

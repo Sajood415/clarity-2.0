@@ -161,6 +161,8 @@ a { text-decoration: none; color: inherit; }
 /* Brand wordmark top-left */
 .home-brand {
   padding: 20px 36px;
+  /* Extra right padding keeps the "v3" meta text clear of the fixed theme-toggle button */
+  padding-right: 56px;
   display: flex; align-items: center; justify-content: space-between;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -1418,8 +1420,12 @@ function screenHome() {
     ? '<div class="home-reports-link"><a href="#" onclick="setMode(\'report-library\'); return false;">View your saved reports &rarr;</a></div>'
     : '';
 
+  var dashBackBtn = activeConcept
+    ? '<button class="app-topbar-back" onclick="setMode(\'dashboard\')" style="margin-right:12px;">&#8592; Dashboard</button>'
+    : '';
+
   return '<div class="home-wrap">'
-    + '<div class="home-brand"><span class="home-brand-name"><em>Clarity</em> Content Studio</span><span class="home-brand-meta">v3</span></div>'
+    + '<div class="home-brand">' + dashBackBtn + '<span class="home-brand-name"><em>Clarity</em> Content Studio</span><span class="home-brand-meta">v3</span></div>'
     + '<div class="home-center">' + nudgeHtml + cardsHtml + reportsLinkHtml + '</div>'
     + '</div>';
 }
@@ -1982,7 +1988,8 @@ function _saveLaunchpadState() {
       onboarding: appState.onboarding,
       user: appState.user,
       _transition: appState._transition || null,
-      personaChat: appState.personaChat || { messages: [] }
+      personaChat: appState.personaChat || { messages: [] },
+      campaigns: appState.campaigns
     };
     localStorage.setItem('clarity_launchpad_state', JSON.stringify(toSave));
   } catch (e) { /* localStorage unavailable/full — fail silently */ }
@@ -2396,6 +2403,7 @@ function _restoreLaunchpadState() {
     appState.onboarding       = parsed.onboarding   || { step: 1, authMode: 'signup', subStep: 1 };
     appState.user             = parsed.user || null;
     appState.personaChat      = parsed.personaChat || { messages: [] };
+    if (parsed.campaigns && Array.isArray(parsed.campaigns)) appState.campaigns = parsed.campaigns;
 
     /* The returning user always lands on the Dashboard — their home base for
        managing every concept — regardless of which screen they were on when

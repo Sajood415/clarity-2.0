@@ -1676,9 +1676,7 @@ var CreateFlow = (function () {
       + '<div class="cf-topbar">'
       + '<button class="app-topbar-back" onclick="cfConfirmExitWizard()">&#8592; Back to home</button>'
       + '<div class="cf-brand">Clarity</div>'
-      + '<div class="cf-topbar-right">'
-      + '<button class="btn btn-outline btn-sm" onclick="cfOpenPrefs()">&#9881; Preferences</button>'
-      + '</div></div>'
+      + '</div>'
       + '<div class="cf-body' + (appState.cfSidebarOpen ? '' : ' cf-sidebar-collapsed') + '">'
       + '<div class="cf-main">' + cfStepper() + content + '</div>'
       + cfIntelRail()
