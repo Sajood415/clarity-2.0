@@ -1149,6 +1149,59 @@ window.clarityActiveConcept = function () {
   return found;
 };
 
+/* Bridge the Launchpad journey's real concept data into the Content Studio
+   wizard. Called right before every navigation from a Launchpad screen into
+   Content Studio, so createBrief/intelligence reflect the concept the user
+   actually built instead of the static demo values. If there's no active
+   concept, this is a no-op and the wizard falls back to its demo data. */
+window.claritySyncConceptToStudio = function () {
+  var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  if (!concept) return;
+
+  var biz = concept.business || {};
+  var s   = concept.strategy || {};
+  var p   = concept.persona  || {};
+  var g   = concept.gtm      || {};
+
+  var firstActionTitle = (g.plan && g.plan.actions && g.plan.actions.length && g.plan.actions[0] && g.plan.actions[0].title)
+    ? g.plan.actions[0].title : '';
+  var gapHeadline = (s.marketScan && s.marketScan.gapHeadline) ? s.marketScan.gapHeadline : '';
+  var whitespace  = (s.competition && s.competition.whitespace) ? s.competition.whitespace : '';
+  var topTrigger  = (s.customerIntelligence && s.customerIntelligence.topTrigger) ? s.customerIntelligence.topTrigger : '';
+  var caresAbout  = (p.caresAbout && p.caresAbout.length) ? p.caresAbout : [];
+  var personaName = (p.name && p.name.trim()) ? p.name.trim() : '';
+
+  var brief = appState.createBrief || {};
+  brief.goal    = firstActionTitle || 'Grow my customer base';
+  brief.message = gapHeadline || biz.description || brief.message;
+  brief.persona = personaName || brief.persona;
+  brief.whyNow  = 'Based on your ' + (biz.type || '') + ' strategy \u00b7 ' + new Date().getFullYear();
+  brief.proof   = caresAbout.length ? ('Your customer cares about ' + caresAbout.slice(0, 2).join(' and ')) : brief.proof;
+  brief.cta     = firstActionTitle || brief.cta;
+  appState.createBrief = brief;
+
+  localStorage.setItem('clarity_intel_mode', 'on');
+
+  appState.intelligence = {
+    brand: { name: biz.name || '', voice: biz.type || '', market: gapHeadline || '' },
+    persona: {
+      name: personaName || 'Your customer',
+      seg: (p.ageRange || '') + ' \u00b7 ' + (caresAbout[0] || ''),
+      insight: p.trigger || caresAbout[0] || ''
+    },
+    market: { whiteSpace: whitespace || '', gap: gapHeadline || '', trend: '' },
+    consumer: { trigger: p.trigger || '', research: topTrigger || '' }
+  };
+
+  appState.createFlow = appState.createFlow || {};
+  appState.createFlow.step = 1;
+  appState.createFlow.modality = null;
+  appState.createFlow.platform = null;
+  appState.createFlow.format = null;
+  appState.createFlow.variation = null;
+  appState.createFlow.published = false;
+};
+
 /* ===================== STYLED CONFIRM MODAL ===================== */
 function showConfirmModal(opts) {
   var existing = document.getElementById('clarity-modal-root');
@@ -1248,28 +1301,14 @@ function clarityGetIntelMode() {
 
 window.claritySetIntelMode = function(mode) {
   localStorage.setItem('clarity_intel_mode', mode);
-  appState.intelligence = mode === 'off' ? null : JSON.parse(JSON.stringify(CLARITY_SAMPLE_INTELLIGENCE));
+  if (mode === 'off') appState.intelligence = null;
   renderApp();
 };
 
 /* ===================== HOME SCREEN ===================== */
 function screenHome() {
   var intel = appState.intelligence;
-  var intelMode = clarityGetIntelMode();
   var campaigns = appState.campaigns || [];
-
-  /* ---- Intelligence toggle (bottom-left) ---- */
-  var toggleHtml = '<div class="home-intel-toggle">'
-    + '<div class="home-intel-toggle-label">Intelligence</div>'
-    + '<div class="home-toggle-options">'
-    + '<label class="home-toggle-opt' + (intelMode === 'on' ? ' active' : '') + '" onclick="claritySetIntelMode(\'on\')">'
-    + '<span class="home-toggle-radio-dot"></span>With Intelligence'
-    + '</label>'
-    + '<label class="home-toggle-opt' + (intelMode === 'off' ? ' active' : '') + '" onclick="claritySetIntelMode(\'off\')">'
-    + '<span class="home-toggle-radio-dot"></span>Without Intelligence'
-    + '</label>'
-    + '</div>'
-    + '</div>';
 
   var nudgeHtml;
   var cardsHtml = '';
@@ -1297,7 +1336,7 @@ function screenHome() {
       + '<h1 class="home-heading">Ready to create content.</h1>'
       + '<p class="home-sub">Your research is done. Every piece of content you create will be grounded in your strategic plan and <strong>' + lpPersonaName + '</strong>\u2019s profile.</p>'
       + '<div class="home-actions">'
-      + '<button class="btn btn-primary btn-lg" onclick="setMode(\'wizard\')">Create content</button>'
+      + '<button class="btn btn-primary btn-lg" onclick="claritySyncConceptToStudio(); setMode(\'wizard\')">Create content</button>'
       + '<button class="btn btn-outline" onclick="setMode(\'report-library\')">View your reports</button>'
       + '</div>'
       + (campaigns.length
@@ -1368,7 +1407,6 @@ function screenHome() {
       + '<p class="home-sub">Intelligence context is not loaded. Content generation will work without it — activate intelligence for results grounded in your strategy and audience research.</p>'
       + '<div class="home-actions">'
       + '<button class="btn btn-primary btn-lg" onclick="setMode(\'wizard\')">Create content</button>'
-      + '<button class="btn btn-outline" onclick="claritySetIntelMode(\'on\')">Activate intelligence</button>'
       + '</div>'
       + '</div>';
   }
@@ -1383,7 +1421,6 @@ function screenHome() {
   return '<div class="home-wrap">'
     + '<div class="home-brand"><span class="home-brand-name"><em>Clarity</em> Content Studio</span><span class="home-brand-meta">v3</span></div>'
     + '<div class="home-center">' + nudgeHtml + cardsHtml + reportsLinkHtml + '</div>'
-    + toggleHtml
     + '</div>';
 }
 
@@ -1588,7 +1625,7 @@ function _lpSuggestionCard(card) {
     + '<div class="lp-card-label">' + _lpEsc(card.type) + '</div>'
     + '<div class="lp-suggest-angle">' + _lpEsc(card.angle) + '</div>'
     + '<div class="lp-suggest-why">' + _lpEsc(card.why) + '</div>'
-    + '<a class="lp-suggest-use" onclick="setMode(\'home\')">Use this &#8594;</a>'
+    + '<a class="lp-suggest-use" onclick="claritySyncConceptToStudio(); setMode(\'home\')">Use this &#8594;</a>'
     + '</div>';
 }
 
@@ -1605,7 +1642,7 @@ function screenLaunchpadHome() {
     + '<p class="lp-sub">You\u2019ve mapped your market, defined your customer, and built your plan. Here\u2019s what Clarity thinks you should create first.</p>'
     + '<div class="lp-cards">' + cards + '</div>'
     + '<div class="lp-actions">'
-    + '<button class="lp-cta lp-cta-full" onclick="setMode(\'home\')">Go to Content Engine &#8594;</button>'
+    + '<button class="lp-cta lp-cta-full" onclick="claritySyncConceptToStudio(); setMode(\'home\')">Go to Content Engine &#8594;</button>'
     + '<a class="lp-secondary-link" onclick="setMode(\'dashboard\')">View your dashboard &#8594;</a>'
     + '</div>'
     + '</div>';
@@ -1809,7 +1846,7 @@ function _dshContentPanel(concept) {
         + '</div>';
     }
 
-    secCta = '<button class="dsh-journey-btn" style="margin-top:24px" onclick="setMode(\'home\')">Go to Content Studio &#8594;</button>';
+    secCta = '<button class="dsh-journey-btn" style="margin-top:24px" onclick="claritySyncConceptToStudio(); setMode(\'home\')">Go to Content Studio &#8594;</button>';
   } else if (nextPillar) {
     var _desc = {
       market:   'Understand what\u2019s happening in your market before making any moves.',
@@ -2374,10 +2411,8 @@ function _restoreLaunchpadState() {
 function init() {
   _applySavedTheme();
 
-  /* Restore intelligence toggle from localStorage (Content Studio setting, independent of Launchpad state) */
-  if (clarityGetIntelMode() === 'off') {
-    appState.intelligence = null;
-  }
+  /* Intelligence is always on — ensure localStorage agrees */
+  localStorage.setItem('clarity_intel_mode', 'on');
 
   if (_restoreLaunchpadState()) {
     renderApp();
