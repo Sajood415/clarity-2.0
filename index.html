@@ -454,13 +454,29 @@ a { text-decoration: none; color: inherit; }
 
 .dsh-journey-insight-cards {
   display: flex; gap: 12px;
-  padding-bottom: 20px; margin-bottom: 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
+/* Clickable insight cards — accent color driven via inline --accent CSS variable */
 .dsh-journey-insight-card {
   flex: 1; background: var(--ob-surface); border-radius: 10px;
-  padding: 12px; border-top: 3px solid transparent; min-height: 90px;
+  padding: 12px; min-height: 0;
+  position: relative; cursor: pointer;
+  border: 1px solid transparent;
+  border-top: 3px solid var(--accent, transparent);
+  transition: background 150ms ease, border-color 150ms ease;
 }
+.dsh-journey-insight-card:hover {
+  background: rgba(255,255,255,0.03);
+  border-right-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  border-left-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.dsh-journey-insight-card::after {
+  content: '\2192';
+  position: absolute; right: 10px; bottom: 8px;
+  font-size: 11px; color: var(--accent, var(--ob-muted));
+  opacity: 0; transition: opacity 150ms ease;
+}
+.dsh-journey-insight-card:hover::after { opacity: 1; }
 .dsh-journey-insight-card-eye {
   font-size: 9px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.1em; margin-bottom: 8px;
@@ -471,10 +487,9 @@ a { text-decoration: none; color: inherit; }
 .dsh-journey-insight-card-sub {
   font-size: 12px; font-style: italic; color: var(--ob-muted); margin-top: 6px; line-height: 1.4;
 }
-.dsh-journey-moves {
-  padding-bottom: 20px; margin-bottom: 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
+
+/* First moves + completed rows keep their base sizing outside the completed-state scope */
+.dsh-journey-moves {}
 .dsh-journey-moves-label {
   font-size: 9px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--ob-muted); margin-bottom: 12px;
@@ -499,10 +514,7 @@ a { text-decoration: none; color: inherit; }
 }
 .dsh-journey-moves-link:hover { opacity: 0.72; }
 
-.dsh-journey-completed {
-  padding-bottom: 20px; margin-bottom: 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
+.dsh-journey-completed {}
 .dsh-journey-completed-label {
   font-size: 9px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--ob-muted); margin-bottom: 10px;
@@ -525,18 +537,161 @@ a { text-decoration: none; color: inherit; }
   padding-left: 20px; margin-top: 2px; line-height: 1.4;
 }
 
+/* ---------- Completed-state scoped overhaul ---------- */
+/* Kill legacy padding/borders that separated sections in the completed panel;
+   the labeled dividers below take over that job. */
+.dsh-content-complete .dsh-journey-moves,
+.dsh-content-complete .dsh-journey-completed {
+  padding-bottom: 0; margin-bottom: 0; border-bottom: none;
+}
+
+/* Labeled section dividers: a full-width 1px line with the label cutting
+   through it (label bg matches page bg, giving the "on top of the line" effect). */
+.dsh-content-complete .dsh-journey-moves-label,
+.dsh-content-complete .dsh-journey-completed-label {
+  position: relative;
+  text-align: center;
+  margin: 24px 0;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ob-muted);
+}
+.dsh-content-complete .dsh-journey-moves-label::before,
+.dsh-content-complete .dsh-journey-completed-label::before {
+  content: '';
+  position: absolute; left: 0; right: 0; top: 50%;
+  height: 1px; background: rgba(255,255,255,0.06);
+}
+.dsh-content-complete .dsh-journey-moves-label > span,
+.dsh-content-complete .dsh-journey-completed-label > span {
+  position: relative;
+  display: inline-flex; align-items: center;
+  padding: 0 8px; background: var(--ob-bg);
+}
+.dsh-journey-completed-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ob-teal); margin-right: 6px; flex-shrink: 0;
+  display: inline-block;
+}
+
+/* First moves rows — action-item styling */
+.dsh-content-complete .dsh-journey-move-row {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-left: 3px solid var(--ob-gold);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.dsh-content-complete .dsh-journey-move-owner {
+  font-size: 11px;
+  color: var(--ob-gold);
+  background: rgba(212,168,83,0.1);
+  border: 1px solid rgba(212,168,83,0.2);
+  border-radius: 4px;
+  padding: 3px 10px;
+}
+.dsh-content-complete .dsh-journey-moves-link {
+  font-size: 13px;
+  color: var(--ob-gold);
+  font-weight: 500;
+  margin-top: 8px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.dsh-content-complete .dsh-journey-moves-link:hover { opacity: 1; }
+.dsh-journey-arrow {
+  display: inline-block;
+  transition: transform 200ms ease;
+}
+.dsh-content-complete .dsh-journey-moves-link:hover .dsh-journey-arrow {
+  transform: translateX(3px);
+}
+
+/* Completed items — clearly clickable cards with hover arrow */
+.dsh-content-complete .dsh-journey-done-item {
+  position: relative;
+  padding: 10px 14px;
+  padding-right: 32px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.dsh-content-complete .dsh-journey-done-item:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  transform: translateX(2px);
+}
+.dsh-content-complete .dsh-journey-done-name {
+  font-size: 13px; color: var(--ob-text); font-weight: 700;
+}
+.dsh-content-complete .dsh-journey-done-insight {
+  margin-top: 2px;
+}
+.dsh-journey-done-arrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ob-muted);
+  font-size: 12px;
+  transition: color 150ms ease;
+}
+.dsh-content-complete .dsh-journey-done-item:hover .dsh-journey-done-arrow {
+  color: var(--ob-gold);
+}
+
+/* CTA caption + amber glow on the primary Content Studio button */
+.dsh-journey-cta-caption {
+  font-size: 12px;
+  color: var(--ob-muted);
+  text-align: center;
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+.dsh-journey-btn-cta {
+  box-shadow: 0 0 20px rgba(212,168,83,0.15);
+  transition: box-shadow 200ms ease, transform 200ms ease, filter 150ms ease;
+}
+.dsh-journey-btn-cta:hover {
+  box-shadow: 0 0 30px rgba(212,168,83,0.25);
+  transform: translateY(-1px);
+}
+
 /* Light mode — journey panel */
 [data-theme="light"] .dsh-journey-identity { border-bottom-color: rgba(0,0,0,0.06); }
 [data-theme="light"] .dsh-journey-progress-track { background: rgba(0,0,0,0.06); }
 [data-theme="light"] .dsh-journey-next-card {
   border-color: rgba(184,137,58,0.25); border-left-color: var(--ob-gold);
 }
-[data-theme="light"] .dsh-journey-insight-cards { border-bottom-color: rgba(0,0,0,0.06); }
-[data-theme="light"] .dsh-journey-moves { border-bottom-color: rgba(0,0,0,0.06); }
-[data-theme="light"] .dsh-journey-completed { border-bottom-color: rgba(0,0,0,0.06); }
 [data-theme="light"] .dsh-journey-move-owner { border-color: rgba(0,0,0,0.1); }
 [data-theme="light"] .dsh-journey-done-item:hover { background: rgba(0,0,0,0.03); }
 [data-theme="light"] .dsh-journey-btn { color: #1a1612; }
+
+[data-theme="light"] .dsh-journey-insight-card:hover {
+  background: rgba(0,0,0,0.03);
+}
+[data-theme="light"] .dsh-content-complete .dsh-journey-moves-label::before,
+[data-theme="light"] .dsh-content-complete .dsh-journey-completed-label::before {
+  background: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .dsh-content-complete .dsh-journey-move-row {
+  background: rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.06);
+  border-left-color: var(--ob-gold);
+}
+[data-theme="light"] .dsh-content-complete .dsh-journey-done-item {
+  background: rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.05);
+}
+[data-theme="light"] .dsh-content-complete .dsh-journey-done-item:hover {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.1);
+  transform: translateX(2px);
+}
+[data-theme="light"] .dsh-content-complete .dsh-journey-done-item:hover .dsh-journey-done-arrow {
+  color: var(--ob-gold);
+}
 
 /* ============================================================
    APP TOP BAR (wizard / library / campaign modes)
@@ -1805,30 +1960,51 @@ function _dshContentPanel(concept) {
   var secMoves = '';
   var secCta = '';
   if (allDone) {
-    var gapText = (s.marketScan && s.marketScan.gapHeadline && s.marketScan.gapHeadline.trim())
+    /* ---- Card 1: MARKET GAP ---- */
+    var gapMain = (s.marketScan && s.marketScan.gapHeadline && s.marketScan.gapHeadline.trim())
       ? s.marketScan.gapHeadline.trim() : 'Your opportunity identified.';
+    var gapSubRaw = (s.marketScan && s.marketScan.gapText && s.marketScan.gapText.trim())
+      ? s.marketScan.gapText.trim() : '';
+    var gapSub = gapSubRaw
+      ? _dshTruncate(gapSubRaw, 80)
+      : 'A clear opening your competitors have left unaddressed.';
+
+    /* ---- Card 2: YOUR CUSTOMER ---- */
     var personaLine = (p.name ? p.name.trim() : '') + (p.ageRange ? ', ' + p.ageRange : '');
     if (!personaLine) personaLine = 'Your customer';
-    var personaSub = '';
-    var psCare = (p.caresAbout && p.caresAbout.length) ? p.caresAbout[0] : '';
-    var psTrigger = (p.trigger && p.trigger.trim()) ? p.trigger.trim() : '';
-    if (psCare || psTrigger) personaSub = _dshTruncate((psCare && psTrigger ? psCare + ' \u00b7 ' + psTrigger : psCare || psTrigger), 60);
-    var edgeText = (s.competition && s.competition.whitespace && s.competition.whitespace.trim())
-      ? _dshTruncate(s.competition.whitespace.trim(), 80) : 'Whitespace identified in your market.';
+    var caresPart = (p.caresAbout && p.caresAbout.length)
+      ? p.caresAbout.slice(0, 2).filter(Boolean).join(' \u00b7 ') : '';
+    var trigPart = (p.trigger && p.trigger.trim())
+      ? p.trigger.trim().substring(0, 40) : '';
+    var personaSub = [caresPart, trigPart].filter(Boolean).join(' \u00b7 ');
+    if (!personaSub) personaSub = 'What your customer values most.';
+
+    /* ---- Card 3: YOUR EDGE ---- */
+    var wsRaw = (s.competition && s.competition.whitespace && s.competition.whitespace.trim()) || '';
+    var edgeMain;
+    if (wsRaw) {
+      var firstEnd = wsRaw.search(/[.!?](\s|$)/);
+      edgeMain = firstEnd >= 0 ? wsRaw.substring(0, firstEnd + 1) : _dshTruncate(wsRaw, 80);
+    } else {
+      edgeMain = 'Whitespace identified in your market.';
+    }
+    var edgeSub = 'Whitespace your competitors haven\u2019t claimed yet.';
 
     sec3 = '<div class="dsh-journey-insight-cards">'
-      + '<div class="dsh-journey-insight-card" style="border-top-color:var(--ob-gold)">'
+      + '<div class="dsh-journey-insight-card" style="--accent:var(--ob-gold)" onclick="dshGoModule(\'strategic-plan\')">'
       + '<div class="dsh-journey-insight-card-eye" style="color:var(--ob-gold)">MARKET GAP</div>'
-      + '<div class="dsh-journey-insight-card-val">' + gapText + '</div>'
+      + '<div class="dsh-journey-insight-card-val">' + gapMain + '</div>'
+      + '<div class="dsh-journey-insight-card-sub">' + gapSub + '</div>'
       + '</div>'
-      + '<div class="dsh-journey-insight-card" style="border-top-color:var(--ob-teal)">'
+      + '<div class="dsh-journey-insight-card" style="--accent:var(--ob-teal)" onclick="dshGoModule(\'persona-studio\')">'
       + '<div class="dsh-journey-insight-card-eye" style="color:var(--ob-teal)">YOUR CUSTOMER</div>'
       + '<div class="dsh-journey-insight-card-val">' + personaLine + '</div>'
-      + (personaSub ? '<div class="dsh-journey-insight-card-sub">' + personaSub + '</div>' : '')
+      + '<div class="dsh-journey-insight-card-sub">' + personaSub + '</div>'
       + '</div>'
-      + '<div class="dsh-journey-insight-card" style="border-top-color:var(--ob-coral)">'
+      + '<div class="dsh-journey-insight-card" style="--accent:var(--ob-coral)" onclick="dshGoModule(\'strategic-plan\')">'
       + '<div class="dsh-journey-insight-card-eye" style="color:var(--ob-coral)">YOUR EDGE</div>'
-      + '<div class="dsh-journey-insight-card-val">' + edgeText + '</div>'
+      + '<div class="dsh-journey-insight-card-val">' + edgeMain + '</div>'
+      + '<div class="dsh-journey-insight-card-sub">' + edgeSub + '</div>'
       + '</div>'
       + '</div>';
 
@@ -1846,13 +2022,14 @@ function _dshContentPanel(concept) {
           + '</div>';
       }
       secMoves = '<div class="dsh-journey-moves">'
-        + '<div class="dsh-journey-moves-label">YOUR FIRST MOVES</div>'
+        + '<div class="dsh-journey-moves-label"><span>YOUR FIRST MOVES</span></div>'
         + moveRows
-        + '<a class="dsh-journey-moves-link" onclick="dshGoModule(\'gtm-strategy\')">View full GTM plan &#8594;</a>'
+        + '<a class="dsh-journey-moves-link" onclick="dshGoModule(\'gtm-strategy\')">View full GTM plan <span class="dsh-journey-arrow">&#8594;</span></a>'
         + '</div>';
     }
 
-    secCta = '<button class="dsh-journey-btn" style="margin-top:24px" onclick="claritySyncConceptToStudio(); setMode(\'home\')">Go to Content Studio &#8594;</button>';
+    secCta = '<div class="dsh-journey-cta-caption">Your strategy is ready. Time to create.</div>'
+      + '<button class="dsh-journey-btn dsh-journey-btn-cta" onclick="claritySyncConceptToStudio(); setMode(\'home\')">Go to Content Studio &#8594;</button>';
   } else if (nextPillar) {
     var _desc = {
       market:   'Understand what\u2019s happening in your market before making any moves.',
@@ -1888,11 +2065,16 @@ function _dshContentPanel(concept) {
   var sec4 = '';
   if (doneCount > 0) {
     var lines = '';
+    /* The trailing arrow only renders in the completed-state scope
+       (styled via .dsh-content-complete .dsh-journey-done-arrow). */
+    var _doneArrow = allDone ? '<span class="dsh-journey-done-arrow">&#8594;</span>' : '';
+
     if (marketDone) {
       var mI = _dshTruncate(s.marketScan.gapHeadline, 50) || '';
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
         + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Market Scan</span></div>'
         + (mI ? '<div class="dsh-journey-done-insight">' + mI + '</div>' : '')
+        + _doneArrow
         + '</div>';
     }
     if (custDone) {
@@ -1900,6 +2082,7 @@ function _dshContentPanel(concept) {
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
         + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Customer Intelligence</span></div>'
         + (cI ? '<div class="dsh-journey-done-insight">' + cI + '</div>' : '')
+        + _doneArrow
         + '</div>';
     }
     if (compDone) {
@@ -1907,6 +2090,7 @@ function _dshContentPanel(concept) {
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
         + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Competition</span></div>'
         + (coI ? '<div class="dsh-journey-done-insight">' + coI + '</div>' : '')
+        + _doneArrow
         + '</div>';
     }
     if (personaDone) {
@@ -1914,22 +2098,28 @@ function _dshContentPanel(concept) {
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'persona-studio\')">'
         + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Persona</span></div>'
         + '<div class="dsh-journey-done-insight">' + _dshTruncate(pI, 50) + '</div>'
+        + _doneArrow
         + '</div>';
     }
     if (gtmDone) {
       lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'gtm-strategy\')">'
         + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">GTM</span></div>'
         + '<div class="dsh-journey-done-insight">Plan + Pricing locked in.</div>'
+        + _doneArrow
         + '</div>';
     }
 
+    var completedLabelHtml = allDone
+      ? '<div class="dsh-journey-completed-label"><span><span class="dsh-journey-completed-dot"></span>COMPLETED</span></div>'
+      : '<div class="dsh-journey-completed-label">COMPLETED</div>';
+
     sec4 = '<div class="dsh-journey-completed">'
-      + '<div class="dsh-journey-completed-label">COMPLETED</div>'
+      + completedLabelHtml
       + lines
       + '</div>';
   }
 
-  return '<div class="dsh-content">'
+  return '<div class="dsh-content' + (allDone ? ' dsh-content-complete' : '') + '">'
     + sec1 + sec2 + sec3 + secMoves + sec4 + secCta
     + '</div>';
 }
