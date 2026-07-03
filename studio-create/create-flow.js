@@ -460,9 +460,15 @@ var CreateFlow = (function () {
       + '<div class="cf-brief-card-sub">Who you\'re talking to, what to say, and what makes it credible.</div>'
       + '<div class="cf-field"><label>Primary persona</label>'
       + '<select onchange="cfSetPersona(this.value)">'
-      + ['Maya Holloway', 'Alex Rivera', 'All segments'].map(function (p) {
-          return '<option' + (brief.persona === p ? ' selected' : '') + '>' + p + '</option>';
-        }).join('')
+      + (function () {
+          var conceptPersona = window.clarityActiveConcept && window.clarityActiveConcept();
+          var cpName = (conceptPersona && conceptPersona.persona && conceptPersona.persona.name && conceptPersona.persona.name.trim()) || '';
+          var fallbacks = ['Maya Holloway', 'Alex Rivera', 'All segments'];
+          var options = cpName ? [cpName].concat(fallbacks.filter(function (f) { return f !== cpName; })) : fallbacks;
+          return options.map(function (p) {
+            return '<option' + (brief.persona === p ? ' selected' : '') + '>' + p + '</option>';
+          }).join('');
+        })()
       + '</select>'
       + '<div class="cf-field-help">Who this message should feel written for.</div></div>'
       + '<div class="cf-field"><label>Core message <span class="cf-field-label-note">— single clear sentence</span></label>'
@@ -1084,15 +1090,29 @@ var CreateFlow = (function () {
   };
   window.cfSetPersona = function (val) {
     appState.createBrief.persona = val;
-    var p = CF_PERSONAS[val] || CF_PERSONAS['Maya Holloway'];
+    var conceptPersona = window.clarityActiveConcept && window.clarityActiveConcept();
+    var cp = (conceptPersona && conceptPersona.persona) || {};
+    var cpName = (cp.name && cp.name.trim()) || '';
+    var pData;
+    if (cpName && val === cpName) {
+      var caresAbout = (cp.caresAbout && cp.caresAbout.length) ? cp.caresAbout : [];
+      pData = {
+        name: cpName,
+        seg: (cp.ageRange || '') + ' \u00b7 ' + (caresAbout[0] || ''),
+        insight: cp.trigger || caresAbout[0] || ''
+      };
+    } else {
+      var p = CF_PERSONAS[val] || CF_PERSONAS['Maya Holloway'];
+      pData = { name: p.name, seg: p.seg, insight: p.insight };
+    }
     if (!appState.intelligence) appState.intelligence = {};
-    appState.intelligence.persona = { name: p.name, seg: p.seg, insight: p.insight };
+    appState.intelligence.persona = pData;
     var nameEl = document.getElementById('cf-persona-name');
     var insightEl = document.getElementById('cf-persona-insight');
     var railEl = document.getElementById('cf-rail-persona');
-    if (nameEl) nameEl.textContent = p.name;
-    if (insightEl) insightEl.textContent = p.insight;
-    if (railEl) railEl.textContent = p.name;
+    if (nameEl) nameEl.textContent = pData.name;
+    if (insightEl) insightEl.textContent = pData.insight;
+    if (railEl) railEl.textContent = pData.name;
   };
   window.cfSelectModality = function (id) {
     var f = cfFlow();
