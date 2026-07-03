@@ -416,8 +416,8 @@ a { text-decoration: none; color: inherit; }
 .dsh-journey-progress { margin-top: 24px; margin-bottom: 28px; }
 .dsh-journey-progress-label { font-size: 13px; color: var(--ob-muted); margin-bottom: 10px; }
 .dsh-journey-progress-track {
-  width: 100%; height: 4px; background: rgba(255,255,255,0.06);
-  border-radius: 2px; overflow: hidden;
+  width: 100%; height: 8px; background: rgba(255,255,255,0.06);
+  border-radius: 2px; overflow: hidden; margin-bottom: 16px;
 }
 .dsh-journey-progress-fill {
   height: 100%; background: var(--ob-gold); border-radius: 2px;
@@ -606,6 +606,30 @@ a { text-decoration: none; color: inherit; }
   transform: translateX(3px);
 }
 
+/* Mini action bar — both GTM links in one row */
+.dsh-journey-action-bar {
+  display: flex; align-items: center; gap: 0;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px; padding: 10px 16px; margin-top: 12px;
+}
+.dsh-journey-action-bar-link {
+  flex: 1; font-size: 13px; cursor: pointer; opacity: 0.8;
+  transition: opacity 150ms;
+}
+.dsh-journey-action-bar-link:hover { opacity: 1; }
+.dsh-journey-action-bar-gold { color: var(--ob-gold); text-align: left; }
+.dsh-journey-action-bar-teal { color: var(--ob-teal); text-align: right; }
+.dsh-journey-action-bar-divider {
+  width: 1px; height: 16px; background: rgba(255,255,255,0.1);
+  margin: 0 16px; flex-shrink: 0;
+}
+[data-theme="light"] .dsh-journey-action-bar {
+  border-color: rgba(0,0,0,0.08);
+}
+[data-theme="light"] .dsh-journey-action-bar-divider {
+  background: rgba(0,0,0,0.1);
+}
+
 /* Completed items — clearly clickable cards with hover arrow */
 .dsh-content-complete .dsh-journey-done-item {
   position: relative;
@@ -691,6 +715,306 @@ a { text-decoration: none; color: inherit; }
 }
 [data-theme="light"] .dsh-content-complete .dsh-journey-done-item:hover .dsh-journey-done-arrow {
   color: var(--ob-gold);
+}
+
+/* ============================================================
+   GTM TASKS BOARD — full-screen kanban + list of GTM plan
+   action items. Own mode: 'gtm-tasks'. All classes prefixed gtmt-.
+   ============================================================ */
+.gtmt-screen {
+  min-height: 100vh; display: flex; flex-direction: column;
+  background: var(--ob-bg); color: var(--ob-text);
+}
+.gtmt-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 14px 24px; padding-right: 56px;
+  border-bottom: 1px solid var(--ob-border); background: var(--ob-surface);
+  flex-shrink: 0;
+}
+.gtmt-topbar-brand {
+  flex: 1; text-align: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600;
+  color: var(--ob-gold);
+}
+.gtmt-body { flex: 1; padding: 32px 48px 64px; max-width: 1280px; width: 100%; margin: 0 auto; }
+.gtmt-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;
+  margin-bottom: 24px;
+}
+.gtmt-header-left { min-width: 0; }
+.gtmt-header-biz {
+  font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 700;
+  color: var(--ob-text); line-height: 1.2;
+}
+.gtmt-header-sub { font-size: 13px; color: var(--ob-muted); margin-top: 4px; }
+
+/* Toolbar row that sits above the board: progress on the left,
+   Kanban/List view toggle on the right. */
+.gtmt-tab-toolbar {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px; margin: 8px 0 22px;
+}
+.gtmt-tab-toolbar .gtmt-progress-wrap { flex: 1; }
+.gtmt-tab-toolbar .gtmt-executed-badge { margin-bottom: 0; }
+
+/* View toggle */
+.gtmt-view-toggle {
+  display: inline-flex; align-items: center;
+  background: var(--ob-surface); border: 1px solid var(--ob-border);
+  border-radius: 8px; padding: 3px; flex-shrink: 0;
+}
+.gtmt-view-toggle-btn {
+  padding: 6px 14px; font-size: 12px; font-weight: 500;
+  color: var(--ob-muted); background: transparent; border: none;
+  border-radius: 6px; cursor: pointer; transition: color 150ms, background 150ms;
+}
+.gtmt-view-toggle-btn:hover { color: var(--ob-text); }
+.gtmt-view-toggle-btn.gtmt-active {
+  background: var(--ob-gold); color: #1a1612; font-weight: 600;
+}
+
+/* Progress row */
+.gtmt-progress-wrap { margin-bottom: 32px; }
+.gtmt-progress-track {
+  width: 100%; height: 4px; background: rgba(255,255,255,0.06);
+  border-radius: 2px; overflow: hidden;
+}
+.gtmt-progress-fill {
+  height: 100%; background: var(--ob-gold); border-radius: 2px;
+  transition: width 400ms ease;
+}
+.gtmt-progress-label {
+  font-size: 12px; color: var(--ob-muted); margin-top: 8px;
+}
+
+/* Executed badge (all 5 done) */
+.gtmt-executed-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; font-size: 11px; font-weight: 700;
+  color: var(--ob-gold); background: rgba(212,168,83,0.12);
+  border: 1px solid rgba(212,168,83,0.3); border-radius: 999px;
+  margin-bottom: 12px; animation: gtmt-pulse 2s ease-in-out infinite;
+}
+@keyframes gtmt-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,83,0.35); }
+  50%      { box-shadow: 0 0 0 8px rgba(212,168,83,0); }
+}
+
+/* Kanban */
+.gtmt-kanban {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+}
+.gtmt-column {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px; padding: 14px; min-height: 200px;
+}
+.gtmt-column-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4px 12px; margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--ob-muted);
+}
+.gtmt-column-header--done { color: var(--ob-teal); }
+.gtmt-column-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 18px; padding: 0 6px;
+  background: rgba(255,255,255,0.06); border-radius: 9px;
+  font-size: 10px; font-weight: 700; color: var(--ob-muted);
+}
+.gtmt-column-header--done .gtmt-column-count {
+  background: rgba(45,212,191,0.14); color: var(--ob-teal);
+}
+.gtmt-column-empty {
+  font-size: 12px; color: var(--ob-muted); font-style: italic;
+  padding: 12px 4px; text-align: center;
+}
+
+/* Task card (kanban) */
+.gtmt-card {
+  position: relative;
+  background: var(--ob-surface); border-radius: 10px;
+  padding: 16px; border: 1px solid rgba(255,255,255,0.07);
+  margin-bottom: 10px; cursor: grab;
+  transition: border-color 150ms, transform 150ms, opacity 150ms;
+}
+.gtmt-card:last-child { margin-bottom: 0; }
+.gtmt-card:hover { border-color: rgba(255,255,255,0.14); }
+.gtmt-card:active { cursor: grabbing; }
+.gtmt-card--done { opacity: 0.6; }
+.gtmt-card--dragging {
+  opacity: 0.4;
+  border-color: var(--ob-gold);
+  cursor: grabbing;
+}
+.gtmt-column--dropzone {
+  background: rgba(212,168,83,0.08);
+  border-color: rgba(212,168,83,0.35);
+}
+[data-theme="light"] .gtmt-column--dropzone {
+  background: rgba(212,168,83,0.14);
+  border-color: rgba(212,168,83,0.45);
+}
+.gtmt-card-done-check {
+  position: absolute; top: 12px; right: 12px;
+  color: var(--ob-teal); font-size: 14px; font-weight: 700;
+}
+.gtmt-card-title {
+  font-size: 14px; font-weight: 700; color: var(--ob-text);
+  line-height: 1.35; padding-right: 22px; /* room for the done-check */
+}
+.gtmt-card-desc {
+  font-size: 12px; color: var(--ob-muted); line-height: 1.5;
+  margin-top: 6px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gtmt-card-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px;
+}
+
+.gtmt-chip {
+  display: inline-flex; align-items: center;
+  font-size: 10px; font-weight: 600;
+  padding: 3px 8px; border-radius: 4px;
+  border: 1px solid transparent;
+}
+.gtmt-chip--owner {
+  color: var(--ob-gold);
+  background: rgba(212,168,83,0.1);
+  border-color: rgba(212,168,83,0.22);
+}
+.gtmt-chip--timeline {
+  color: var(--ob-muted);
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.08);
+}
+.gtmt-chip--p0 { color: var(--ob-coral); border-color: rgba(224,123,106,0.4); background: rgba(224,123,106,0.08); }
+.gtmt-chip--p1 { color: var(--ob-gold);  border-color: rgba(212,168,83,0.4);  background: rgba(212,168,83,0.08); }
+.gtmt-chip--p2 { color: var(--ob-muted); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); }
+
+/* Status buttons */
+.gtmt-card-status-row {
+  display: flex; gap: 4px; margin-top: 14px;
+  padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);
+}
+.gtmt-status-btn {
+  flex: 1;
+  padding: 5px 4px; font-size: 10px; font-weight: 600;
+  color: var(--ob-muted); background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 4px; cursor: pointer;
+  transition: background 150ms, color 150ms, border-color 150ms;
+  text-align: center;
+}
+.gtmt-status-btn:hover {
+  color: var(--ob-text); border-color: rgba(255,255,255,0.16);
+}
+.gtmt-status-btn.gtmt-status-active {
+  background: var(--ob-gold); color: #1a1612; border-color: var(--ob-gold);
+}
+
+/* List view */
+.gtmt-list {
+  display: flex; flex-direction: column; gap: 0;
+}
+.gtmt-list-row {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--ob-surface); border-radius: 8px;
+  padding: 14px 16px; margin-bottom: 8px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-left: 3px solid var(--ob-gold); /* default: todo */
+  transition: transform 150ms, border-color 150ms;
+}
+.gtmt-list-row:hover { transform: translateX(2px); }
+.gtmt-list-row--todo       { border-left-color: var(--ob-gold); }
+.gtmt-list-row--inprogress { border-left-color: #a78bfa; /* purple */ }
+.gtmt-list-row--done       { border-left-color: var(--ob-teal); opacity: 0.75; }
+
+.gtmt-list-check {
+  flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.2);
+  cursor: pointer; background: transparent;
+  position: relative;
+  transition: border-color 150ms, background 150ms;
+}
+.gtmt-list-check--inprogress {
+  background: linear-gradient(90deg, #a78bfa 50%, transparent 50%);
+  border-color: #a78bfa;
+}
+.gtmt-list-check--done {
+  background: var(--ob-teal); border-color: var(--ob-teal);
+}
+.gtmt-list-check--done::after {
+  content: '\2713'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #0a0a0a; font-size: 12px; font-weight: 700;
+}
+
+.gtmt-list-main { flex: 1; min-width: 0; }
+.gtmt-list-title {
+  font-size: 14px; font-weight: 700; color: var(--ob-text);
+  line-height: 1.35;
+}
+.gtmt-list-row--done .gtmt-list-title { text-decoration: line-through; }
+.gtmt-list-desc {
+  font-size: 12px; color: var(--ob-muted);
+  margin-top: 3px; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gtmt-list-chips {
+  display: flex; gap: 6px; flex-shrink: 0; align-items: center;
+}
+
+/* Empty state */
+.gtmt-empty {
+  max-width: 460px; margin: 96px auto 0; text-align: center;
+}
+.gtmt-empty-title {
+  font-family: 'Cormorant Garamond', serif; font-size: 22px;
+  color: var(--ob-text); margin-bottom: 12px;
+}
+.gtmt-empty-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; font-size: 13px; font-weight: 600;
+  background: var(--ob-gold); color: #1a1612;
+  border: none; border-radius: 6px; cursor: pointer;
+  transition: filter 150ms;
+}
+.gtmt-empty-btn:hover { filter: brightness(1.08); }
+
+/* Responsive: collapse kanban to a single column, hide chips on list */
+@media (max-width: 900px) {
+  .gtmt-body { padding: 24px 20px 48px; }
+  .gtmt-kanban { grid-template-columns: 1fr; }
+  .gtmt-header { flex-direction: column; align-items: stretch; }
+  .gtmt-tab-toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .gtmt-list-chips { display: none; }
+}
+
+/* Light-mode overrides */
+[data-theme="light"] .gtmt-column {
+  background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .gtmt-column-header { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .gtmt-column-count { background: rgba(0,0,0,0.06); color: var(--ob-muted); }
+[data-theme="light"] .gtmt-progress-track { background: rgba(0,0,0,0.06); }
+[data-theme="light"] .gtmt-card { border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .gtmt-card:hover { border-color: rgba(0,0,0,0.16); }
+[data-theme="light"] .gtmt-card-status-row { border-top-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .gtmt-status-btn { border-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .gtmt-status-btn:hover { border-color: rgba(0,0,0,0.22); }
+[data-theme="light"] .gtmt-view-toggle { border-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .gtmt-list-row { border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .gtmt-list-check { border-color: rgba(0,0,0,0.22); }
+[data-theme="light"] .gtmt-chip--timeline {
+  background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08);
+}
+[data-theme="light"] .gtmt-chip--p2 {
+  border-color: rgba(0,0,0,0.15); background: rgba(0,0,0,0.04);
 }
 
 /* ============================================================
@@ -1261,7 +1585,8 @@ var appState = {
     whyNow: 'Seasonal launch · Summer 2026'
   },
   intelligence: JSON.parse(JSON.stringify(CLARITY_SAMPLE_INTELLIGENCE)),
-  personaChat: { messages: [] }
+  personaChat: { messages: [] },
+  gtmTasksView: 'kanban'
 };
 
 /* ===================== CONCEPTS ===================== */
@@ -1437,6 +1762,7 @@ function setMode(mode) {
   else if (mode === 'persona-chat-prompt') appState.screen = 'persona-chat-prompt';
   else if (mode === 'persona-chat') appState.screen = 'persona-chat';
   else if (mode === 'gtm-strategy') appState.screen = 'gtm-strategy';
+  else if (mode === 'gtm-tasks') appState.screen = 'gtm-tasks';
   else if (mode === 'launchpad-home') appState.screen = 'launchpad-home';
   else if (mode === 'dashboard') appState.screen = 'dashboard';
   else appState.screen = 'home';
@@ -1580,7 +1906,7 @@ function screenHome() {
     : '';
 
   return '<div class="home-wrap">'
-    + '<div class="home-brand">' + dashBackBtn + '<span class="home-brand-name"><em>Clarity</em> Content Studio</span><span class="home-brand-meta">v3</span></div>'
+    + '<div class="home-brand">' + dashBackBtn + '<span class="home-brand-name"><em>Clarity</em> Content Studio</span></div>'
     + '<div class="home-center">' + nudgeHtml + cardsHtml + reportsLinkHtml + '</div>'
     + '</div>';
 }
@@ -2024,7 +2350,11 @@ function _dshContentPanel(concept) {
       secMoves = '<div class="dsh-journey-moves">'
         + '<div class="dsh-journey-moves-label"><span>YOUR FIRST MOVES</span></div>'
         + moveRows
-        + '<a class="dsh-journey-moves-link" onclick="dshGoModule(\'gtm-strategy\')">View full GTM plan <span class="dsh-journey-arrow">&#8594;</span></a>'
+        + '<div class="dsh-journey-action-bar">'
+        + '<span class="dsh-journey-action-bar-link dsh-journey-action-bar-gold" onclick="dshGoModule(\'gtm-strategy\')">View full GTM plan &#8594;</span>'
+        + '<span class="dsh-journey-action-bar-divider"></span>'
+        + '<span class="dsh-journey-action-bar-link dsh-journey-action-bar-teal" style="text-align:right" onclick="setMode(\'gtm-tasks\')">Manage tasks &#8594;</span>'
+        + '</div>'
         + '</div>';
     }
 
@@ -2160,6 +2490,272 @@ window.dshCreateConcept = function () {
   _saveLaunchpadState();
   setMode('onboarding');
 };
+
+/* ===================== GTM TASKS BOARD ===================== */
+/* Kanban / list board over concept.gtm.plan.actions, reached from the
+   dashboard "View full GTM plan →" link. Task status ('todo' | 'inprogress'
+   | 'done') is stored per-action on the concept, so it persists via the
+   existing localStorage snapshot of appState.concepts. */
+
+function _gtmtActions() {
+  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  return (c && c.gtm && c.gtm.plan && Array.isArray(c.gtm.plan.actions))
+    ? c.gtm.plan.actions : [];
+}
+
+/* Ensure every action has a status; mutates in place, returns the array. */
+function _gtmtEnsureStatuses(actions) {
+  actions.forEach(function (a) {
+    if (a.status !== 'todo' && a.status !== 'inprogress' && a.status !== 'done') {
+      a.status = 'todo';
+    }
+  });
+  return actions;
+}
+
+function _gtmtRerender() {
+  renderApp();
+}
+
+window.gtmSetTaskStatus = function (actionIndex, status) {
+  if (status !== 'todo' && status !== 'inprogress' && status !== 'done') return;
+  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  if (!c || !c.gtm || !c.gtm.plan || !Array.isArray(c.gtm.plan.actions)) return;
+  var actions = c.gtm.plan.actions;
+  if (actionIndex < 0 || actionIndex >= actions.length) return;
+  actions[actionIndex].status = status;
+  _saveLaunchpadState();
+  _gtmtRerender();
+};
+
+/* Cycle todo → inprogress → done → todo (used by the list-view checkbox). */
+window.gtmCycleTaskStatus = function (actionIndex) {
+  var actions = _gtmtActions();
+  if (actionIndex < 0 || actionIndex >= actions.length) return;
+  var cur = actions[actionIndex].status || 'todo';
+  var next = cur === 'todo' ? 'inprogress' : (cur === 'inprogress' ? 'done' : 'todo');
+  window.gtmSetTaskStatus(actionIndex, next);
+};
+
+window.gtmTasksToggleView = function (view) {
+  var next = (view === 'kanban' || view === 'list')
+    ? view
+    : (appState.gtmTasksView === 'kanban' ? 'list' : 'kanban');
+  appState.gtmTasksView = next;
+  _saveLaunchpadState();
+  _gtmtRerender();
+};
+
+/* ---- Drag-and-drop between Kanban columns ---- */
+window._gtmtDragStart = function (event, actionIndex) {
+  if (!event.dataTransfer) return;
+  event.dataTransfer.setData('text/plain', String(actionIndex));
+  event.dataTransfer.effectAllowed = 'move';
+  var card = event.currentTarget;
+  if (card && card.classList) card.classList.add('gtmt-card--dragging');
+};
+
+window._gtmtDragEnd = function (event) {
+  var card = event.currentTarget;
+  if (card && card.classList) card.classList.remove('gtmt-card--dragging');
+};
+
+window._gtmtDragOverColumn = function (event) {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  var col = event.currentTarget;
+  if (col && col.classList) col.classList.add('gtmt-column--dropzone');
+};
+
+window._gtmtDragLeaveColumn = function (event) {
+  var col = event.currentTarget;
+  if (!col || !col.classList) return;
+  /* Only clear the highlight when leaving the column itself, not moving
+     between children within it. */
+  if (col.contains(event.relatedTarget)) return;
+  col.classList.remove('gtmt-column--dropzone');
+};
+
+window._gtmtDropInColumn = function (event, newStatus) {
+  event.preventDefault();
+  var col = event.currentTarget;
+  if (col && col.classList) col.classList.remove('gtmt-column--dropzone');
+  var raw = event.dataTransfer && event.dataTransfer.getData('text/plain');
+  var idx = parseInt(raw, 10);
+  if (isNaN(idx)) return;
+  window.gtmSetTaskStatus(idx, newStatus);
+};
+
+/* Escape utility (matches _dshEsc style — kept local so we don't accidentally
+   depend on a helper that isn't in scope yet). */
+function _gtmtEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function _gtmtPriorityChip(priority) {
+  var p = priority || 'P2';
+  var cls = p === 'P0' ? 'gtmt-chip--p0' : (p === 'P1' ? 'gtmt-chip--p1' : 'gtmt-chip--p2');
+  return '<span class="gtmt-chip ' + cls + '">' + _gtmtEsc(p) + '</span>';
+}
+
+function _gtmtCard(action, index) {
+  var status = action.status || 'todo';
+  var isDone = status === 'done';
+  var doneCheck = isDone ? '<span class="gtmt-card-done-check">\u2713</span>' : '';
+
+  var chips = ''
+    + (action.owner    ? '<span class="gtmt-chip gtmt-chip--owner">' + _gtmtEsc(action.owner) + '</span>' : '')
+    + (action.timeline ? '<span class="gtmt-chip gtmt-chip--timeline">' + _gtmtEsc(action.timeline) + '</span>' : '')
+    + _gtmtPriorityChip(action.priority);
+
+  function btn(label, s) {
+    var active = status === s ? ' gtmt-status-active' : '';
+    return '<button class="gtmt-status-btn' + active + '"'
+      + ' onclick="gtmSetTaskStatus(' + index + ',\'' + s + '\')">' + label + '</button>';
+  }
+
+  return '<div class="gtmt-card' + (isDone ? ' gtmt-card--done' : '') + '"'
+    + ' draggable="true"'
+    + ' ondragstart="_gtmtDragStart(event,' + index + ')"'
+    + ' ondragend="_gtmtDragEnd(event)">'
+    + doneCheck
+    + '<div class="gtmt-card-title">' + _gtmtEsc(action.title || 'Untitled action') + '</div>'
+    + (action.desc ? '<div class="gtmt-card-desc">' + _gtmtEsc(action.desc) + '</div>' : '')
+    + '<div class="gtmt-card-chips">' + chips + '</div>'
+    + '<div class="gtmt-card-status-row">'
+    + btn('To Do', 'todo')
+    + btn('In Progress', 'inprogress')
+    + btn('Done', 'done')
+    + '</div>'
+    + '</div>';
+}
+
+function _gtmtKanban(actions) {
+  var buckets = { todo: [], inprogress: [], done: [] };
+  actions.forEach(function (a, i) {
+    (buckets[a.status || 'todo'] || buckets.todo).push({ action: a, index: i });
+  });
+
+  function col(label, key, isDone) {
+    var items = buckets[key] || [];
+    var body = items.length
+      ? items.map(function (it) { return _gtmtCard(it.action, it.index); }).join('')
+      : '<div class="gtmt-column-empty">No tasks</div>';
+    return '<div class="gtmt-column' + (isDone ? ' gtmt-column--done' : '') + '"'
+      + ' ondragover="_gtmtDragOverColumn(event)"'
+      + ' ondragleave="_gtmtDragLeaveColumn(event)"'
+      + ' ondrop="_gtmtDropInColumn(event,\'' + key + '\')">'
+      + '<div class="gtmt-column-header' + (isDone ? ' gtmt-column-header--done' : '') + '">'
+      + '<span>' + label + '</span>'
+      + '<span class="gtmt-column-count">' + items.length + '</span>'
+      + '</div>'
+      + body
+      + '</div>';
+  }
+
+  return '<div class="gtmt-kanban">'
+    + col('TO DO', 'todo', false)
+    + col('IN PROGRESS', 'inprogress', false)
+    + col('DONE', 'done', true)
+    + '</div>';
+}
+
+function _gtmtList(actions) {
+  var rows = actions.map(function (a, i) {
+    var status = a.status || 'todo';
+    var rowMod = status === 'inprogress'
+      ? ' gtmt-list-row--inprogress'
+      : (status === 'done' ? ' gtmt-list-row--done' : ' gtmt-list-row--todo');
+    var checkMod = status === 'inprogress'
+      ? ' gtmt-list-check--inprogress'
+      : (status === 'done' ? ' gtmt-list-check--done' : '');
+    var chips = ''
+      + (a.owner    ? '<span class="gtmt-chip gtmt-chip--owner">' + _gtmtEsc(a.owner) + '</span>' : '')
+      + (a.timeline ? '<span class="gtmt-chip gtmt-chip--timeline">' + _gtmtEsc(a.timeline) + '</span>' : '')
+      + _gtmtPriorityChip(a.priority);
+    return '<div class="gtmt-list-row' + rowMod + '">'
+      + '<button class="gtmt-list-check' + checkMod + '"'
+      + ' onclick="gtmCycleTaskStatus(' + i + ')"'
+      + ' title="Click to change status"></button>'
+      + '<div class="gtmt-list-main">'
+      + '<div class="gtmt-list-title">' + _gtmtEsc(a.title || 'Untitled action') + '</div>'
+      + (a.desc ? '<div class="gtmt-list-desc">' + _gtmtEsc(a.desc) + '</div>' : '')
+      + '</div>'
+      + '<div class="gtmt-list-chips">' + chips + '</div>'
+      + '</div>';
+  }).join('');
+  return '<div class="gtmt-list">' + rows + '</div>';
+}
+
+/* Renders the inner content of the "My Tasks" tab panel — no topbar,
+   no screen wrapper. Just the progress row, view toggle, and board. */
+function _gtmtTabContent() {
+  var actions = _gtmtActions();
+  _gtmtEnsureStatuses(actions);
+
+  /* ---- Empty state ---- */
+  if (!actions.length) {
+    return '<div class="gtmt-empty">'
+      + '<div class="gtmt-empty-title">Complete GTM Strategy first to see your action plan.</div>'
+      + '<button class="gtmt-empty-btn" onclick="setMode(\'gtm-strategy\')">Go to GTM &#8594;</button>'
+      + '</div>';
+  }
+
+  var doneCount = actions.filter(function (a) { return a.status === 'done'; }).length;
+  var total     = actions.length;
+  var pct       = total ? Math.round((doneCount / total) * 100) : 0;
+  var allDone   = doneCount === total && total > 0;
+  var view      = appState.gtmTasksView === 'list' ? 'list' : 'kanban';
+
+  var progressBlock = allDone
+    ? '<div class="gtmt-executed-badge"><span>&#10003;</span> Plan executed</div>'
+    : '<div class="gtmt-progress-wrap">'
+        + '<div class="gtmt-progress-track"><div class="gtmt-progress-fill" style="width:' + pct + '%"></div></div>'
+        + '<div class="gtmt-progress-label">' + doneCount + ' of ' + total + ' actions complete</div>'
+      + '</div>';
+
+  var toggle = '<div class="gtmt-view-toggle">'
+    + '<button class="gtmt-view-toggle-btn' + (view === 'kanban' ? ' gtmt-active' : '') + '"'
+    + ' onclick="gtmTasksToggleView(\'kanban\')">Kanban</button>'
+    + '<button class="gtmt-view-toggle-btn' + (view === 'list' ? ' gtmt-active' : '') + '"'
+    + ' onclick="gtmTasksToggleView(\'list\')">List</button>'
+    + '</div>';
+
+  var boardHtml = view === 'list' ? _gtmtList(actions) : _gtmtKanban(actions);
+
+  return '<div class="gtmt-tab-toolbar">' + progressBlock + toggle + '</div>'
+    + boardHtml;
+}
+
+/* Full-screen GTM tasks board — reached from the dashboard
+   "Manage tasks →" link. Own mode: 'gtm-tasks'. */
+function screenGtmTasks() {
+  var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  var biz = (concept && concept.business) || {};
+  var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
+
+  var topbar = '<div class="gtmt-topbar">'
+    + '<button class="app-topbar-back" onclick="setMode(\'dashboard\')">&#8592; Back to Dashboard</button>'
+    + '<div class="gtmt-topbar-brand">GTM Tasks</div>'
+    + '<div style="width:150px;flex-shrink:0"></div>'
+    + '</div>';
+
+  return '<div class="gtmt-screen">'
+    + topbar
+    + '<div class="gtmt-body">'
+    + '<div class="gtmt-header">'
+    + '<div class="gtmt-header-left">'
+    + '<div class="gtmt-header-biz">' + _gtmtEsc(bizName) + '</div>'
+    + '<div class="gtmt-header-sub">90-Day Action Plan</div>'
+    + '</div>'
+    + '</div>'
+    + _gtmtTabContent()
+    + '</div></div>';
+}
 
 /* ===================== LAUNCHPAD PERSISTENCE ===================== */
 /* Snapshot the Launchpad journey (onboarding → strategic planning →
@@ -2429,6 +3025,11 @@ function renderApp() {
   if (mode === 'gtm-strategy') {
     el.innerHTML = screenGtmStrategy();
     if (window.gtmCheckLoadingHook) window.gtmCheckLoadingHook();
+    return;
+  }
+
+  if (mode === 'gtm-tasks') {
+    el.innerHTML = screenGtmTasks();
     return;
   }
 
