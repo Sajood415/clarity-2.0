@@ -314,7 +314,8 @@ var CreateFlow = (function () {
       step: 1, modality: null, platform: null, format: null, aspect: '1:1', dims: '',
       generating: false, genPhase: 0, variation: null, editContent: '',
       published: false, publishMode: null, genStartedAt: null,
-      campaignBannerDismissed: false
+      campaignBannerDismissed: false,
+      useCanvasMode: false, canvasStyle: 'Authentic', canvasDuration: '30s'
     };
     state.createdItems = cfSampleLibraryItems();
     state.cfPrefs = {
@@ -1121,6 +1122,10 @@ var CreateFlow = (function () {
     f.format = null;
     f.dims = '';
     f.aspect = '1:1';
+    /* Any modality change re-picks the flow — canvas mode is image/video only,
+       so clear it here in case the user is walking backwards from a prior try. */
+    f.useCanvasMode = false;
+    f.variation = null;
     renderContent();
   };
   window.cfSelectPlatform = function (id) {
@@ -1179,6 +1184,24 @@ var CreateFlow = (function () {
     var f = cfFlow();
     /* Step 1 → 2: need a modality */
     if (f.step === 1 && !f.modality) return;
+    /* Image and Video get the single-screen canvas flow — pick a sensible default
+       platform/format so the canvas has something to render, then flip the mode
+       flag. Written and Audio continue on the existing 5-step wizard unchanged. */
+    if (f.step === 1 && (f.modality === 'image' || f.modality === 'video')) {
+      if (!f.platform) {
+        var plats = CF_PLATFORMS[f.modality] || [];
+        if (plats.length) window.cfSelectPlatform(plats[0].id);
+      }
+      /* Canvas uses a modality-driven default rather than whatever the
+         selected platform's suggested format happened to be, so the SIZE
+         chip row starts on 1:1 (image) / 9:16 (video). */
+      f.aspect = f.modality === 'video' ? '9:16' : '1:1';
+      f.useCanvasMode = true;
+      f.variation = null;
+      f.generating = false;
+      renderContent();
+      return;
+    }
     if (f.step === 1) { f.step = 2; renderContent(); return; }
     /* Step 2 → 3: need a platform */
     if (f.step === 2 && !f.platform) return;
@@ -1208,7 +1231,12 @@ var CreateFlow = (function () {
     var f = cfFlow();
     if (f.step <= 1) return;
     if (f.step === 5 || f.step === 6) f.generating = false;
-    if (f.step === 6) { f.step = 5; renderContent(); return; }
+    if (f.step === 6) {
+      /* Canvas users skipped steps 2–5 — send them back to the canvas view,
+         not to an empty step 5. */
+      if (f.useCanvasMode) { f.step = 1; renderContent(); return; }
+      f.step = 5; renderContent(); return;
+    }
     f.step--; renderContent();
   };
   window.cfPublish = function (mode) {
@@ -1625,9 +1653,310 @@ var CreateFlow = (function () {
         appState.createFlow.format = null;
         appState.createFlow.generating = false;
         appState.createFlow.variation = null;
+        appState.createFlow.useCanvasMode = false;
         setMode('home');
       }
     });
+  };
+
+  /* ============================================================
+     SINGLE-SCREEN CANVAS FLOW (Image + Video)
+     One screen: platform chips + live canvas on the left, brief +
+     controls on the right. Generation animates in place; picking a
+     variation enables the topbar Continue → button to the existing
+     decision screen (step 6). Written and Audio never enter here.
+     ============================================================ */
+
+  /* Four variation snapshots derived from the existing CF_IMAGE_VARS /
+     CF_VIDEO_VARS. We synthesize a 4th (D) so the four-up thumbnail row
+     is always populated without touching the rest of the wizard. */
+  function cfCanvasVariations(modality) {
+    var base = modality === 'video' ? CF_VIDEO_VARS : CF_IMAGE_VARS;
+    if (base.length >= 4) return base.slice(0, 4);
+    var extra = Object.assign({}, base[base.length - 1] || base[0]);
+    extra.label = 'D';
+    extra.pf = Math.max(70, (extra.pf || 80) - 6);
+    return base.concat([extra]);
+  }
+
+  /* Canvas platform chips — reuse CF_PLATFORMS for the current modality
+     so what the user picks here is the same set the rest of the wizard
+     understands (and cfSelectPlatform still applies a sensible default
+     format under the hood for downstream steps). */
+  function cfCanvasPlatformChips(f) {
+    var plats = CF_PLATFORMS[f.modality] || [];
+    return '<div class="cv-platform-chips">'
+      + plats.map(function (p) {
+          var active = f.platform === p.id;
+          return '<span class="cv-platform-chip' + (active ? ' active' : '') + '" onclick="cfCanvasSelectPlatform(\'' + p.id + '\')">' + p.id + '</span>';
+        }).join('')
+      + '</div>';
+  }
+
+  /* Icons for the pre-generation placeholder */
+  var CV_ICON_IMAGE = '<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="6" y="8" width="36" height="32" rx="4" stroke="currentColor" stroke-width="2"/><path d="M6 32l10-12 8 8 6-6 12 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="16" cy="18" r="3" fill="currentColor"/></svg>';
+  var CV_ICON_VIDEO = '<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M20 16l12 8-12 8V16z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/></svg>';
+
+  /* Aspect ratio for the canvas frame — the SIZE chip row writes directly
+     to f.aspect, so we honour that first and only fall back to the
+     platform's suggested format when nothing has been chosen yet. */
+  function cfCanvasAspect(f) {
+    if (f.aspect) return f.aspect;
+    var formats = CF_FORMATS[f.modality] && f.platform && CF_FORMATS[f.modality][f.platform];
+    if (formats && formats.length) {
+      var idx = cfSuggestedIndex(f.modality, f.platform);
+      var fmt = formats[idx] || formats[0];
+      if (fmt && fmt.aspect) return fmt.aspect;
+    }
+    return f.modality === 'video' ? '9:16' : '1:1';
+  }
+
+  var CV_IMAGE_SIZES = [
+    { label: '1:1 Square',    aspect: '1:1' },
+    { label: '4:5 Portrait',  aspect: '4:5' },
+    { label: '16:9 Landscape', aspect: '16:9' },
+    { label: '9:16 Story',    aspect: '9:16' }
+  ];
+  var CV_VIDEO_SIZES = [
+    { label: '9:16 Vertical',   aspect: '9:16' },
+    { label: '16:9 Horizontal', aspect: '16:9' },
+    { label: '1:1 Square',      aspect: '1:1' }
+  ];
+
+  function cfCanvasSizeChips(f) {
+    var sizes = f.modality === 'video' ? CV_VIDEO_SIZES : CV_IMAGE_SIZES;
+    var current = cfCanvasAspect(f);
+    return '<div class="cv-size-chips">'
+      + sizes.map(function (s) {
+          var active = s.aspect === current;
+          return '<span class="cv-size-chip' + (active ? ' active' : '') + '" onclick="cfCanvasSetAspect(\'' + s.aspect + '\')">' + s.label + '</span>';
+        }).join('')
+      + '</div>';
+  }
+
+  function cfCanvasMainMockup(f, v) {
+    if (f.modality === 'image') return cfImagePostMockup(v, f);
+    /* Reuse the existing video thumbnail mockup — its palette is index-driven */
+    var idx = f.variation != null ? f.variation : 0;
+    return cfVideoThumbnailMockup(v, idx, f);
+  }
+
+  function cfCanvasThumbMockup(f, v, i) {
+    var currentAspect = cfCanvasAspect(f);
+    if (f.modality === 'image') {
+      var thumb = window.StudioImage && StudioImage.renderPreview
+        ? StudioImage.renderPreview(v.theme, currentAspect, v.headline, false)
+        : '<div style="width:100%;height:100%;background:linear-gradient(135deg,#12100e,#1c1916);"></div>';
+      return thumb;
+    }
+    var pal = CF_VAR_PALETTES[i % CF_VAR_PALETTES.length] || CF_VAR_PALETTES[0];
+    return '<div style="width:100%;height:100%;background:' + pal.bg + ';display:flex;align-items:center;justify-content:center;color:' + pal.accent + ';font-size:16px;">&#9654;</div>';
+  }
+
+  function cfCanvasScreen() {
+    var f = cfFlow();
+    var brief = appState.createBrief;
+    var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+    var persona = (concept && concept.persona) || {};
+    var suggestion = (brief.message || '').toString();
+    if (suggestion.length > 80) suggestion = suggestion.slice(0, 77).trim() + '\u2026';
+    if (!suggestion) suggestion = 'A single clear message the audience should walk away with.';
+
+    var aspect = cfCanvasAspect(f);
+    var vars = cfCanvasVariations(f.modality);
+    var selected = f.variation != null ? vars[f.variation] : null;
+
+    /* ---- Canvas area (before / during / after generation) ---- */
+    var canvasInner;
+    if (f.generating) {
+      canvasInner = '<div class="cv-canvas-loading">'
+        + '<div class="cv-canvas-loading-glow"></div>'
+        + '<div class="cv-canvas-loading-label">Generating your content\u2026</div>'
+        + '</div>';
+    } else if (selected) {
+      canvasInner = '<div class="cv-canvas-mockup">' + cfCanvasMainMockup(f, selected) + '</div>';
+    } else {
+      var icon = f.modality === 'video' ? CV_ICON_VIDEO : CV_ICON_IMAGE;
+      canvasInner = '<div class="cv-canvas-empty">'
+        + '<div class="cv-canvas-empty-icon">' + icon + '</div>'
+        + '<div class="cv-canvas-empty-label">Your content will appear here</div>'
+        + '</div>';
+    }
+
+    /* ---- Variation thumbnails row (4-up) ---- */
+    var thumbsHtml = '';
+    if (f.generating) {
+      thumbsHtml = [0, 1, 2, 3].map(function () {
+        return '<div class="cv-thumb cv-thumb-skeleton"></div>';
+      }).join('');
+    } else if (selected) {
+      thumbsHtml = vars.map(function (v, i) {
+        var active = f.variation === i;
+        return '<div class="cv-thumb' + (active ? ' active' : '') + '" onclick="cfCanvasSelectVariation(' + i + ')">'
+          + cfCanvasThumbMockup(f, v, i)
+          + '</div>';
+      }).join('');
+    } else {
+      thumbsHtml = [0, 1, 2, 3].map(function () {
+        return '<div class="cv-thumb cv-thumb-empty"></div>';
+      }).join('');
+    }
+
+    var canvasPanel = '<div class="cv-canvas-panel">'
+      + cfCanvasPlatformChips(f)
+      + '<div class="cv-canvas-area" style="aspect-ratio:' + aspect.replace(':', '/') + ';">' + canvasInner + '</div>'
+      + '<div class="cv-thumb-row">' + thumbsHtml + '</div>'
+      + '</div>';
+
+    /* ---- Right brief / controls panel ---- */
+    var isImage = f.modality === 'image';
+    var styleOpts = ['Authentic', 'Bold', 'Minimal', 'Playful', 'Professional'];
+    var styleSelect = '<select class="cv-select" onchange="cfCanvasSetStyle(this.value)">'
+      + styleOpts.map(function (s) {
+          return '<option' + (f.canvasStyle === s ? ' selected' : '') + '>' + s + '</option>';
+        }).join('')
+      + '</select>';
+
+    var modalitySpecific;
+    if (isImage) {
+      var palette = (appState.cfPrefs && appState.cfPrefs.colors) || ['#d4a853', '#f59e0b', '#2dd4bf', '#12100e'];
+      var swatches = palette.slice(0, 4).map(function (c) {
+        return '<div class="cv-color-swatch" style="background:' + c + ';"></div>';
+      }).join('');
+      modalitySpecific = '<label class="cv-field-label">Color palette</label>'
+        + '<div class="cv-color-row">' + swatches + '</div>';
+    } else {
+      var durOpts = ['15s', '30s', '60s'];
+      modalitySpecific = '<label class="cv-field-label">Duration</label>'
+        + '<select class="cv-select" onchange="cfCanvasSetDuration(this.value)">'
+        + durOpts.map(function (d) {
+            return '<option' + (f.canvasDuration === d ? ' selected' : '') + '>' + d + '</option>';
+          }).join('')
+        + '</select>';
+    }
+
+    var personaName = (persona.name && persona.name.trim()) ? persona.name.trim() : (brief.persona || 'Your customer');
+    var topCare = (persona.caresAbout && persona.caresAbout.length) ? persona.caresAbout[0] : '';
+    var personaLine = personaName + (topCare ? ' \u00b7 ' + topCare : '');
+
+    var generateLabel = selected ? 'Regenerate \u2192' : 'Generate \u2192';
+    var generateClass = selected ? 'cv-btn cv-btn-outline' : 'cv-btn cv-btn-primary';
+    var generateDisabled = f.generating ? ' disabled' : '';
+
+    var briefPanel = '<div class="cv-brief-panel">'
+      + '<div class="cv-brief-scroll">'
+      + '<div class="cv-suggestion-badge">AI SUGGESTION</div>'
+      + '<div class="cv-suggestion-text">' + suggestion + '</div>'
+      + '<div class="cv-section-label" style="margin-top:0;">SIZE</div>'
+      + cfCanvasSizeChips(f)
+      + '<div class="cv-section-label">BRIEF</div>'
+      + '<label class="cv-field-label">Core message</label>'
+      + '<textarea class="cv-textarea" rows="3" placeholder="What is this content about?" oninput="cfCanvasSetMessage(this.value)">' + (brief.message || '') + '</textarea>'
+      + '<label class="cv-field-label">Style direction</label>'
+      + styleSelect
+      + modalitySpecific
+      + '<div class="cv-section-label" style="margin-top:16px;">PERSONA</div>'
+      + '<div class="cv-persona-line">' + personaLine + '</div>'
+      + '</div>'
+      + '<div class="cv-brief-cta">'
+      + '<button class="' + generateClass + '"' + generateDisabled + ' onclick="cfCanvasGenerate()">' + generateLabel + '</button>'
+      + '</div>'
+      + '</div>';
+
+    /* ---- Topbar ---- */
+    var canContinue = f.variation != null && !f.generating;
+    var topbar = '<div class="cf-topbar cv-topbar">'
+      + '<button class="app-topbar-back" onclick="cfCanvasBack()">&#8592; Back</button>'
+      + '<div class="cf-brand">Clarity</div>'
+      + '<button class="cv-topbar-continue' + (canContinue ? '' : ' disabled') + '" onclick="cfCanvasContinue()">Continue &rarr;</button>'
+      + '</div>';
+
+    return '<div class="cf-screen">'
+      + topbar
+      + '<div class="cv-body">'
+      + canvasPanel
+      + briefPanel
+      + '</div>'
+      + '</div>';
+  }
+
+  /* ---- Canvas handlers ---- */
+  window.cfCanvasBack = function () {
+    var f = cfFlow();
+    f.useCanvasMode = false;
+    f.step = 1;
+    f.variation = null;
+    f.generating = false;
+    renderContent();
+  };
+
+  window.cfCanvasSelectPlatform = function (id) {
+    /* Reuse the existing platform selector so a downstream format is still
+       applied — the wizard's decision/publish screens read f.format. */
+    window.cfSelectPlatform(id);
+  };
+
+  /* Directly writes f.aspect so the canvas frame + all four thumbnails
+     re-render at the new ratio on the next renderContent(). Kept separate
+     from cfSelectPlatform so a size choice sticks across platform switches
+     only when the user has explicitly picked one via the chip row. */
+  window.cfCanvasSetAspect = function (aspect) {
+    var f = cfFlow();
+    f.aspect = aspect;
+    renderContent();
+  };
+
+  window.cfCanvasSetMessage = function (val) {
+    appState.createBrief.message = val;
+    /* No re-render on every keystroke — the suggestion line refreshes on the
+       next natural re-render (generate, platform change, etc.). */
+  };
+
+  window.cfCanvasSetStyle = function (val) {
+    cfFlow().canvasStyle = val;
+    /* Not driving generation output right now — just persisted for context. */
+  };
+
+  window.cfCanvasSetDuration = function (val) {
+    cfFlow().canvasDuration = val;
+  };
+
+  window.cfCanvasGenerate = function () {
+    var f = cfFlow();
+    if (f.generating) return;
+    f.generating = true;
+    f.variation = null;
+    renderContent();
+    setTimeout(function () {
+      var fc = cfFlow();
+      if (!fc.useCanvasMode) return;
+      fc.generating = false;
+      fc.variation = 0;
+      /* Format is still needed by the decision/publish screen downstream —
+         make sure it's set based on the current platform. */
+      if (!fc.format && fc.platform) {
+        cfApplyFormat(fc, cfSuggestedIndex(fc.modality, fc.platform));
+      }
+      renderContent();
+    }, 2000);
+  };
+
+  window.cfCanvasSelectVariation = function (i) {
+    var f = cfFlow();
+    f.variation = i;
+    renderContent();
+  };
+
+  window.cfCanvasContinue = function () {
+    var f = cfFlow();
+    if (f.variation == null || f.generating) return;
+    /* Make sure a format is applied so the decision/publish steps have
+       everything they need — same fields the wizard would have populated. */
+    if (!f.format && f.platform) {
+      cfApplyFormat(f, cfSuggestedIndex(f.modality, f.platform));
+    }
+    f.step = 6;
+    renderContent();
   };
 
   function screenCreateFlow() {
@@ -1652,6 +1981,11 @@ var CreateFlow = (function () {
       }
       return decisionHtml;
     }
+
+    /* Single-screen canvas flow for Image / Video — flipped in cfContinue()
+       after step 1 when the user picks image or video. Written and Audio
+       keep the existing 5-step wizard below. */
+    if (f.useCanvasMode) return cfCanvasScreen();
 
     /* Active wizard steps 1–5 */
     var content = f.step === 1 ? cfStepModality()

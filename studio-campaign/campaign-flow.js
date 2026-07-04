@@ -1399,43 +1399,120 @@ var CampaignFlow = (function () {
     renderContent();
   };
 
-  function cpStepPublish() {
+  /* ---- Platform color mapping for the week-grid dots.
+     Uses Clarity's brand tokens (amber/teal/coral/purple) per the design
+     spec rather than the true platform colors from CP_PLATFORM_META. Any
+     platform not in this map falls back to the muted token. */
+  var CP_PUBLISH_PLATFORM_COLOR = {
+    LinkedIn:  'var(--ob-gold)',
+    Instagram: 'var(--ob-teal)',
+    Facebook:  'var(--ob-coral)',
+    Email:     'var(--ob-purple, #9b7fd4)'
+  };
+  function cpPublishPlatformColor(platform) {
+    return CP_PUBLISH_PLATFORM_COLOR[platform] || 'var(--ob-muted, #9a8f82)';
+  }
+
+  /* Build the visual 7-day grid data. Starts on the campaign start date and
+     shows the first week; dots represent approved assets scheduled to fall
+     on each day, colored by platform. Purely visual — this doesn't mutate
+     asset schedules. */
+  function cpBuildWeekGrid(f, approved) {
+    var start = f.startDate || cpTodayStr();
+    var startDate = new Date(start + 'T00:00:00');
+    if (isNaN(startDate.getTime())) startDate = new Date(cpTodayStr() + 'T00:00:00');
+    var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var days = [];
+    for (var i = 0; i < 7; i++) {
+      var iso = cpAddDays(start, i);
+      var d = new Date(iso + 'T00:00:00');
+      days.push({ iso: iso, label: dayNames[d.getDay()], dots: [] });
+    }
+    approved.forEach(function (a) {
+      if (!a.scheduledDate) return;
+      for (var j = 0; j < days.length; j++) {
+        if (days[j].iso === a.scheduledDate) {
+          days[j].dots.push({ platform: a.platform, id: a.id });
+          break;
+        }
+      }
+    });
+    return days;
+  }
+
+  /* Full-page Publish rebuild.
+     cpStepPublish() (the wizard-step call) redirects to setMode('campaign-publish')
+     and returns an empty string, so the page is rendered outside the campaign
+     overlay/drawer. cpBuildPublishContent() below builds the shared two-column
+     content used by the full page. */
+
+  function cpBuildPublishContent() {
+    var f = cpFlow();
+    if (!f) return '';
     cpEnsurePublishDefaults();
     var approved = cpApprovedAssets();
     var conflicts = cpConflictMap();
     var hasConflicts = Object.keys(conflicts).length > 0;
     var scheduledCount = approved.filter(function (a) { return !!a.scheduledDate; }).length;
     if (!approved.length) {
-      return '<div class="cp-step-title">Publish</div>'
-        + '<div class="cp-step-sub">Schedule approved assets by platform and date before publishing campaign.</div>'
-        + '<div class="card"><div class="cf-history-empty" style="padding:16px 0 6px;">No approved assets yet. Go back to Edit and approve items first.</div>'
-        + '<div style="display:flex;justify-content:center;gap:10px;padding-bottom:10px;">'
-        + '<button class="btn btn-outline" onclick="campaignBack()">Back to Edit</button>'
+      return '<div class="cp-pub-empty">'
+        + '<div class="cp-pub-empty-msg">No approved assets yet. Go back to Edit and approve items first.</div>'
+        + '<div class="cp-pub-empty-actions">'
+        + '<button class="btn btn-outline" onclick="cpPublishBack()">Back to Edit</button>'
         + '<button class="btn btn-primary" onclick="campaignBulkApproveReady()">Approve all Ready now</button>'
         + '</div></div>';
     }
-    var f = cpFlow();
     var hasMultiSeries = f.series && f.series.length > 1;
     var isMobile = window.innerWidth <= 760;
     var expanded = !isMobile && !!appState.campaignUI.scheduleExpanded;
 
-    var platformMap = {};
-    approved.forEach(function (a) { platformMap[a.platform] = true; });
-    var platformCount = Object.keys(platformMap).length;
+    /* ---- Group approved assets by platform for the right-column summary ---- */
+    var byPlatform = {};
+    approved.forEach(function (a) {
+      if (!byPlatform[a.platform]) byPlatform[a.platform] = [];
+      byPlatform[a.platform].push(a);
+    });
+    var platformOrder = Object.keys(byPlatform);
+    var platformCount = platformOrder.length;
 
-    /* ---- Collapsed summary view (default) ---- */
-    var summaryView = '<div class="cp-schedule-summary">'
-      + '<div class="cp-schedule-summary-count">' + approved.length + ' asset' + (approved.length === 1 ? '' : 's') + ' ready to publish across ' + platformCount + ' platform' + (platformCount === 1 ? '' : 's') + '.</div>'
-      + '<div class="cp-schedule-summary-status">' + scheduledCount + ' of ' + approved.length + ' scheduled'
-      + (hasConflicts ? ' \u00b7 <span style="color:var(--ob-coral,#e07b6a);">conflicts detected</span>' : '') + '</div>'
-      + '<div class="cp-schedule-dates">'
-      + '<div class="cf-field"><label>Campaign starts</label>'
-      + '<input type="date" value="' + (f.startDate || '') + '" onchange="cpFlow().startDate=this.value"></div>'
-      + '<div class="cf-field"><label>Campaign ends</label>'
-      + '<input type="date" value="' + (f.endDate || '') + '" onchange="cpFlow().endDate=this.value"></div>'
+    /* ---- Week grid (visual, first 7 days from campaign start) ---- */
+    var weekDays = cpBuildWeekGrid(f, approved);
+    var weekGridHtml = '<div class="cp-publish-week-grid">'
+      + weekDays.map(function (day) {
+          var dotsHtml = day.dots.length
+            ? day.dots.slice(0, 6).map(function (d) {
+                return '<span class="cp-publish-dot" style="background:' + cpPublishPlatformColor(d.platform) + ';"></span>';
+              }).join('')
+              + (day.dots.length > 6 ? '<span class="cp-publish-dot-more">+' + (day.dots.length - 6) + '</span>' : '')
+            : '<span class="cp-publish-dot cp-publish-dot-empty"></span>';
+          return '<div class="cp-publish-day-col">'
+            + '<div class="cp-publish-day-name">' + day.label + '</div>'
+            + '<div class="cp-publish-day-dots">' + dotsHtml + '</div>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+
+    /* ---- Left column: schedule ---- */
+    var conflictLine = hasConflicts
+      ? '<div class="cp-publish-conflict-note">Conflicts detected \u2014 tap Auto-spread to fix.</div>'
+      : '';
+    var scheduleHeading = '<div class="cp-publish-heading">When should this go out?</div>'
+      + '<div class="cp-publish-sub">We\u2019ll spread your content across the campaign dates using platform best practices.</div>';
+
+    var dateInputs = '<div class="cp-publish-date-inputs">'
+      + '<div class="cp-publish-date-card">'
+      + '<label>CAMPAIGN STARTS</label>'
+      + '<input type="date" value="' + (f.startDate || '') + '" onchange="cpFlow().startDate=this.value;renderContent()">'
       + '</div>'
-      + '<button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="campaignAutoSpread()">Auto-spread schedule \u2192</button>'
-      + '<a class="cp-schedule-expand-link" onclick="cpToggleScheduleExpanded()">Review individual dates \u2192</a>'
+      + '<div class="cp-publish-date-card">'
+      + '<label>CAMPAIGN ENDS</label>'
+      + '<input type="date" value="' + (f.endDate || '') + '" onchange="cpFlow().endDate=this.value;renderContent()">'
+      + '</div>'
+      + '</div>';
+
+    var actions = '<div class="cp-publish-actions">'
+      + '<button class="btn btn-primary" onclick="campaignAutoSpread()">Auto-spread schedule &#8594;</button>'
+      + '<a class="cp-publish-review-link" onclick="cpToggleScheduleExpanded()">' + (expanded ? '\u2190 Collapse schedule' : 'Review individual dates \u2192') + '</a>'
       + '</div>';
 
     /* ---- Expanded per-asset view ---- */
@@ -1501,24 +1578,149 @@ var CampaignFlow = (function () {
       publishBody = approved.map(renderAssetRow).join('');
     }
 
-    var expandedView = '<div class="card">'
-      + '<a class="cp-schedule-expand-link" onclick="cpToggleScheduleExpanded()">\u2190 Collapse schedule</a>'
-      + '<div class="flex-between" style="margin-top:12px;"><div><div class="label">Approved assets</div>'
-      + '<div class="cp-count-summary">' + scheduledCount + ' of ' + approved.length + ' scheduled</div></div>'
-      + (hasConflicts ? '<button class="btn btn-outline btn-sm" onclick="campaignAutoSpread()">Auto-spread schedule</button>' : '<span class="pill pill-green">No conflicts</span>')
-      + '</div>'
-      + (approved.length > 1 ? '<div class="cp-drag-hint"><span>\u2807</span> Drag a row onto another to take that date \u00b7 drop on the zone below to unschedule</div>' : '')
-      + '<div class="cp-publish-list">' + publishBody + '</div>'
-      + '<div class="cp-unschedule-zone"'
-      + ' ondragover="event.preventDefault()"'
-      + ' ondragenter="cpDragEnterTrash(this)"'
-      + ' ondragleave="cpDragLeaveTrash(this)"'
-      + ' ondrop="cpDropUnschedule(event)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2.5h4V4M5.5 6v4.5M8.5 6v4.5M3 4l.7 7.5h6.6L11 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Drop here to unschedule</div>'
+    /* Expanded per-asset editor — same drag/drop/date/time inputs the old
+       screen used, just re-positioned inside the left column below the grid. */
+    var expandedEditor = expanded
+      ? '<div class="cp-publish-expanded card">'
+        + '<div class="flex-between"><div><div class="label">Approved assets</div>'
+        + '<div class="cp-count-summary">' + scheduledCount + ' of ' + approved.length + ' scheduled</div></div>'
+        + (hasConflicts ? '<button class="btn btn-outline btn-sm" onclick="campaignAutoSpread()">Auto-spread schedule</button>' : '<span class="pill pill-green">No conflicts</span>')
+        + '</div>'
+        + (approved.length > 1 ? '<div class="cp-drag-hint"><span>\u2807</span> Drag a row onto another to take that date \u00b7 drop on the zone below to unschedule</div>' : '')
+        + '<div class="cp-publish-list">' + publishBody + '</div>'
+        + '<div class="cp-unschedule-zone"'
+        + ' ondragover="event.preventDefault()"'
+        + ' ondragenter="cpDragEnterTrash(this)"'
+        + ' ondragleave="cpDragLeaveTrash(this)"'
+        + ' ondrop="cpDropUnschedule(event)"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2.5h4V4M5.5 6v4.5M8.5 6v4.5M3 4l.7 7.5h6.6L11 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Drop here to unschedule</div>'
+        + '</div>'
+      : '';
+
+    /* ---- Right column: asset summary grouped by platform ---- */
+    var summaryGroups = platformOrder.map(function (platform) {
+      var color = cpPublishPlatformColor(platform);
+      var assetsHtml = byPlatform[platform].map(function (a) {
+        var when = a.paused ? 'Paused' : cpFmtDate(a.scheduledDate);
+        var label = (a.label ? a.label + ' #' + a.seq : (a.title || 'Asset'));
+        return '<div class="cp-publish-summary-row">'
+          + '<div class="cp-publish-summary-label">' + label + '</div>'
+          + '<div class="cp-publish-summary-when">' + when + '</div>'
+          + '</div>';
+      }).join('');
+      return '<div class="cp-publish-summary-group">'
+        + '<div class="cp-publish-summary-platform">'
+        + '<span class="cp-publish-dot" style="background:' + color + ';"></span>'
+        + '<span>' + platform + '</span>'
+        + '</div>'
+        + assetsHtml
+        + '</div>';
+    }).join('');
+
+    var rightHeading = '<div class="cp-publish-right-heading">Ready to publish</div>'
+      + '<div class="cp-publish-sub">' + approved.length + ' asset' + (approved.length === 1 ? '' : 's') + ' across ' + platformCount + ' platform' + (platformCount === 1 ? '' : 's')
+      + (hasConflicts ? ' \u00b7 <span style="color:var(--ob-coral, #e07b6a);">conflicts detected</span>' : '')
       + '</div>';
 
-    return '<div class="cp-step-title">Publish</div>'
-      + '<div class="cp-step-sub">Schedule approved assets by platform and date before publishing campaign.</div>'
-      + (expanded ? expandedView : summaryView);
+    var fromCreate = !!(f && f.prefilledFromCreate);
+    var doneBtn = '<button class="cp-pub-done" onclick="cpPublishDone()">&#10003; Done \u2014 save campaign &#8594;</button>';
+
+    return '<div class="cp-publish-split">'
+      + '<div class="cp-publish-left">'
+      + scheduleHeading
+      + dateInputs
+      + weekGridHtml
+      + conflictLine
+      + actions
+      + expandedEditor
+      + '</div>'
+      + '<div class="cp-publish-right">'
+      + rightHeading
+      + '<div class="cp-publish-summary-list">' + summaryGroups + '</div>'
+      + doneBtn
+      + '</div>'
+      + '</div>';
+    /* fromCreate is only used by cpPublishDone() at click time — we always
+       render the same amber Done button; the handler routes correctly. */
+    void fromCreate;
+  }
+
+  /* Full page render — called by index.html's window.screenCampaignPublish. */
+  window.cpRenderPublishPage = function () {
+    var f = cpFlow();
+    var campaignName = (f && f.name) ? f.name : 'New campaign';
+
+    /* Topbar: full width, own back button + title + spacer (theme toggle
+       is the app-wide fixed overlay, so a right-side spacer is enough). */
+    var topbar = '<div class="cp-pub-topbar">'
+      + '<button class="app-topbar-back cp-pub-back" onclick="cpPublishBack()">&#8592; Back</button>'
+      + '<span class="cp-pub-topbar-title">Publish Schedule</span>'
+      + '<div class="cp-pub-topbar-spacer"></div>'
+      + '</div>';
+
+    /* Breadcrumb: campaign name > all 8 wizard steps, Schedule active */
+    var crumbSteps = CP_STEPS.map(function (label, i) {
+      /* Rename the last step from "Publish" to "Schedule" per the design */
+      var display = (i === CP_STEPS.length - 1) ? 'Schedule' : label;
+      var active = i === CP_STEPS.length - 1;
+      return '<span class="cp-pub-crumb-sep">\u203A</span>'
+        + '<span class="cp-pub-crumb-item' + (active ? ' cp-pub-crumb-active' : '') + '">' + display + '</span>';
+    }).join('');
+    var breadcrumb = '<div class="cp-pub-breadcrumb">'
+      + '<span class="cp-pub-crumb-name">' + campaignName + '</span>'
+      + crumbSteps
+      + '</div>';
+
+    return '<div class="cp-pub-page">'
+      + topbar
+      + breadcrumb
+      + '<div class="cp-pub-content">'
+      + cpBuildPublishContent()
+      + '</div>'
+      + '</div>';
+  };
+
+  /* ---- Publish-page handlers ---- */
+
+  /* Back button in the standalone publish page: return to the Edit step
+     inside the campaign flow. The campaign flow now always lives in the
+     'campaign' mode (both standalone and from-create), so a single setMode
+     call handles both cases — the from-create topbar/end button will still
+     render correctly because cpScreenFlow reads prefilledFromCreate. */
+  window.cpPublishBack = function () {
+    if (appState.campaignFlow) appState.campaignFlow.step = 7;
+    setMode('campaign');
+  };
+
+  /* Done button: save-and-close for the wizard-launched (overlay) case,
+     otherwise plain "back to campaigns home". We flip appState.mode BEFORE
+     calling the completion handler so the intermediate renderContent()
+     inside those handlers renders the destination screen (create-flow's
+     success screen or the campaign home) rather than briefly re-rendering
+     the empty publish page after the campaign flow state has been reset. */
+  window.cpPublishDone = function () {
+    var f = appState.campaignFlow;
+    var fromCreate = !!(f && f.prefilledFromCreate);
+    if (fromCreate) {
+      appState.mode = 'wizard';
+      appState.screen = 'create-flow';
+      window.campaignCompleteFromCreate();
+    } else {
+      appState.mode = 'campaign';
+      appState.screen = 'campaign';
+      window.campaignBackHome();
+    }
+  };
+
+  function cpStepPublish() {
+    /* Deferred so the current renderApp() finishes before we swap modes —
+       otherwise the outer renderApp would overwrite our new mode's output.
+       Any code path that lands on campaign step 8 will redirect here. */
+    if (typeof setTimeout === 'function') {
+      setTimeout(function () {
+        if (appState.mode !== 'campaign-publish') setMode('campaign-publish');
+      }, 0);
+    }
+    return '';
   }
 
   function canContinue() {
@@ -1547,9 +1749,10 @@ var CampaignFlow = (function () {
 
   window.campaignBack = function () {
     var f = cpFlow();
-    var isOverlay = !!appState.cpOverlayOpen;
-    /* In overlay mode Step 2 is the first reachable step — never go to Step 1 */
-    var floor = isOverlay ? 2 : 1;
+    /* From-create flows (overlay or full-page) skip step 1 (Goal & Timing) —
+       never let them back out past step 2. Standalone flows start at 1. */
+    var fromCreate = !!appState.cpOverlayOpen || !!(f && f.prefilledFromCreate);
+    var floor = fromCreate ? 2 : 1;
     if (f.step > floor) {
       if (f.step === 6) f.intelBannerPending = false;
       f.step--;
@@ -1567,6 +1770,13 @@ var CampaignFlow = (function () {
         } else {
           cpStartBatchGenerate();
         }
+      }
+      /* Step 8 (Publish) lives on its own page — jump straight there without
+         first rendering the empty wizard shell that cpStepPublish would
+         short-circuit anyway. */
+      if (f.step === 8) {
+        setMode('campaign-publish');
+        return;
       }
       renderContent();
     }
@@ -1932,7 +2142,11 @@ var CampaignFlow = (function () {
 
   function cpScreenFlow() {
     var f = cpFlow();
+    /* "From create" covers both the legacy slide-in overlay path
+       (cpOverlayOpen) and the new full-page path (prefilledFromCreate).
+       Both should show the wizard-return topbar/end button. */
     var isOverlay = !!appState.cpOverlayOpen;
+    var fromCreate = isOverlay || !!(f && f.prefilledFromCreate);
     var content = f.step === 1 ? cpStepGoalTiming()
       : f.step === 2 ? cpStepPlatforms()
       : f.step === 3 ? cpStepSeries()
@@ -1942,7 +2156,7 @@ var CampaignFlow = (function () {
       : f.step === 7 ? cpStepEdit()
       : cpStepPublish();
 
-    var topbar = isOverlay
+    var topbar = fromCreate
       ? '<div class="cf-topbar">'
         + '<button class="app-topbar-back" onclick="campaignCloseOverlay()">&#8592; Back to your content</button>'
         + '<div style="font-size:13px;color:var(--muted);font-weight:500;padding-right:56px;">' + (f.name || 'New campaign') + '</div>'
@@ -1952,7 +2166,7 @@ var CampaignFlow = (function () {
       : '<div class="cf-topbar"><div class="cf-brand">Clarity <span>Campaign</span></div>'
         + '<div class="cf-topbar-right"></div></div>';
 
-    var endBtn = isOverlay
+    var endBtn = fromCreate
       ? '<button class="btn btn-primary" onclick="campaignCompleteFromCreate()">&#10003; Done — save campaign</button>'
       : '<button class="btn btn-outline" onclick="campaignBackHome()">Back to campaigns</button>';
 
@@ -1960,7 +2174,7 @@ var CampaignFlow = (function () {
       + topbar
       + '<div class="cf-body cp-flow-body' + (appState.cpSidebarOpen ? '' : ' cf-sidebar-collapsed') + '"><div class="cp-main">' + cpStepper() + content + '</div>' + cpIntelRail() + '</div>'
       + '<div class="cf-footer">'
-      + '<button class="btn btn-outline"' + (f.step <= (isOverlay ? 2 : 1) ? ' disabled' : '') + ' onclick="campaignBack()">← Back</button>'
+      + '<button class="btn btn-outline"' + (f.step <= (fromCreate ? 2 : 1) ? ' disabled' : '') + ' onclick="campaignBack()">← Back</button>'
       + '<div class="cf-footer-mid"><span class="cf-eta">Campaign · ' + CP_STEPS.length + ' steps</span></div>'
       + (f.step < 8 ? '<button class="btn btn-primary"' + (canContinue() ? '' : ' disabled') + ' onclick="campaignContinue()">' + cpContinueLabel() + '</button>' : endBtn)
       + '</div>'
@@ -2024,17 +2238,32 @@ var CampaignFlow = (function () {
       editingAssetId: null,
       editDraft: null
     };
-    appState.cpOverlayOpen = true;
-    renderContent();
+    /* Full-page transition instead of slide-in overlay: leaving cpOverlayOpen
+       false and flipping the app-level mode to 'campaign' makes renderApp()
+       render the campaign flow as a standalone screen. Wizard state stays
+       intact in appState.createFlow, so hitting the topbar close button
+       (which calls campaignCloseOverlay → setMode('wizard')) restores the
+       decision screen exactly as it was. */
+    appState.cpOverlayOpen = false;
+    setMode('campaign');
   }
 
-  /* ── Close overlay (called by the ← Back button or backdrop click) ── */
+  /* ── Close campaign flow (X / Back to your content in the from-create topbar).
+     Captures prefilledFromCreate BEFORE resetting the flow so we can route
+     the user back to the wizard decision screen when they entered from the
+     create flow. Standalone opens (never launched from create) just fall
+     back to the campaign home. */
   window.campaignCloseOverlay = function () {
-    /* Just close the drawer and return to the decision screen — no confirm, no auto-save */
+    var wasFromCreate = !!(appState.campaignFlow && appState.campaignFlow.prefilledFromCreate)
+      || !!appState.cpOverlayOpen;
     appState.cpOverlayOpen = false;
     appState.campaignFlow = cpFreshFlow(appState);
     appState.campaignUI = { mode: 'home', selectedId: null };
-    renderContent();
+    if (wasFromCreate) {
+      setMode('wizard');
+    } else {
+      renderContent();
+    }
   };
 
   /* ── Called when user completes campaign wizard inside the overlay ── */

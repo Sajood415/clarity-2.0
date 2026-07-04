@@ -718,6 +718,200 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* ============================================================
+   CONTENT STUDIO NUDGE BELL — dashboard only. Fixed alongside the
+   global theme toggle; only rendered while a concept has completed
+   GTM and hasn't been nudged toward Content Studio yet.
+   ============================================================ */
+@keyframes dsh-bell-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+.dsh-bell-btn {
+  position: fixed; top: 12px; right: 58px; z-index: 500;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; margin-right: 8px; color: var(--ob-text);
+}
+.dsh-bell-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ob-gold);
+  animation: dsh-bell-pulse 1.5s ease infinite;
+}
+@keyframes dsh-bell-fade-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dsh-bell-dropdown {
+  position: absolute; top: 48px; right: 0; width: 280px;
+  background: var(--ob-surface); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 200; cursor: default; text-align: left;
+  animation: dsh-bell-fade-in 300ms ease;
+}
+.dsh-bell-new-badge {
+  display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--ob-gold);
+  background: rgba(212,168,83,0.1); border-radius: 4px; padding: 2px 8px;
+  margin-bottom: 12px;
+}
+.dsh-bell-heading { font-size: 15px; font-weight: 700; color: var(--ob-text); }
+.dsh-bell-body { font-size: 13px; color: var(--ob-muted); margin-top: 6px; line-height: 1.5; }
+.dsh-bell-cta {
+  display: block; width: 100%; background: var(--ob-gold); color: #1a1612; border: none;
+  border-radius: 6px; height: 40px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: filter 0.15s; font-family: 'DM Sans', sans-serif;
+  margin-top: 16px;
+}
+.dsh-bell-cta:hover { filter: brightness(1.08); }
+.dsh-bell-dismiss {
+  display: block; text-align: center; font-size: 11px; color: var(--ob-muted);
+  cursor: pointer; margin-top: 10px; opacity: 0.8; transition: opacity 150ms;
+}
+.dsh-bell-dismiss:hover { opacity: 1; text-decoration: underline; }
+
+[data-theme="light"] .dsh-bell-btn { border-color: rgba(0,0,0,0.1); background: rgba(0,0,0,0.04); }
+[data-theme="light"] .dsh-bell-dropdown {
+  border-color: rgba(0,0,0,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+[data-theme="light"] .dsh-bell-cta { color: #1a1612; }
+
+/* ============================================================
+   CONTENT ANALYTICS
+   ============================================================ */
+.ca-screen {
+  display: flex; flex-direction: column; min-height: 100vh; background: var(--ob-bg);
+}
+.ca-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.ca-topbar-back {
+  background: none; border: none; color: var(--ob-muted); font-size: 13px;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; padding: 0;
+  transition: color 0.15s;
+}
+.ca-topbar-back:hover { color: var(--ob-text); }
+.ca-topbar-label {
+  font-size: 13px; font-weight: 700; color: var(--ob-gold);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding-right: 56px;
+}
+.ca-body {
+  flex: 1; padding: 40px 32px 60px;
+  max-width: 960px; margin: 0 auto; width: 100%;
+}
+.ca-header { margin-bottom: 32px; }
+.ca-heading {
+  font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 600;
+  color: var(--ob-text); margin: 0 0 8px;
+}
+.ca-sub { font-size: 14px; color: var(--ob-muted); margin: 0; line-height: 1.5; }
+
+/* Summary bar */
+.ca-summary {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;
+}
+.ca-stat-card {
+  background: var(--ob-surface); border-radius: 10px; padding: 16px 20px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.ca-stat-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ob-muted); margin-bottom: 8px;
+}
+.ca-stat-val {
+  font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 700;
+  color: var(--ob-text); line-height: 1;
+}
+.ca-stat-sub { font-size: 11px; color: var(--ob-muted); margin-top: 6px; }
+
+/* AI Insight card */
+.ca-insight {
+  background: rgba(212,168,83,0.05); border: 1px solid rgba(212,168,83,0.2);
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 32px;
+  display: flex; align-items: center; gap: 24px;
+}
+.ca-insight-left { flex: 1; }
+.ca-insight-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ob-gold); background: rgba(212,168,83,0.1);
+  border-radius: 4px; padding: 2px 8px; margin-bottom: 10px;
+}
+.ca-insight-text { font-size: 14px; color: var(--ob-text); margin: 0; line-height: 1.55; }
+.ca-insight-right { flex-shrink: 0; }
+.ca-insight-cta {
+  background: var(--ob-gold); color: #1a1612; border: none; border-radius: 6px;
+  padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: filter 0.15s;
+}
+.ca-insight-cta:hover { filter: brightness(1.08); }
+
+/* Content list */
+.ca-list-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ob-muted); margin-bottom: 16px;
+}
+.ca-row {
+  background: var(--ob-surface); border-radius: 8px; padding: 14px 16px;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.ca-row-thumb {
+  width: 40px; height: 40px; border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+}
+.ca-row-info { flex: 1; min-width: 0; }
+.ca-row-title { font-size: 14px; font-weight: 700; color: var(--ob-text); }
+.ca-row-platform { font-size: 12px; color: var(--ob-muted); margin-top: 2px; }
+.ca-row-status {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--ob-teal); margin-top: 3px;
+}
+.ca-row-status-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--ob-teal);
+}
+.ca-row-stats { display: flex; gap: 20px; flex-shrink: 0; }
+.ca-row-metric { text-align: center; }
+.ca-row-metric-val { display: block; font-size: 13px; font-weight: 600; color: var(--ob-text); }
+.ca-row-metric-label { display: block; font-size: 10px; color: var(--ob-muted); margin-top: 2px; }
+
+/* Empty state */
+.ca-empty { text-align: center; padding: 60px 0; }
+.ca-empty-msg { font-size: 14px; color: var(--ob-muted); margin-bottom: 20px; line-height: 1.5; }
+.ca-empty-cta {
+  background: var(--ob-gold); color: #1a1612; border: none; border-radius: 6px;
+  height: 44px; padding: 0 28px; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; transition: filter 0.15s;
+}
+.ca-empty-cta:hover { filter: brightness(1.08); }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .ca-summary { grid-template-columns: repeat(2, 1fr); }
+  .ca-insight { flex-direction: column; align-items: flex-start; }
+  .ca-row-stats { flex-direction: column; gap: 8px; }
+  .ca-body { padding: 24px 20px 40px; }
+}
+@media (max-width: 480px) {
+  .ca-summary { grid-template-columns: 1fr; }
+}
+
+/* Light mode */
+[data-theme="light"] .ca-topbar { border-bottom-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .ca-stat-card { border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .ca-insight { border-color: rgba(184,137,58,0.25); background: rgba(184,137,58,0.04); }
+[data-theme="light"] .ca-insight-cta { color: #1a1612; }
+[data-theme="light"] .ca-row { border-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .ca-empty-cta { color: #1a1612; }
+
+/* ============================================================
    GTM TASKS BOARD — full-screen kanban + list of GTM plan
    action items. Own mode: 'gtm-tasks'. All classes prefixed gtmt-.
    ============================================================ */
@@ -1586,7 +1780,9 @@ var appState = {
   },
   intelligence: JSON.parse(JSON.stringify(CLARITY_SAMPLE_INTELLIGENCE)),
   personaChat: { messages: [] },
-  gtmTasksView: 'kanban'
+  gtmTasksView: 'kanban',
+  dshBellOpen: false,
+  _dshBellAutoOpenedFor: null
 };
 
 /* ===================== CONCEPTS ===================== */
@@ -1608,7 +1804,8 @@ function clarityFreshConcept(overrides) {
     strategy: { marketScan: null, customerIntelligence: null, competition: null },
     persona: { name: '', ageRange: '', description: '', caresAbout: [], otherTraits: '', trigger: '' },
     gtm: { plan: { actions: [] }, pricing: { inputs: {}, suggestions: [] } },
-    gtmComplete: false
+    gtmComplete: false,
+    contentNudgeSeen: false
   };
 }
 
@@ -1682,6 +1879,11 @@ window.claritySyncConceptToStudio = function () {
   appState.createFlow.format = null;
   appState.createFlow.variation = null;
   appState.createFlow.published = false;
+
+  /* Any entry into Content Studio for this concept counts as "nudged" —
+     hides the dashboard notification bell going forward. */
+  concept.contentNudgeSeen = true;
+  _saveLaunchpadState();
 };
 
 /* ===================== STYLED CONFIRM MODAL ===================== */
@@ -1788,6 +1990,92 @@ window.claritySetIntelMode = function(mode) {
   renderApp();
 };
 
+/* ===================== CONTENT ANALYTICS ===================== */
+function _caSeededRandom(seed) {
+  var x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
+
+function screenContentAnalytics() {
+  var items = appState.createdItems || [];
+  var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  var persona = (concept && concept.persona) || {};
+  var topCare = (persona.caresAbout && persona.caresAbout.length) ? persona.caresAbout[0] : 'quality and trust';
+
+  /* Topbar */
+  var topbar = '<div class="ca-topbar">'
+    + '<button class="ca-topbar-back" onclick="setMode(\'home\')">&larr; Back to Content Studio</button>'
+    + '<span class="ca-topbar-label">Analytics</span>'
+    + '</div>';
+
+  /* Header */
+  var header = '<div class="ca-header">'
+    + '<h1 class="ca-heading">Content Performance</h1>'
+    + '<p class="ca-sub">Every piece of content you create helps Clarity understand what works for your audience.</p>'
+    + '</div>';
+
+  if (!items.length) {
+    var empty = '<div class="ca-empty">'
+      + '<p class="ca-empty-msg">No content published yet. Create your first piece to start seeing performance data.</p>'
+      + '<button class="ca-empty-cta" onclick="setMode(\'wizard\')">Create content &#8594;</button>'
+      + '</div>';
+    return '<div class="ca-screen">' + topbar + '<div class="ca-body">' + header + empty + '</div></div>';
+  }
+
+  /* Summary bar */
+  var summary = '<div class="ca-summary">'
+    + '<div class="ca-stat-card"><div class="ca-stat-label">TOTAL REACH</div><div class="ca-stat-val" style="color:var(--ob-gold)">12,400</div><div class="ca-stat-sub">across all published content</div></div>'
+    + '<div class="ca-stat-card"><div class="ca-stat-label">AVG PERSONA FIT</div><div class="ca-stat-val" style="color:var(--ob-teal)">84%</div><div class="ca-stat-sub">based on your persona match</div></div>'
+    + '<div class="ca-stat-card"><div class="ca-stat-label">BEST FORMAT</div><div class="ca-stat-val">Image Post</div><div class="ca-stat-sub">highest average reach</div></div>'
+    + '<div class="ca-stat-card"><div class="ca-stat-label">CONTENT PIECES</div><div class="ca-stat-val" style="color:var(--ob-purple)">' + items.length + '</div><div class="ca-stat-sub">created so far</div></div>'
+    + '</div>';
+
+  /* AI Insight card */
+  var insight = '<div class="ca-insight">'
+    + '<div class="ca-insight-left">'
+    + '<span class="ca-insight-badge">CLARITY INSIGHT</span>'
+    + '<p class="ca-insight-text">Based on your content performance, your audience responds best to process-led visuals and community-focused messaging. Your next piece should lean into <strong>' + topCare + '</strong> to maintain momentum.</p>'
+    + '</div>'
+    + '<div class="ca-insight-right">'
+    + '<button class="ca-insight-cta" onclick="claritySyncConceptToStudio(); setMode(\'wizard\')">Create recommended content &#8594;</button>'
+    + '</div>'
+    + '</div>';
+
+  /* Content list */
+  var modalityColors = { Written: { bg: 'rgba(155,127,212,0.3)', fg: '#9b7fd4' }, Image: { bg: 'rgba(212,168,83,0.3)', fg: 'var(--ob-gold)' }, Video: { bg: 'rgba(45,212,191,0.3)', fg: 'var(--ob-teal)' }, Audio: { bg: 'rgba(224,123,106,0.3)', fg: 'var(--ob-coral)' } };
+  var fallbackColor = { bg: 'rgba(255,255,255,0.08)', fg: 'var(--ob-muted)' };
+
+  var listRows = items.map(function (item, idx) {
+    var mod = item.modality || 'Written';
+    var mc = modalityColors[mod] || fallbackColor;
+    var title = (item.title && item.title.trim()) ? item.title.trim() : mod + ' ' + (item.format || 'Post');
+    var platform = item.platform || '';
+
+    var reach = Math.floor(800 + _caSeededRandom(idx * 3) * 3200);
+    var fit   = Math.floor(70 + _caSeededRandom(idx * 3 + 1) * 25);
+    var eng   = (2.1 + _caSeededRandom(idx * 3 + 2) * 6.3).toFixed(1);
+
+    return '<div class="ca-row">'
+      + '<div class="ca-row-thumb" style="background:' + mc.bg + ';color:' + mc.fg + '">' + mod.charAt(0) + '</div>'
+      + '<div class="ca-row-info">'
+      + '<div class="ca-row-title">' + title + '</div>'
+      + (platform ? '<div class="ca-row-platform">' + platform + '</div>' : '')
+      + '<div class="ca-row-status"><span class="ca-row-status-dot"></span>Published</div>'
+      + '</div>'
+      + '<div class="ca-row-stats">'
+      + '<div class="ca-row-metric"><span class="ca-row-metric-val">' + reach.toLocaleString() + '</span><span class="ca-row-metric-label">reach</span></div>'
+      + '<div class="ca-row-metric"><span class="ca-row-metric-val" style="color:var(--ob-teal)">' + fit + '%</span><span class="ca-row-metric-label">persona fit</span></div>'
+      + '<div class="ca-row-metric"><span class="ca-row-metric-val">' + eng + '%</span><span class="ca-row-metric-label">engagement</span></div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+
+  var list = '<div class="ca-list-label">YOUR CONTENT</div>'
+    + '<div class="ca-list">' + listRows + '</div>';
+
+  return '<div class="ca-screen">' + topbar + '<div class="ca-body">' + header + summary + insight + list + '</div></div>';
+}
+
 /* ===================== HOME SCREEN ===================== */
 function screenHome() {
   var intel = appState.intelligence;
@@ -1795,6 +2083,9 @@ function screenHome() {
   var createdItems = appState.createdItems || [];
   var viewCreatedLinkHtml = createdItems.length
     ? '<div style="margin-top:12px;"><a href="#" style="font-size:13px;color:var(--ob-gold);cursor:pointer;" onclick="setMode(\'library\'); return false;">View created content (' + createdItems.length + ' items) &#8594;</a></div>'
+    : '';
+  var viewAnalyticsLinkHtml = createdItems.length
+    ? '<div style="margin-top:8px;"><a href="#" style="font-size:13px;color:var(--ob-gold);cursor:pointer;" onclick="setMode(\'content-analytics\'); return false;">View analytics &#8594;</a></div>'
     : '';
 
   var nudgeHtml;
@@ -1827,6 +2118,7 @@ function screenHome() {
       + '<button class="btn btn-outline" onclick="setMode(\'report-library\')">View your reports</button>'
       + '</div>'
       + viewCreatedLinkHtml
+      + viewAnalyticsLinkHtml
       + (campaigns.length
           ? '<div class="home-campaigns-link">You have ' + campaigns.length + ' active campaign' + (campaigns.length === 1 ? '' : 's') + ' \u2014 <a href="#" onclick="setMode(\'campaign\'); return false;">view campaigns</a></div>'
           : '')
@@ -1864,6 +2156,7 @@ function screenHome() {
       + '<button class="btn btn-outline" onclick="setMode(\'library\')">View library</button>'
       + '</div>'
       + viewCreatedLinkHtml
+      + viewAnalyticsLinkHtml
       + (campaigns.length
           ? '<div class="home-campaigns-link">You have ' + campaigns.length + ' active campaign' + (campaigns.length === 1 ? '' : 's') + ' \u2014 <a href="#" onclick="setMode(\'campaign\'); return false;">view campaigns</a></div>'
           : '')
@@ -1898,6 +2191,7 @@ function screenHome() {
       + '<button class="btn btn-primary btn-lg" onclick="setMode(\'wizard\')">Create content</button>'
       + '</div>'
       + viewCreatedLinkHtml
+      + viewAnalyticsLinkHtml
       + '</div>';
   }
 
@@ -2466,11 +2760,79 @@ function screenDashboard() {
   var concepts = appState.concepts || [];
   var active = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
 
+  /* Auto-open the nudge dropdown the first time the dashboard renders while
+     eligible for this concept, so the user sees it without clicking the
+     bell. Tracked per concept id so it only fires once — after that the
+     user can freely open/close it via the bell without it forcing back open. */
+  var bellEligible = !!(active && active.gtmComplete && active.contentNudgeSeen !== true);
+  if (bellEligible && appState._dshBellAutoOpenedFor !== active.id) {
+    appState.dshBellOpen = true;
+    appState._dshBellAutoOpenedFor = active.id;
+  }
+
   return '<div class="dsh-wrap">'
     + _dshSidebar(concepts)
     + _dshContentPanel(active)
+    + _dshBellHtml(active)
     + '</div>';
 }
+
+/* ---- Content Studio nudge bell — dashboard only ----
+   Shown once a concept's GTM is locked in and the user hasn't been
+   nudged toward Content Studio yet (or hasn't dismissed the nudge). */
+function _dshBellHtml(concept) {
+  if (!concept || !concept.gtmComplete || concept.contentNudgeSeen === true) return '';
+
+  var dropdown = '';
+  if (appState.dshBellOpen) {
+    dropdown = '<div class="dsh-bell-dropdown" onclick="event.stopPropagation()">'
+      + '<div class="dsh-bell-new-badge">NEW</div>'
+      + '<div class="dsh-bell-heading">Your strategy is ready.</div>'
+      + '<div class="dsh-bell-body">We put together content ideas based on your research and plan. Want to see them?</div>'
+      + '<button class="dsh-bell-cta" onclick="dshBellShowMe()">Show me &#8594;</button>'
+      + '<span class="dsh-bell-dismiss" onclick="dshBellDismiss()">Dismiss</span>'
+      + '</div>';
+  }
+
+  return '<div class="dsh-bell-btn" id="dsh-bell-btn" onclick="dshToggleBell(event)">'
+    + '<span style="font-size:16px">&#128276;</span>'
+    + '<span class="dsh-bell-dot"></span>'
+    + dropdown
+    + '</div>';
+}
+
+window.dshToggleBell = function (event) {
+  if (event) event.stopPropagation();
+  appState.dshBellOpen = !appState.dshBellOpen;
+  renderApp();
+};
+
+window.dshBellShowMe = function () {
+  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  if (c) c.contentNudgeSeen = true;
+  appState.dshBellOpen = false;
+  _saveLaunchpadState();
+  claritySyncConceptToStudio();
+  setMode('home');
+};
+
+window.dshBellDismiss = function () {
+  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  if (c) c.contentNudgeSeen = true;
+  appState.dshBellOpen = false;
+  _saveLaunchpadState();
+  renderApp();
+};
+
+/* Close the bell dropdown on any click outside the bell button/dropdown. */
+document.addEventListener('click', function (event) {
+  if (!appState.dshBellOpen) return;
+  var bell = document.getElementById('dsh-bell-btn');
+  if (bell && !bell.contains(event.target)) {
+    appState.dshBellOpen = false;
+    renderApp();
+  }
+});
 
 /* ---- Handlers ---- */
 window.dshSelectConcept = function (id) {
@@ -2995,6 +3357,24 @@ function _pfcSendMessage(text) {
   }, 800 + Math.random() * 600);
 }
 
+/* ===================== CAMPAIGN PUBLISH — STANDALONE PAGE =====================
+   The publish step is a full-page mode outside the campaign flow overlay/drawer.
+   This function reads appState.campaignFlow and delegates to campaign-flow.js's
+   window.cpRenderPublishPage() for the actual markup (which has direct access
+   to the campaign helpers — approved-assets grouping, conflicts, week-grid,
+   date formatting, etc.). If the campaign flow module isn't loaded, we render
+   a neutral fallback so the app never blank-screens. */
+window.screenCampaignPublish = function () {
+  if (!appState.campaignFlow) {
+    return '<div class="cp-pub-page"><div class="cp-pub-topbar">'
+      + '<button class="app-topbar-back" onclick="setMode(\'campaign\')">&#8592; Back</button>'
+      + '<span class="cp-pub-topbar-title">Publish Schedule</span>'
+      + '<div></div>'
+      + '</div><div class="cp-pub-content"><p style="padding:40px 48px;color:var(--ob-muted, #9a8f82);">No campaign in progress.</p></div></div>';
+  }
+  return window.cpRenderPublishPage ? window.cpRenderPublishPage() : '';
+};
+
 /* ===================== RENDER DISPATCHER ===================== */
 function renderApp() {
   if (window.spDestroyAnchorSidebar) window.spDestroyAnchorSidebar();
@@ -3072,6 +3452,16 @@ function renderApp() {
     return;
   }
 
+  if (mode === 'content-analytics') {
+    el.innerHTML = screenContentAnalytics();
+    return;
+  }
+
+  if (mode === 'campaign-publish') {
+    el.innerHTML = window.screenCampaignPublish ? window.screenCampaignPublish() : '';
+    return;
+  }
+
   if (mode === 'home') {
     el.innerHTML = screenHome();
     return;
@@ -3110,7 +3500,14 @@ function renderApp() {
   if (mode === 'library') {
     el.innerHTML = topbar + screenLibrary();
   } else if (mode === 'campaign') {
-    el.innerHTML = topbar + screenCampaign();
+    /* When the campaign flow was launched from the create wizard it renders
+       its own topbar inside cpScreenFlow ("← Back to your content" + X),
+       so we skip the outer app-topbar to avoid stacking two topbars. */
+    var cf = appState.campaignFlow;
+    var cUI = appState.campaignUI;
+    var fromCreatePage = !!(cf && cf.prefilledFromCreate)
+      && !!cUI && cUI.mode === 'flow';
+    el.innerHTML = (fromCreatePage ? '' : topbar) + screenCampaign();
   }
 }
 
@@ -3192,6 +3589,7 @@ function _restoreLaunchpadState() {
       if (!c.gtm) c.gtm = { plan: { actions: [] }, pricing: { inputs: {}, suggestions: [] } };
       if (!c.gtm.plan) c.gtm.plan = { actions: [] };
       if (!c.gtm.pricing) c.gtm.pricing = { inputs: {}, suggestions: [] };
+      if (typeof c.contentNudgeSeen !== 'boolean') c.contentNudgeSeen = false;
     });
 
     var active = null;

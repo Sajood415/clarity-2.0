@@ -522,3 +522,302 @@
   .cp-schedule-dates { grid-template-columns: 1fr; }
   .cp-schedule-expand-link { display: none; }
 }
+
+/* ============================================================
+   PUBLISH STEP — full-page rebuild (breadcrumb + 60/40 split).
+   Escapes .cp-main's horizontal padding via negative margins so
+   the layout runs edge-to-edge inside the flow shell. All new
+   classes are cp-publish-* prefixed.
+   ============================================================ */
+.cp-publish-crumb {
+  margin: 0 -32px 0;
+  padding: 16px 28px;
+  font-size: 13px; color: var(--ob-muted, #9a8f82);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; gap: 8px;
+  background: transparent;
+}
+.cp-publish-crumb-name { color: var(--ob-text, #e8e0d5); font-weight: 500; }
+.cp-publish-crumb-sep { color: var(--ob-muted, #9a8f82); }
+.cp-publish-crumb-active { color: var(--ob-gold, #d4a853); font-weight: 500; }
+
+.cp-publish-split {
+  margin: 0 -32px -28px;
+  display: grid; grid-template-columns: 60% 40%; gap: 0;
+  min-height: 520px;
+}
+.cp-publish-left {
+  padding: 32px 28px;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  display: flex; flex-direction: column;
+}
+.cp-publish-right {
+  padding: 32px 28px;
+  background: var(--ob-surface, #1c1916);
+}
+
+/* ---- Left column: schedule heading + copy ---- */
+.cp-publish-heading {
+  font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600;
+  color: var(--ob-text, #e8e0d5); margin-bottom: 6px; line-height: 1.25;
+}
+.cp-publish-sub {
+  font-size: 13px; color: var(--ob-muted, #9a8f82); line-height: 1.5;
+  margin-bottom: 24px;
+}
+.cp-publish-conflict-note {
+  font-size: 12px; color: var(--ob-coral, #e07b6a);
+  margin-top: 12px; margin-bottom: 4px;
+}
+
+/* ---- Date range inputs (styled cards) ---- */
+.cp-publish-date-inputs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
+}
+.cp-publish-date-card {
+  background: var(--ob-surface, #1c1916); border-radius: 8px;
+  padding: 12px 16px; border: 1px solid rgba(255,255,255,0.08);
+}
+.cp-publish-date-card label {
+  display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ob-muted, #9a8f82); margin-bottom: 6px;
+}
+.cp-publish-date-card input[type="date"] {
+  width: 100%; background: transparent; border: none; padding: 0;
+  color: var(--ob-text, #e8e0d5); font-family: 'DM Sans', sans-serif;
+  font-size: 14px; outline: none;
+}
+
+/* ---- Visual week grid ---- */
+.cp-publish-week-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
+  margin-bottom: 20px;
+}
+.cp-publish-day-col {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 10px 4px; border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  min-height: 78px;
+}
+.cp-publish-day-name {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--ob-muted, #9a8f82);
+}
+.cp-publish-day-dots {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;
+  align-items: center; min-height: 24px;
+}
+.cp-publish-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.cp-publish-dot-empty {
+  background: transparent !important;
+  border: 1px dashed rgba(255,255,255,0.15);
+}
+.cp-publish-dot-more {
+  font-size: 10px; color: var(--ob-muted, #9a8f82); margin-left: 2px;
+}
+
+/* ---- Actions row: auto-spread + review link ---- */
+.cp-publish-actions {
+  display: flex; align-items: center; gap: 16px; margin-top: 4px;
+}
+.cp-publish-actions .btn { flex: 0 0 auto; }
+.cp-publish-review-link {
+  font-size: 12px; color: var(--ob-muted, #9a8f82); cursor: pointer;
+  transition: color 0.15s;
+}
+.cp-publish-review-link:hover { color: var(--ob-gold, #d4a853); }
+
+.cp-publish-expanded { margin-top: 24px; }
+
+/* ---- Right column: asset summary ---- */
+.cp-publish-right-heading {
+  font-size: 16px; font-weight: 700; color: var(--ob-text, #e8e0d5);
+  margin-bottom: 4px;
+}
+.cp-publish-right .cp-publish-sub { margin-bottom: 20px; }
+.cp-publish-summary-list { display: flex; flex-direction: column; gap: 20px; }
+.cp-publish-summary-group { display: flex; flex-direction: column; gap: 6px; }
+.cp-publish-summary-platform {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ob-muted, #9a8f82);
+  margin-bottom: 4px;
+}
+.cp-publish-summary-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.cp-publish-summary-row:last-child { border-bottom: none; }
+.cp-publish-summary-label {
+  font-size: 13px; color: var(--ob-text, #e8e0d5);
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cp-publish-summary-when {
+  font-size: 12px; color: var(--ob-muted, #9a8f82); flex-shrink: 0;
+}
+
+/* ---- Light-mode overrides ---- */
+[data-theme="light"] .cp-publish-crumb {
+  border-bottom-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .cp-publish-split { }
+[data-theme="light"] .cp-publish-left { border-right-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .cp-publish-right { background: #faf7f1; }
+[data-theme="light"] .cp-publish-date-card {
+  background: #faf7f1; border-color: rgba(0,0,0,0.08);
+}
+[data-theme="light"] .cp-publish-day-col {
+  background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.04);
+}
+[data-theme="light"] .cp-publish-dot-empty { border-color: rgba(0,0,0,0.18); }
+[data-theme="light"] .cp-publish-summary-row { border-bottom-color: rgba(0,0,0,0.05); }
+
+/* ---- Mobile ---- */
+@media (max-width: 767px) {
+  .cp-publish-crumb { margin: 0 -20px 0; padding: 14px 20px; }
+  .cp-publish-split {
+    margin: 0 -20px -20px; grid-template-columns: 1fr; min-height: 0;
+  }
+  .cp-publish-left {
+    padding: 24px 20px; border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  [data-theme="light"] .cp-publish-left { border-bottom-color: rgba(0,0,0,0.08); }
+  .cp-publish-right { padding: 24px 20px; }
+  .cp-publish-date-inputs { grid-template-columns: 1fr; }
+  .cp-publish-review-link { display: none; }
+  .cp-publish-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+  .cp-publish-actions .btn { width: 100%; }
+}
+
+/* =========================================================================
+   CAMPAIGN PUBLISH — STANDALONE FULL PAGE (mode: campaign-publish)
+   -------------------------------------------------------------------------
+   The page shell (topbar + breadcrumb + content wrapper) rendered by
+   window.cpRenderPublishPage() in campaign-flow.js. This lives outside the
+   campaign flow overlay/drawer and has its own topbar/back button. The
+   two-column body reuses the .cp-publish-split rules above; we just neutralize
+   the negative margins (which were designed to escape .cp-main padding).
+   ========================================================================= */
+
+.cp-pub-page {
+  min-height: 100vh;
+  background: var(--bg, var(--ob-bg, #171613));
+  display: flex; flex-direction: column;
+}
+
+/* --- Topbar --- */
+.cp-pub-topbar {
+  height: 56px; flex-shrink: 0;
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 24px;
+  background: var(--ob-bg, #171613);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.cp-pub-topbar-title {
+  font-size: 15px; color: var(--ob-text, #f2ede4); font-weight: 500;
+  letter-spacing: 0.005em;
+  justify-self: center;
+}
+/* Reserve right-side room so the fixed theme toggle overlay doesn't visually
+   crowd the topbar's right edge. Actual toggle is rendered as a page-level
+   fixed button — this spacer just keeps the layout balanced. */
+.cp-pub-topbar-spacer { justify-self: end; width: 120px; height: 1px; }
+.cp-pub-back { justify-self: start; flex-shrink: 0; }
+
+/* --- Breadcrumb bar --- */
+.cp-pub-breadcrumb {
+  padding: 12px 32px;
+  background: var(--ob-surface, #211f1c);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px;
+  overflow-x: auto; white-space: nowrap;
+}
+.cp-pub-breadcrumb::-webkit-scrollbar { height: 0; display: none; }
+.cp-pub-crumb-name { color: var(--ob-text, #f2ede4); font-weight: 500; }
+.cp-pub-crumb-item { color: var(--ob-muted, #9a8f82); }
+.cp-pub-crumb-active { color: var(--ob-gold, #d4a95e); font-weight: 500; }
+.cp-pub-crumb-sep { color: var(--ob-muted, #9a8f82); opacity: 0.55; }
+
+/* --- Main content --- */
+.cp-pub-content { padding: 40px 48px; flex: 1; }
+
+/* Neutralize the .cp-publish-split negative margins (they were built to
+   bleed edge-to-edge under .cp-main's inner padding — not needed here). */
+.cp-pub-content .cp-publish-split { margin: 0; min-height: 0; }
+
+/* Right column becomes a flex column so the Done button anchors at the
+   bottom regardless of how tall the summary list is. */
+.cp-pub-content .cp-publish-right { display: flex; flex-direction: column; }
+.cp-pub-content .cp-publish-summary-list { flex: 1; }
+
+/* --- Done button --- */
+.cp-pub-done {
+  margin-top: 24px;
+  width: 100%;
+  padding: 14px 20px;
+  background: var(--ob-gold, #d4a95e);
+  color: #1a1815;
+  border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.cp-pub-done:hover { background: #e0b76c; }
+.cp-pub-done:active { transform: translateY(1px); }
+
+/* --- Empty state (no approved assets) --- */
+.cp-pub-empty {
+  padding: 48px 24px; text-align: center;
+  background: var(--ob-surface, #211f1c);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+.cp-pub-empty-msg {
+  color: var(--ob-muted, #9a8f82); font-size: 14px; margin-bottom: 20px;
+}
+.cp-pub-empty-actions {
+  display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+}
+
+/* --- Light-mode overrides --- */
+[data-theme="light"] .cp-pub-page { background: var(--bg, #faf7f2); }
+[data-theme="light"] .cp-pub-topbar {
+  background: #ffffff;
+  border-bottom-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .cp-pub-topbar-title { color: #2a2620; }
+[data-theme="light"] .cp-pub-breadcrumb {
+  background: #ffffff;
+  border-bottom-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .cp-pub-crumb-name { color: #2a2620; }
+[data-theme="light"] .cp-pub-crumb-item { color: #6a6055; }
+[data-theme="light"] .cp-pub-crumb-sep { color: #6a6055; }
+[data-theme="light"] .cp-pub-crumb-active { color: #b8894a; }
+[data-theme="light"] .cp-pub-done { color: #ffffff; background: #b8894a; }
+[data-theme="light"] .cp-pub-done:hover { background: #c99a5a; }
+[data-theme="light"] .cp-pub-empty {
+  background: #ffffff;
+  border-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .cp-pub-empty-msg { color: #6a6055; }
+
+/* --- Mobile --- */
+@media (max-width: 767px) {
+  .cp-pub-topbar { padding: 0 16px; }
+  .cp-pub-topbar-spacer { width: 24px; }
+  .cp-pub-topbar-title { font-size: 14px; }
+  .cp-pub-breadcrumb { padding: 10px 16px; font-size: 11px; }
+  .cp-pub-content { padding: 20px 16px; }
+  .cp-pub-content .cp-publish-split { margin: 0; }
+  .cp-pub-done { margin-top: 16px; padding: 13px 18px; font-size: 13px; }
+}

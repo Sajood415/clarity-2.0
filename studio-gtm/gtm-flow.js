@@ -358,18 +358,96 @@ var GtmFlow = (function () {
     }).join('');
   }
 
+  /* ---- Timeline layout — screenPlanOutput() (and, by request, the
+     completed view's My Plan tab). gtmPlanCardsHtml() above stays
+     untouched in case anything else still needs the stacked-card form. ---- */
+  function gtmPriorityColor(priority) {
+    return priority === 'P0' ? 'var(--ob-coral)' : (priority === 'P1' ? 'var(--ob-gold)' : 'var(--ob-muted)');
+  }
+  function gtmPriorityChipBg(priority) {
+    return priority === 'P0' ? 'rgba(224,123,106,0.15)' : (priority === 'P1' ? 'rgba(212,168,83,0.15)' : 'rgba(154,143,130,0.15)');
+  }
+
+  /* Actions with live status pulled from the persisted concept (if the
+     GTM Tasks board has already touched them); defaults to 'todo'. */
+  function gtmPlanActionsForOutput() {
+    var actions = gtmBuildPlanActions();
+    var c = gtmActiveConcept();
+    var saved = (c && c.gtm && c.gtm.plan && Array.isArray(c.gtm.plan.actions)) ? c.gtm.plan.actions : [];
+    actions.forEach(function (a, i) {
+      var s = saved[i] && saved[i].status;
+      a.status = (s === 'todo' || s === 'inprogress' || s === 'done') ? s : 'todo';
+    });
+    return actions;
+  }
+
+  function gtmPlanHeaderHtml(bizName, actions) {
+    var total = actions.length;
+    var done = actions.filter(function (a) { return a.status === 'done'; }).length;
+    var pct = total ? Math.round((done / total) * 100) : 0;
+    return '<div class="gtm-plan-header">'
+      + '<div class="gtm-plan-header-info">'
+      + '<div class="gtm-plan-header-biz">' + gtmEsc(bizName) + '</div>'
+      + '<div class="gtm-plan-header-sub">90-Day Action Plan</div>'
+      + '</div>'
+      + '<div class="gtm-plan-header-progress">'
+      + '<div class="gtm-plan-progress-label">' + done + ' of ' + total + ' complete</div>'
+      + '<div class="gtm-plan-progress-track"><div class="gtm-plan-progress-fill" style="width:' + pct + '%"></div></div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function gtmTimelineCardHtml(a, phaseColor) {
+    var priColor = gtmPriorityColor(a.priority);
+    var priBg = gtmPriorityChipBg(a.priority);
+    return '<div class="gtm-tl-card" style="border-left-color:' + priColor + '">'
+      + '<div class="gtm-tl-num" style="color:' + phaseColor + '">' + a._num + '</div>'
+      + '<div class="gtm-tl-body">'
+      + '<div class="gtm-tl-title">' + gtmEsc(a.title) + '</div>'
+      + '<div class="gtm-tl-desc">' + gtmEsc(a.desc) + '</div>'
+      + '<div class="gtm-tl-chips">'
+      + '<span class="gtm-tl-chip">' + gtmEsc(a.owner) + '</span>'
+      + '<span class="gtm-tl-chip" style="background:' + priBg + ';color:' + priColor + '">' + a.priority + '</span>'
+      + '</div>'
+      + '</div></div>';
+  }
+
+  function gtmPlanTimelineHtml(actions) {
+    var groups = [
+      { label: 'WEEKS 1\u20132', color: 'var(--ob-gold)', bg: 'rgba(212,168,83,0.05)', items: [] },
+      { label: 'MONTH 1',      color: 'var(--ob-teal)', bg: 'rgba(45,212,191,0.05)',  items: [] },
+      { label: 'MONTHS 2\u20133', color: 'var(--ob-purple)', bg: 'rgba(155,127,212,0.05)', items: [] }
+    ];
+    actions.forEach(function (a, i) {
+      a._num = i + 1;
+      if (a.timeline === 'Week 1-2') groups[0].items.push(a);
+      else if (a.timeline === 'Month 1') groups[1].items.push(a);
+      else groups[2].items.push(a);
+    });
+
+    return '<div class="gtm-timeline">' + groups.map(function (g) {
+      if (!g.items.length) return '';
+      var cards = g.items.map(function (a) { return gtmTimelineCardHtml(a, g.color); }).join('');
+      return '<div class="gtm-phase">'
+        + '<div class="gtm-phase-band" style="border-left-color:' + g.color + ';background:' + g.bg + ';color:' + g.color + '">' + g.label + '</div>'
+        + '<div class="gtm-phase-cards">' + cards + '</div>'
+        + '</div>';
+    }).join('') + '</div>';
+  }
+
   function screenPlanOutput() {
     var biz = gtmBiz();
     var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
+    var actions = gtmPlanActionsForOutput();
 
     var body = '<div class="gtm-eyebrow">MY PLAN</div>'
-      + '<div class="gtm-heading">' + gtmEsc(bizName) + ' \u2014 90-Day Action Plan</div>'
-      + '<div class="gtm-action-list">' + gtmPlanCardsHtml() + '</div>'
+      + gtmPlanHeaderHtml(bizName, actions)
+      + gtmPlanTimelineHtml(actions)
       + '<button class="gtm-btn-primary gtm-btn-lg" onclick="gtmContinueToPricing()">Continue to My Pricing &#8594;</button>';
 
     return '<div class="gtm-screen">'
       + gtmTopbar('Back to My Plan setup', 'gtmBackToPlanContext()')
-      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-wide">' + body + '</div></div>'
+      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-xwide">' + body + '</div></div>'
       + '</div>';
   }
 
@@ -482,50 +560,148 @@ var GtmFlow = (function () {
     }).join('');
   }
 
+  /* ---- Column layout — screenPricingOutput() (and, by request, the
+     completed view's My Pricing tab). gtmPricingCardsHtml() above stays
+     untouched in case anything else still needs the stacked-card form. ---- */
+  function gtmMeterHtml(kind, level) {
+    var color = kind === 'impact'
+      ? (level === 'High' ? 'var(--ob-teal)' : (level === 'Medium' ? 'var(--ob-gold)' : 'var(--ob-coral)'))
+      : (level === 'High' ? 'var(--ob-coral)' : (level === 'Medium' ? 'var(--ob-gold)' : 'var(--ob-teal)'));
+    var pct = level === 'High' ? 100 : (level === 'Medium' ? 60 : 30);
+    var label = kind === 'impact' ? 'IMPACT' : 'EFFORT';
+    return '<div class="gtm-meter">'
+      + '<div class="gtm-meter-label">' + label + '</div>'
+      + '<div class="gtm-meter-track"><div class="gtm-meter-fill" style="width:' + pct + '%;background:' + color + '"></div></div>'
+      + '</div>';
+  }
+
+  function gtmPricingColumnHtml(s, i, opts) {
+    opts = opts || {};
+    var tag = opts.hideTag ? '' : '<div class="gtm-pricing-col-tag">OPTION ' + (i + 1) + '</div>';
+    var selectLink = opts.hideSelectLink ? '' : '<a href="#" class="gtm-pricing-select-link" onclick="return false;">Select this &#8594;</a>';
+    return '<div class="gtm-pricing-col">'
+      + tag
+      + '<div class="gtm-pricing-col-headline">' + gtmEsc(s.headline) + '</div>'
+      + '<div class="gtm-pricing-col-explain">' + gtmEsc(s.explain) + '</div>'
+      + '<div class="gtm-pricing-col-persona">' + gtmEsc(s.personaLine) + '</div>'
+      + gtmMeterHtml('impact', s.impact)
+      + gtmMeterHtml('effort', s.effort)
+      + selectLink
+      + '</div>';
+  }
+
+  /* opts is optional — { hideTag: true, hideSelectLink: true } used by the
+     completed view's more minimal cards. screenPricingOutput() below calls
+     this with no opts, so it keeps its OPTION tags and Select links. */
+  function gtmPricingColumnsHtml(suggestions, opts) {
+    return '<div class="gtm-pricing-columns">' + suggestions.map(function (s, i) { return gtmPricingColumnHtml(s, i, opts); }).join('') + '</div>';
+  }
+
   function screenPricingOutput() {
+    var suggestions = gtmBuildPricingSuggestions();
     var body = '<div class="gtm-eyebrow">MY PRICING</div>'
-      + '<div class="gtm-heading">Three ways to grow your revenue.</div>'
-      + '<div class="gtm-adjust-list">' + gtmPricingCardsHtml() + '</div>'
+      + '<div class="gtm-pricing-heading">Three ways to grow your revenue.</div>'
+      + '<div class="gtm-pricing-sub">Based on your numbers and your persona.</div>'
+      + gtmPricingColumnsHtml(suggestions)
       + '<button class="gtm-btn-primary gtm-btn-lg" onclick="gtmLockInStrategy()">Lock in my GTM strategy &#8594;</button>';
 
     return '<div class="gtm-screen">'
       + gtmTopbar('Back to Pricing setup', 'gtmBackToPricingContext()')
-      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-wide">' + body + '</div></div>'
+      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-xwide">' + body + '</div></div>'
+      + '</div>';
+  }
+
+  /* ---- Briefing bar — top strip of screenGtmCompletedView() ---- */
+  function gtmBriefingBarHtml(bizName, actions, doneCount) {
+    var c = gtmActiveConcept();
+    var s = (c && c.strategy) || {};
+    var p = (c && c.persona) || {};
+
+    var gap = (s.marketScan && s.marketScan.gapHeadline) ? s.marketScan.gapHeadline : 'Not yet identified';
+    var gapTrunc = gap.length > 30 ? gap.slice(0, 30).trim() + '\u2026' : gap;
+
+    var personaName = (p.name && p.name.trim()) ? p.name.trim() : 'Your customer';
+    var topCare = (p.caresAbout && p.caresAbout.length) ? p.caresAbout[0] : '';
+    var personaVal = personaName + (topCare ? ' \u00b7 ' + topCare : '');
+
+    function pill(label, value, color) {
+      return '<div class="gtm-briefing-stat">'
+        + '<div class="gtm-briefing-stat-label">' + label + '</div>'
+        + '<div class="gtm-briefing-stat-val"' + (color ? ' style="color:' + color + '"' : '') + '>' + gtmEsc(value) + '</div>'
+        + '</div>';
+    }
+
+    return '<div class="gtm-briefing-bar">'
+      + '<div class="gtm-briefing-biz">' + gtmEsc(bizName) + '</div>'
+      + '<div class="gtm-briefing-divider"></div>'
+      + '<div class="gtm-briefing-stats">'
+      + pill('MARKET GAP', gapTrunc)
+      + pill('PERSONA', personaVal)
+      + pill('PROGRESS', doneCount + ' of ' + actions.length + ' actions complete', 'var(--ob-teal)')
+      + '</div>'
+      + '</div>';
+  }
+
+  /* ---- My Plan horizontal roadmap — screenGtmCompletedView() only ---- */
+  function gtmRoadmapPhaseInfo(timeline) {
+    if (timeline === 'Week 1-2') return { label: 'WEEKS 1\u20132', color: 'var(--ob-gold)' };
+    if (timeline === 'Month 1') return { label: 'MONTH 1', color: 'var(--ob-teal)' };
+    return { label: 'MONTHS 2\u20133', color: 'var(--ob-purple)' };
+  }
+
+  function gtmRoadmapCardHtml(a, num) {
+    var phase = gtmRoadmapPhaseInfo(a.timeline);
+    var priColor = gtmPriorityColor(a.priority);
+    var priBg = gtmPriorityChipBg(a.priority);
+    return '<div class="gtm-roadmap-card" style="border-top-color:' + phase.color + '">'
+      + '<div class="gtm-roadmap-phase" style="color:' + phase.color + '">' + phase.label + '</div>'
+      + '<div class="gtm-roadmap-num" style="color:' + phase.color + '">' + num + '</div>'
+      + '<div class="gtm-roadmap-title">' + gtmEsc(a.title) + '</div>'
+      + '<div class="gtm-roadmap-desc">' + gtmEsc(a.desc) + '</div>'
+      + '<div class="gtm-tl-chips">'
+      + '<span class="gtm-tl-chip">' + gtmEsc(a.owner) + '</span>'
+      + '<span class="gtm-tl-chip" style="background:' + priBg + ';color:' + priColor + '">' + a.priority + '</span>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function gtmPlanRoadmapHtml(actions) {
+    var cards = actions.map(function (a, i) { return gtmRoadmapCardHtml(a, i + 1); }).join('');
+    var leftArrow = '<button class="gtm-roadmap-arrow gtm-roadmap-arrow-left" onclick="gtmRoadmapScroll(-300)" aria-label="Scroll left">'
+      + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>'
+      + '</button>';
+    var rightArrow = '<button class="gtm-roadmap-arrow gtm-roadmap-arrow-right" onclick="gtmRoadmapScroll(300)" aria-label="Scroll right">'
+      + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+      + '</button>';
+    return '<div class="gtm-roadmap-wrap">'
+      + leftArrow
+      + '<div class="gtm-roadmap" id="gtm-roadmap-scroll">' + cards + '</div>'
+      + rightArrow
       + '</div>';
   }
 
   /* ============================================================
      COMPLETED VIEW — read-only revisit from the dashboard
-     Tabbed view reusing Strategic Planning's buildTabsUI()/spSwitchTab():
-     "My Plan" (default) + "My Pricing". No view-all toggle, no PDF,
-     no forward/edit buttons; only "Back to Dashboard" up top.
+     Command-center briefing: top stat bar, then a horizontally
+     scrolling My Plan roadmap, then the My Pricing three-column grid.
+     Single column, single page scroll. Only "Back to Dashboard" up top.
      ============================================================ */
   function screenGtmCompletedView() {
     var biz = gtmBiz();
     var bizName = (biz.name && biz.name.trim()) ? biz.name.trim() : 'Your Business';
-    var accent = 'var(--ob-gold)';
+    var actions = gtmPlanActionsForOutput();
+    var doneCount = actions.filter(function (a) { return a.status === 'done'; }).length;
 
-    var planContent = '<div class="sp-tab-content-title" style="color:' + accent + '">' + gtmEsc(bizName) + '</div>'
-      + '<div class="gtm-action-list">' + gtmPlanCardsHtml() + '</div>';
-
-    var pricingContent = '<div class="sp-tab-content-title" style="color:' + accent + '">Three ways to grow your revenue.</div>'
-      + '<div class="gtm-adjust-list">' + gtmPricingCardsHtml() + '</div>';
-
-    var tabsHtml = window.buildTabsUI
-      ? window.buildTabsUI({
-          wrapId: 'gtm-completed-tabs',
-          accentVar: accent,
-          hideViewAll: true,
-          tabs: [
-            { label: 'My Plan',    content: planContent },
-            { label: 'My Pricing', content: pricingContent }
-          ]
-        })
-      : '';
+    var body = gtmBriefingBarHtml(bizName, actions, doneCount)
+      + '<div class="gtm-completed-section-label">MY PLAN</div>'
+      + gtmPlanRoadmapHtml(actions)
+      + '<a href="#" class="gtm-completed-tasks-link" onclick="setMode(\'gtm-tasks\'); return false;">Manage tasks &#8594;</a>'
+      + '<div class="gtm-completed-section-label" style="margin-top:32px">MY PRICING</div>'
+      + gtmPricingColumnsHtml(gtmBuildPricingSuggestions(), { hideTag: true, hideSelectLink: true });
 
     return '<div class="gtm-screen">'
       + gtmTopbar('Back to Dashboard', 'setMode(\'dashboard\')')
-      + '<div class="gtm-body"><div class="gtm-content-wrap gtm-content-wrap-wide">' + tabsHtml + '</div></div>'
+      + '<div class="gtm-body" style="padding:40px 0 60px;"><div class="gtm-completed-wrap">' + body + '</div></div>'
       + '</div>';
   }
 
@@ -586,6 +762,12 @@ window.gtmCheckLoadingHook = function () { GtmFlow.checkLoadingHook(); };
 
 /* ===================== NAVIGATION & HANDLERS ===================== */
 window.gtmBackToPersona = function () { setMode('persona-studio'); };
+
+/* Scroll arrows for the completed view's horizontal My Plan roadmap */
+window.gtmRoadmapScroll = function (delta) {
+  var el = document.getElementById('gtm-roadmap-scroll');
+  if (el) el.scrollBy({ left: delta, behavior: 'smooth' });
+};
 
 window.gtmBackToPlanContext = function () {
   GtmFlow.gtmFlowState().step = 'plan-context';
