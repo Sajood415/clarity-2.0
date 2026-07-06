@@ -602,7 +602,7 @@ var GtmFlow = (function () {
     var body = '<div class="gtm-eyebrow">MY PRICING</div>'
       + '<div class="gtm-pricing-heading">Three ways to grow your revenue.</div>'
       + '<div class="gtm-pricing-sub">Based on your numbers and your persona.</div>'
-      + gtmPricingColumnsHtml(suggestions)
+      + gtmPricingColumnsHtml(suggestions, { hideSelectLink: true })
       + '<button class="gtm-btn-primary gtm-btn-lg" onclick="gtmLockInStrategy()">Lock in my GTM strategy &#8594;</button>';
 
     return '<div class="gtm-screen">'
