@@ -398,6 +398,22 @@ a { text-decoration: none; color: inherit; }
 }
 .dsh-new-concept-btn:hover { opacity: 0.75; }
 
+/* Sidebar footer: divider + logout, sits directly below "+ New concept". */
+.dsh-sidebar-divider {
+  height: 1px; background: rgba(255,255,255,0.06);
+  margin: 16px 0; flex-shrink: 0;
+}
+[data-theme="light"] .dsh-sidebar-divider { background: rgba(0,0,0,0.06); }
+.dsh-logout-btn {
+  background: none; border: none; color: var(--ob-muted);
+  font-size: 13px; cursor: pointer;
+  padding: 8px 0; text-align: left; width: 100%;
+  transition: color 0.15s;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.dsh-logout-btn:hover { color: var(--ob-text); }
+
 /* ---- Content area ---- */
 .dsh-content { flex: 1; min-width: 0; padding: 48px; }
 /* ---- Journey panel (right content) ---- */
@@ -2017,7 +2033,7 @@ function screenContentAnalytics() {
   if (!items.length) {
     var empty = '<div class="ca-empty">'
       + '<p class="ca-empty-msg">No content published yet. Create your first piece to start seeing performance data.</p>'
-      + '<button class="ca-empty-cta" onclick="setMode(\'wizard\')">Create content &#8594;</button>'
+      + '<button class="ca-empty-cta" onclick="claritySyncConceptToStudio(); setMode(\'wizard\')">Create content &#8594;</button>'
       + '</div>';
     return '<div class="ca-screen">' + topbar + '<div class="ca-body">' + header + empty + '</div></div>';
   }
@@ -2520,6 +2536,8 @@ function _dshSidebar(concepts) {
     + '<div class="dsh-concepts-label">Concepts</div>'
     + '<div class="dsh-concept-list">' + listHtml + '</div>'
     + '<button class="dsh-new-concept-btn" onclick="dshCreateConcept()">&#43; New concept</button>'
+    + '<div class="dsh-sidebar-divider"></div>'
+    + '<button class="dsh-logout-btn" onclick="clarityLogout()">Log out</button>'
     + '</div>';
 }
 
@@ -2619,7 +2637,7 @@ function _dshContentPanel(concept) {
     var edgeSub = 'Whitespace your competitors haven\u2019t claimed yet.';
 
     sec3 = '<div class="dsh-journey-insight-cards">'
-      + '<div class="dsh-journey-insight-card" style="--accent:var(--ob-gold)" onclick="dshGoModule(\'strategic-plan\')">'
+      + '<div class="dsh-journey-insight-card" style="--accent:var(--ob-gold)" onclick="viewStrategicPlanReport()">'
       + '<div class="dsh-journey-insight-card-eye" style="color:var(--ob-gold)">MARKET GAP</div>'
       + '<div class="dsh-journey-insight-card-val">' + gapMain + '</div>'
       + '<div class="dsh-journey-insight-card-sub">' + gapSub + '</div>'
@@ -2629,7 +2647,7 @@ function _dshContentPanel(concept) {
       + '<div class="dsh-journey-insight-card-val">' + personaLine + '</div>'
       + '<div class="dsh-journey-insight-card-sub">' + personaSub + '</div>'
       + '</div>'
-      + '<div class="dsh-journey-insight-card" style="--accent:var(--ob-coral)" onclick="dshGoModule(\'strategic-plan\')">'
+      + '<div class="dsh-journey-insight-card" style="--accent:var(--ob-coral)" onclick="viewStrategicPlanReport()">'
       + '<div class="dsh-journey-insight-card-eye" style="color:var(--ob-coral)">YOUR EDGE</div>'
       + '<div class="dsh-journey-insight-card-val">' + edgeMain + '</div>'
       + '<div class="dsh-journey-insight-card-sub">' + edgeSub + '</div>'
@@ -2703,7 +2721,7 @@ function _dshContentPanel(concept) {
 
     if (marketDone) {
       var mI = _dshTruncate(s.marketScan.gapHeadline, 50) || '';
-      lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
+      lines += '<div class="dsh-journey-done-item" onclick="viewStrategicPlanReport()">'
         + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Market Scan</span></div>'
         + (mI ? '<div class="dsh-journey-done-insight">' + mI + '</div>' : '')
         + _doneArrow
@@ -2711,7 +2729,7 @@ function _dshContentPanel(concept) {
     }
     if (custDone) {
       var cI = _dshTruncate(s.customerIntelligence.topTrigger, 50) || '';
-      lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
+      lines += '<div class="dsh-journey-done-item" onclick="viewStrategicPlanReport()">'
         + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Customer Intelligence</span></div>'
         + (cI ? '<div class="dsh-journey-done-insight">' + cI + '</div>' : '')
         + _doneArrow
@@ -2719,7 +2737,7 @@ function _dshContentPanel(concept) {
     }
     if (compDone) {
       var coI = _dshTruncate(s.competition.whitespace, 50) || '';
-      lines += '<div class="dsh-journey-done-item" onclick="dshGoModule(\'strategic-plan\')">'
+      lines += '<div class="dsh-journey-done-item" onclick="viewStrategicPlanReport()">'
         + '<div class="dsh-journey-done-top"><span class="dsh-journey-done-check">\u2713</span><span class="dsh-journey-done-name">Competition</span></div>'
         + (coI ? '<div class="dsh-journey-done-insight">' + coI + '</div>' : '')
         + _doneArrow
@@ -2788,7 +2806,7 @@ function _dshBellHtml(concept) {
     dropdown = '<div class="dsh-bell-dropdown" onclick="event.stopPropagation()">'
       + '<div class="dsh-bell-new-badge">NEW</div>'
       + '<div class="dsh-bell-heading">Your strategy is ready.</div>'
-      + '<div class="dsh-bell-body">We put together content ideas based on your research and plan. Want to see them?</div>'
+      + '<div class="dsh-bell-body">Your strategy is complete. Head to Content Studio to start creating content grounded in your research.</div>'
       + '<button class="dsh-bell-cta" onclick="dshBellShowMe()">Show me &#8594;</button>'
       + '<span class="dsh-bell-dismiss" onclick="dshBellDismiss()">Dismiss</span>'
       + '</div>';
@@ -2837,6 +2855,12 @@ document.addEventListener('click', function (event) {
 /* ---- Handlers ---- */
 window.dshSelectConcept = function (id) {
   appState.activeConceptId = id;
+  /* Re-sync strategyFlow / personaFlow / gtmFlow to the newly active concept
+     so any downstream screen (GTM completed briefing, persona chat back nav,
+     strategy hub step positions) reads that concept's data instead of stale
+     state from the previously active concept. */
+  var c = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+  _dshSyncFlowsForConcept(c);
   renderApp();
 };
 
@@ -3221,8 +3245,8 @@ function screenPersonaChatPrompt() {
     + '<div class="pfc-prompt-name">' + name + '</div>'
     + '<div class="pfc-prompt-sub">Want to see how ' + name + ' thinks before you build your plan?</div>'
     + '<div class="pfc-prompt-actions">'
-    + '<button class="pfc-prompt-btn pfc-prompt-btn--primary" onclick="pfcStartChat()">Talk to ' + name + ' &#8594;</button>'
-    + '<button class="pfc-prompt-btn pfc-prompt-btn--outline" onclick="pfcSkipToGtm()">Continue to GTM &#8594;</button>'
+    + '<button class="pfc-prompt-btn pfc-prompt-btn--primary" onclick="pfcSkipToGtm()">Continue to GTM &#8594;</button>'
+    + '<button class="pfc-prompt-btn pfc-prompt-btn--outline" onclick="pfcStartChat()">Talk to ' + name + ' &#8594;</button>'
     + '</div>'
     + '</div>';
 }
@@ -3607,10 +3631,23 @@ function _restoreLaunchpadState() {
     appState.personaChat      = parsed.personaChat || { messages: [] };
     if (parsed.campaigns && Array.isArray(parsed.campaigns)) appState.campaigns = parsed.campaigns;
 
-    /* The returning user always lands on the Dashboard — their home base for
-       managing every concept — regardless of which screen they were on when
-       they left. (Launchpad Home is reachable from there via "Continue".) */
-    appState.mode = 'dashboard';
+    /* Route based on session state:
+       - Authenticated user (appState.user set) always lands on the Dashboard,
+         regardless of which screen they were on when they left. (Launchpad
+         Home is reachable from there via "Continue".)
+       - Logged-out user (appState.user === null, set by clarityLogout) lands
+         on the onboarding welcome screen — concepts stay restored in memory
+         so signing back in can route them to the dashboard. */
+    if (appState.user) {
+      appState.mode = 'dashboard';
+    } else {
+      appState.mode = 'onboarding';
+      if (!appState.onboarding || typeof appState.onboarding.step === 'undefined') {
+        appState.onboarding = { step: 1, subStep: 1, authMode: 'signup' };
+      } else {
+        appState.onboarding.step = 1;
+      }
+    }
 
     return true;
   } catch (e) {
@@ -3636,6 +3673,23 @@ window.addEventListener('load', init);
 /* Console/testing helper — clears the saved Launchpad session and reloads to Screen 1 */
 window.clarityResetAll = function () {
   localStorage.removeItem('clarity_launchpad_state');
+  location.reload();
+};
+
+/* Log the current user out WITHOUT wiping their concept/strategy/persona/gtm/
+   campaign data. Clears just the session (user + onboarding position) so the
+   next page load lands on the welcome screen. Signing back in via
+   obAdvanceFromAuth() detects the restored concepts and routes to the
+   dashboard instead of re-running Business Setup. */
+window.clarityLogout = function () {
+  appState.user = null;
+  if (!appState.onboarding) {
+    appState.onboarding = { step: 1, subStep: 1, authMode: 'signup' };
+  } else {
+    appState.onboarding.step = 1;
+  }
+  appState.mode = 'onboarding';
+  _saveLaunchpadState();
   location.reload();
 };
 

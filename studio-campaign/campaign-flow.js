@@ -300,6 +300,10 @@ var CampaignFlow = (function () {
   }
 
   function cpFlow() { return appState.campaignFlow; }
+  /* Exposed on window so inline HTML event attributes (which evaluate in the
+     global scope) can reach it — the two <input type="date"> onchange handlers
+     in the publish page rely on this. */
+  window.cpFlow = cpFlow;
   function cpTodayStr() {
     var d = new Date();
     var m = String(d.getMonth() + 1).padStart(2, '0');
@@ -2270,6 +2274,11 @@ var CampaignFlow = (function () {
   window.campaignCompleteFromCreate = function () {
     var f = cpFlow();
     if (!appState.campaigns) appState.campaigns = [];
+    /* Compute Live/Scheduled/Draft from the actual approved-and-scheduled
+       assets (same logic campaignPublishFinal uses) so the saved campaign
+       reflects what the user just set up on the Schedule page instead of
+       always being 'Draft'. */
+    var computedStatus = cpCampaignStatusForPublish();
     /* Save the campaign */
     var campaign = {
       id: 'camp-' + Date.now(),
@@ -2279,7 +2288,7 @@ var CampaignFlow = (function () {
       endDate: f.endDate, endTime: f.endTime,
       platforms: f.platforms.slice(),
       brief: { shared: f.brief.shared, overrides: f.brief.overrides },
-      status: 'Draft',
+      status: computedStatus,
       assets: f.generatedAssets || [],
       totalAssets: (f.generatedAssets || []).length
     };

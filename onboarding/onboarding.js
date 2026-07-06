@@ -152,6 +152,7 @@ var OnboardingFlow = (function () {
      ============================================================ */
   function screenWelcome() {
     return '<div class="ob-screen ob-welcome-screen">'
+      + '<a class="ob-exit-link" onclick="clarityLogout()">Log out</a>'
       + '<div class="ob-welcome-main">'
       + '<div class="ob-welcome-wrap">'
       + '<div class="ob-wordmark"><em>Clarity</em></div>'
@@ -220,7 +221,10 @@ var OnboardingFlow = (function () {
       + '<div class="ob-switch-link" style="max-width:420px;width:100%;text-align:center;margin-top:16px;">' + switchHtml + '</div>'
       + '</div>';
 
-    return '<div class="ob-auth-screen">' + leftPanel + rightPanel + '</div>';
+    return '<div class="ob-auth-screen">'
+      + '<a class="ob-exit-link" onclick="clarityLogout()">Log out</a>'
+      + leftPanel + rightPanel
+      + '</div>';
   }
 
   /* ============================================================
@@ -475,13 +479,31 @@ window.obAdvanceFromAuth = function () {
   var emailEl = document.getElementById('ob-email');
   var email = (emailEl && emailEl.value && emailEl.value.trim()) ? emailEl.value.trim() : 'user@clarity.app';
   appState.user = { email: email, authMethod: appState.onboarding.authMode };
-  obEnsureConcept();
+
+  /* Returning-user detection: if any restored concept already has a
+     completed business name, this is a sign-back-in (post-logout) rather
+     than a fresh signup — skip Business Setup and land on the dashboard
+     with all previous data intact. */
+  var concepts = appState.concepts || [];
+  var hasExistingConcept = concepts.some(function (c) {
+    return c && c.business && c.business.name && String(c.business.name).trim();
+  });
+
+  if (!hasExistingConcept) obEnsureConcept();
 
   appState.onboarding.step         = 'launching';
   appState.onboarding.launchingText = 'Signing you in\u2026';
   renderContent();
   setTimeout(function () {
     appState.onboarding.launchingText = null;
+    if (hasExistingConcept) {
+      /* Reset onboarding position so a later logout+login still opens on
+         Welcome, not on step 3. */
+      appState.onboarding.step    = 1;
+      appState.onboarding.subStep = 1;
+      setMode('dashboard');
+      return;
+    }
     appState.onboarding.step    = 3;
     appState.onboarding.subStep = 1;
     renderContent();

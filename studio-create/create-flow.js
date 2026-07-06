@@ -1667,16 +1667,13 @@ var CreateFlow = (function () {
      decision screen (step 6). Written and Audio never enter here.
      ============================================================ */
 
-  /* Four variation snapshots derived from the existing CF_IMAGE_VARS /
-     CF_VIDEO_VARS. We synthesize a 4th (D) so the four-up thumbnail row
-     is always populated without touching the rest of the wizard. */
+  /* Three variation snapshots — matched exactly to CF_IMAGE_VARS /
+     CF_VIDEO_VARS so any thumbnail the user picks maps to a real entry
+     in the wizard's downstream arrays (decision screen, cfPublish,
+     cfStartCampaignFromCreate all index those base arrays directly). */
   function cfCanvasVariations(modality) {
     var base = modality === 'video' ? CF_VIDEO_VARS : CF_IMAGE_VARS;
-    if (base.length >= 4) return base.slice(0, 4);
-    var extra = Object.assign({}, base[base.length - 1] || base[0]);
-    extra.label = 'D';
-    extra.pf = Math.max(70, (extra.pf || 80) - 6);
-    return base.concat([extra]);
+    return base.slice(0, 3);
   }
 
   /* Canvas platform chips — reuse CF_PLATFORMS for the current modality
@@ -1783,10 +1780,12 @@ var CreateFlow = (function () {
         + '</div>';
     }
 
-    /* ---- Variation thumbnails row (4-up) ---- */
+    /* ---- Variation thumbnails row (3-up, matches CF_IMAGE_VARS /
+       CF_VIDEO_VARS length so every picked index maps to a real variation
+       downstream in the decision screen and publish payload). ---- */
     var thumbsHtml = '';
     if (f.generating) {
-      thumbsHtml = [0, 1, 2, 3].map(function () {
+      thumbsHtml = [0, 1, 2].map(function () {
         return '<div class="cv-thumb cv-thumb-skeleton"></div>';
       }).join('');
     } else if (selected) {
@@ -1797,7 +1796,7 @@ var CreateFlow = (function () {
           + '</div>';
       }).join('');
     } else {
-      thumbsHtml = [0, 1, 2, 3].map(function () {
+      thumbsHtml = [0, 1, 2].map(function () {
         return '<div class="cv-thumb cv-thumb-empty"></div>';
       }).join('');
     }
@@ -1892,8 +1891,17 @@ var CreateFlow = (function () {
 
   window.cfCanvasSelectPlatform = function (id) {
     /* Reuse the existing platform selector so a downstream format is still
-       applied — the wizard's decision/publish screens read f.format. */
+       applied — the wizard's decision/publish screens read f.format.
+       cfSelectPlatform → cfApplyFormat rewrites f.aspect to the platform's
+       suggested format aspect; preserve the user's explicit chip choice so
+       switching platforms doesn't clobber a size they just picked. */
+    var f = cfFlow();
+    var priorAspect = f && f.aspect;
     window.cfSelectPlatform(id);
+    if (priorAspect) {
+      var updated = cfFlow();
+      if (updated) updated.aspect = priorAspect;
+    }
   };
 
   /* Directly writes f.aspect so the canvas frame + all four thumbnails
