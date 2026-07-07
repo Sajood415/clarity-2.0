@@ -1,6 +1,15 @@
-/* Unified creation flow — 5-step wizard: what → where → format → brief → generate */
+/* Unified creation flow — 4-step wizard: what → where (format inline) → brief → generate.
+   Internal step numbers remain 1,2,4,5 (step 3 skipped) so downstream references
+   (renderers, cfCanContinue, cfContinueLabel) keep working without renumbering. */
 var CreateFlow = (function () {
-  var CF_STEPS = ['What', 'Where', 'Format', 'Brief', 'Generate'];
+  /* Visible labels for the 4-step stepper. Internal step 3 (Format) is folded
+     into step 2 (Where) as an inline chip + optional picker. */
+  var CF_STEPS = ['What', 'Where', 'Brief', 'Generate'];
+  /* Maps internal f.step values to the visible position (1-indexed) in the stepper.
+     Step 3 (legacy Format) maps to visible step 2 (Where) since Format is now
+     folded into the Where step. That way any old persisted step 3 still shows
+     the right stepper state. */
+  var CF_STEP_TO_VISIBLE = { 1: 1, 2: 2, 3: 2, 4: 3, 5: 4 };
   var CF_MOD_ICONS = {
     text:  '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3.5" width="14" height="1.75" rx="0.875" fill="currentColor"/><rect x="2" y="8" width="11" height="1.75" rx="0.875" fill="currentColor"/><rect x="2" y="12.5" width="8" height="1.75" rx="0.875" fill="currentColor"/></svg>',
     image: '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="14" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 13l4-5 3.5 3.5 2.5-3L16 13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6.5" cy="6.5" r="1.25" fill="currentColor"/></svg>',
@@ -201,6 +210,78 @@ var CreateFlow = (function () {
 
   function cfPfClass(pf) { return pf >= 70 ? 'green' : pf >= 40 ? 'amber' : 'red'; }
   function cfFlow() { return appState.createFlow; }
+
+  /* Pre-fill the create brief from the active concept's research (persona,
+     market scan, GTM plan, business type). Idempotent: only runs when the
+     user has not manually edited any brief field this session. Callers should
+     invoke this on every entry to step 4 so re-entering the brief step after
+     a concept switch or fresh session pulls in the latest research. */
+  function cfAutoFillBriefFromConcept() {
+    var f = cfFlow();
+    if (!f) return;
+    /* Once the user has touched a brief field in this session, back off and
+       leave their input alone. Reset via cfReset() unlocks it again. */
+    if (f.briefManuallyEdited) return;
+    var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+    if (!concept) return;
+
+    var biz = concept.business || {};
+    var s   = concept.strategy || {};
+    var p   = concept.persona  || {};
+    var g   = concept.gtm      || {};
+    var brief = appState.createBrief;
+    if (!brief) return;
+
+    var firstAction = (g.plan && g.plan.actions && g.plan.actions.length && g.plan.actions[0] && g.plan.actions[0].title)
+      ? String(g.plan.actions[0].title).trim() : '';
+    var gapHeadline = (s.marketScan && s.marketScan.gapHeadline) ? String(s.marketScan.gapHeadline).trim() : '';
+    var gapText     = (s.marketScan && s.marketScan.gapText)     ? String(s.marketScan.gapText).trim()     : '';
+    var caresAbout  = (p.caresAbout && p.caresAbout.length) ? p.caresAbout.filter(Boolean) : [];
+    var personaName = (p.name && String(p.name).trim()) ? String(p.name).trim() : '';
+    var bizDesc     = (biz.description && String(biz.description).trim()) ? String(biz.description).trim() : '';
+    var bizType     = biz.type || '';
+
+    /* goal — "What do you want this content to achieve?" */
+    if (firstAction) brief.goal = firstAction;
+    else if (bizDesc) brief.goal = bizDesc.substring(0, 80);
+
+    /* persona — always sync to concept persona when available */
+    if (personaName) brief.persona = personaName;
+
+    /* message — market gap headline lands better than a generic biz description */
+    if (gapHeadline) brief.message = gapHeadline;
+    else if (bizDesc && !brief.message) brief.message = bizDesc;
+
+    /* proof — caresAbout gives us the sharpest persona-anchored proof */
+    if (caresAbout.length) {
+      brief.proof = 'Your customer cares about ' + caresAbout.slice(0, 2).join(' and ');
+    } else if (gapText) {
+      brief.proof = gapText.substring(0, 100);
+    }
+
+    /* whyNow — only backfill if user hasn't set one */
+    if (!brief.whyNow || !String(brief.whyNow).trim()) {
+      brief.whyNow = 'Based on your ' + (bizType || 'business') + ' research \u00b7 ' + new Date().getFullYear();
+    }
+
+    /* Deliberately do NOT overwrite cta — user still fills their own action */
+
+    appState.createBrief = brief;
+  }
+  window.cfAutoFillBriefFromConcept = cfAutoFillBriefFromConcept;
+
+  /* Set the manually-edited flag whenever a brief field changes. Inline
+     oninput handlers call this before mutating the brief so subsequent
+     step-entries don't clobber user work. */
+  window.cfMarkBriefEdited = function () {
+    var f = cfFlow();
+    if (f) f.briefManuallyEdited = true;
+  };
+  window.cfDismissBriefBanner = function () {
+    var f = cfFlow();
+    if (f) f.briefBannerDismissed = true;
+    renderContent();
+  };
   function cfSuggestedIndex(modality, platform) {
     return CF_SUGGESTED[modality + ':' + platform] != null ? CF_SUGGESTED[modality + ':' + platform] : 0;
   }
@@ -315,7 +396,10 @@ var CreateFlow = (function () {
       generating: false, genPhase: 0, variation: null, editContent: '',
       published: false, publishMode: null, genStartedAt: null,
       campaignBannerDismissed: false,
-      useCanvasMode: false, canvasStyle: 'Authentic', canvasDuration: '30s'
+      useCanvasMode: false, canvasStyle: 'Authentic', canvasDuration: '30s',
+      /* Brief pre-fill state — tracked so we don't stomp on user edits */
+      briefManuallyEdited: false,
+      briefBannerDismissed: false
     };
     state.createdItems = cfSampleLibraryItems();
     state.cfPrefs = {
@@ -404,26 +488,48 @@ var CreateFlow = (function () {
   }
 
   function cfStepper() {
-    var step = cfFlow().step;
+    var internalStep = cfFlow().step;
+    var visibleStep = CF_STEP_TO_VISIBLE[internalStep] || internalStep;
     var html = '<div class="cf-stepper-wrap"><div class="wizard-steps">';
     CF_STEPS.forEach(function (lbl, i) {
       var n = i + 1;
-      var cls = n < step ? 'done' : n === step ? 'active' : 'pending';
+      var cls = n < visibleStep ? 'done' : n === visibleStep ? 'active' : 'pending';
       html += '<div class="wizard-step" style="flex-direction:column;align-items:center;">'
-        + '<div class="wiz-dot ' + cls + '">' + (n < step ? '✓' : n) + '</div>'
+        + '<div class="wiz-dot ' + cls + '">' + (n < visibleStep ? '✓' : n) + '</div>'
         + '<div class="wiz-label">' + lbl + '</div></div>';
-      if (i < CF_STEPS.length - 1) html += '<div class="wiz-line' + (n < step ? ' done' : '') + '"></div>';
+      if (i < CF_STEPS.length - 1) html += '<div class="wiz-line' + (n < visibleStep ? ' done' : '') + '"></div>';
     });
     return html + '</div></div>';
   }
 
   function cfStepBrief() {
+    /* Refresh from research every time we enter this step so late edits to
+       the concept (e.g. persona name change) reflect immediately. No-op if
+       the user has already touched the brief in this session. */
+    cfAutoFillBriefFromConcept();
+
     var brief = appState.createBrief;
     var intel = appState.intelligence || {};
     var hasIntel = cfHasIntelligence();
     var brandName = hasIntel && intel.brand ? intel.brand : 'Your brand';
     var personaName = hasIntel && intel.persona ? intel.persona.name : (brief.persona || 'your audience');
     var f = cfFlow();
+
+    /* Amber "Pre-filled from your research" banner — shown when a concept
+       exists and the user hasn't yet dismissed it. Hidden once dismissed
+       (per session) or when the user starts editing (still stays until X). */
+    var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+    var hasConcept = !!(concept && concept.persona && concept.persona.name);
+    var prefillBanner = (hasConcept && !f.briefBannerDismissed)
+      ? '<div class="cf-brief-banner">'
+        + '<div class="cf-brief-banner-icon">\u2736</div>'
+        + '<div class="cf-brief-banner-body">'
+        + '<div class="cf-brief-banner-title">Pre-filled from your research</div>'
+        + '<div class="cf-brief-banner-text">Edit anything that needs adjusting \u2014 your persona, market gap, and GTM goal are already in.</div>'
+        + '</div>'
+        + '<button class="cf-brief-banner-close" onclick="cfDismissBriefBanner()" title="Dismiss">&#x2715;</button>'
+        + '</div>'
+      : '';
 
     var promptBlock = hasIntel
       ? '<div class="cf-brief-prompt">'
@@ -446,11 +552,11 @@ var CreateFlow = (function () {
       + '<div class="cf-brief-card-heading">Strategy</div>'
       + '<div class="cf-brief-card-sub">Define the goal and timing context for this piece of content.</div>'
       + '<div class="cf-brief-row">'
-      + '<div class="cf-field"><label>Campaign objective</label>'
-      + '<input value="' + (brief.goal || '') + '" placeholder="What measurable outcome do we want?" oninput="appState.createBrief.goal=this.value">'
+      + '<div class="cf-field"><label>What do you want this content to achieve?</label>'
+      + '<input value="' + (brief.goal || '') + '" placeholder="e.g. Get 10 new leads, drive weekend sales, build awareness." oninput="cfMarkBriefEdited();appState.createBrief.goal=this.value">'
       + '<div class="cf-field-help">Example: Drive weekend pre-orders from existing Instagram followers.</div></div>'
       + '<div class="cf-field"><label>Why this moment</label>'
-      + '<input value="' + (brief.whyNow || '') + '" placeholder="Why this campaign now?" oninput="appState.createBrief.whyNow=this.value">'
+      + '<input value="' + (brief.whyNow || '') + '" placeholder="Why this campaign now?" oninput="cfMarkBriefEdited();appState.createBrief.whyNow=this.value">'
       + '<div class="cf-field-help">Example: Summer menu launch + Saturday footfall spike.</div></div>'
       + '</div>'
       + '</div>';
@@ -460,7 +566,7 @@ var CreateFlow = (function () {
       + '<div class="cf-brief-card-heading">Message</div>'
       + '<div class="cf-brief-card-sub">Who you\'re talking to, what to say, and what makes it credible.</div>'
       + '<div class="cf-field"><label>Primary persona</label>'
-      + '<select onchange="cfSetPersona(this.value)">'
+      + '<select onchange="cfMarkBriefEdited();cfSetPersona(this.value)">'
       + (function () {
           var conceptPersona = window.clarityActiveConcept && window.clarityActiveConcept();
           var cpName = (conceptPersona && conceptPersona.persona && conceptPersona.persona.name && conceptPersona.persona.name.trim()) || '';
@@ -473,14 +579,14 @@ var CreateFlow = (function () {
       + '</select>'
       + '<div class="cf-field-help">Who this message should feel written for.</div></div>'
       + '<div class="cf-field"><label>Core message <span class="cf-field-label-note">— single clear sentence</span></label>'
-      + '<textarea placeholder="What is the one idea the audience must remember?" oninput="appState.createBrief.message=this.value">' + (brief.message || '') + '</textarea>'
+      + '<textarea placeholder="What is the one idea the audience must remember?" oninput="cfMarkBriefEdited();appState.createBrief.message=this.value">' + (brief.message || '') + '</textarea>'
       + '<div class="cf-field-help">Keep it sharp: offer + differentiator + urgency.</div></div>'
       + '<div class="cf-brief-row">'
       + '<div class="cf-field"><label>Proof points</label>'
-      + '<input value="' + (brief.proof || '') + '" placeholder="What makes this claim credible?" oninput="appState.createBrief.proof=this.value">'
+      + '<input value="' + (brief.proof || '') + '" placeholder="What makes this claim credible?" oninput="cfMarkBriefEdited();appState.createBrief.proof=this.value">'
       + '<div class="cf-field-help">Ingredients, process, data, social proof.</div></div>'
       + '<div class="cf-field"><label>Call to action</label>'
-      + '<input value="' + (brief.cta || '') + '" placeholder="What exactly should people do next?" oninput="appState.createBrief.cta=this.value">'
+      + '<input value="' + (brief.cta || '') + '" placeholder="What exactly should people do next?" oninput="cfMarkBriefEdited();appState.createBrief.cta=this.value">'
       + '<div class="cf-field-help">Example: Pre-order now. Pickup Saturday 8–11 AM.</div></div>'
       + '</div>'
       + '</div>';
@@ -488,6 +594,7 @@ var CreateFlow = (function () {
     return '<div class="cf-brief-center">'
       + '<div class="cf-step-title">Write the creative brief</div>'
       + '<div class="cf-step-sub">' + brandName + ' · lock the strategy your generator will execute</div>'
+      + prefillBanner
       + promptBlock
       + contextBar
       + '<div class="cf-brief-cards">'
@@ -608,10 +715,42 @@ var CreateFlow = (function () {
         + '<div class="platform-tile-name">' + p.id + '</div>'
         + '<div class="platform-tile-desc">' + p.desc + '</div></div>';
     }).join('');
+
     return '<div class="cf-step-body">'
       + '<div class="cf-step-title">Publishing platform</div>'
       + '<div class="cf-step-sub">Select the platform this content is being created for.</div>'
       + '<div class="platform-tile-grid">' + platHtml + '</div>'
+      + cfInlineFormatSection(f)
+      + '</div>';
+  }
+
+  /* Inline format picker rendered directly under the platform tiles on step 2.
+     Always shown expanded — with only 1-3 formats per platform there's no
+     benefit to hiding them behind a toggle, and the "Change" label was
+     ambiguous (users thought it changed the platform). Recommended chip is
+     visually badged so users can accept the default at a glance. */
+  function cfInlineFormatSection(f) {
+    if (!f.platform) return '';
+    var formats = (CF_FORMATS[f.modality] && CF_FORMATS[f.modality][f.platform]) || [];
+    if (!formats.length) return '';
+    var sugIdx = cfSuggestedIndex(f.modality, f.platform);
+    var hasRecommendation = sugIdx != null && !!formats[sugIdx];
+
+    var chips = formats.map(function (fmt, idx) {
+      var sug = idx === sugIdx;
+      var active = f.format === fmt.id;
+      return '<span class="format-chip' + (active ? ' active' : '') + (sug ? ' cf-suggested' : '') + '" onclick="cfSelectFormat(' + idx + ')">'
+        + fmt.id + (sug ? ' <span class="format-chip-rec">Recommended</span>' : '') + '</span>';
+    }).join('');
+
+    var subLine = hasRecommendation
+      ? 'Pre-set to ' + f.platform + ' standards. Tap a chip to swap.'
+      : 'Pick a format for ' + f.platform + '.';
+
+    return '<div class="cf-format-inline">'
+      + '<div class="cf-format-inline-title">Format</div>'
+      + '<div class="cf-format-inline-sub">' + subLine + '</div>'
+      + '<div class="format-chip-row cf-fmt-chips">' + chips + '</div>'
       + '</div>';
   }
 
@@ -920,6 +1059,7 @@ var CreateFlow = (function () {
     var hasIntel = cfHasIntelligence();
     var vars = f.modality === 'image' ? CF_IMAGE_VARS : f.modality === 'video' ? CF_VIDEO_VARS : f.modality === 'audio' ? CF_AUDIO_VARS : CF_TEXT_VARS;
     return '<div class="cf-step-body cf-step-body-wide">'
+      + cfBriefSummaryCard()
       + '<div class="cf-step-title">Select a variation</div>'
       + '<div class="cf-step-sub">' + (hasIntel ? 'Three options, persona-scored. Select one to proceed.' : 'Three options generated from your brief. Select one to proceed.') + '</div>'
       + cfAppliedBar(f)
@@ -928,6 +1068,39 @@ var CreateFlow = (function () {
       + '<button class="btn btn-ghost btn-sm" onclick="cfRegenerate()" style="margin-top:8px;">&#8635; Regenerate</button>'
       + '</div>';
   }
+
+  /* Small read-only summary card shown above the Generate step so the user can
+     confirm the brief is right without having to re-read all fields. Clicking
+     the edit icon jumps back to step 4 (Brief). */
+  function cfBriefSummaryCard() {
+    var brief = appState.createBrief || {};
+    var persona = brief.persona || 'Your customer';
+    var message = brief.message ? String(brief.message).trim() : '';
+    var cta     = brief.cta ? String(brief.cta).trim() : '';
+    var msgShort = message.length > 60 ? message.substring(0, 60) + '\u2026' : (message || 'No core message set');
+    var ctaShort = cta.length > 40 ? cta.substring(0, 40) + '\u2026' : (cta || 'No CTA set');
+    return '<div class="cf-brief-summary">'
+      + '<div class="cf-brief-summary-head">'
+      + '<span class="cf-brief-summary-label">Generating based on your brief</span>'
+      + '<button class="cf-brief-summary-edit" onclick="cfEditBrief()" title="Edit brief">'
+      + '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1.5 10.5V8l6-6 2.5 2.5-6 6H1.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>'
+      + '<span>Edit</span>'
+      + '</button>'
+      + '</div>'
+      + '<div class="cf-brief-summary-chips">'
+      + '<span class="cf-brief-summary-chip"><span class="cf-brief-summary-chip-k">Persona</span><span class="cf-brief-summary-chip-v">' + persona + '</span></span>'
+      + '<span class="cf-brief-summary-chip"><span class="cf-brief-summary-chip-k">Message</span><span class="cf-brief-summary-chip-v">' + msgShort + '</span></span>'
+      + '<span class="cf-brief-summary-chip"><span class="cf-brief-summary-chip-k">CTA</span><span class="cf-brief-summary-chip-v">' + ctaShort + '</span></span>'
+      + '</div></div>';
+  }
+
+  window.cfEditBrief = function () {
+    var f = cfFlow();
+    if (!f) return;
+    if (f.generating) f.generating = false;
+    f.step = 4;
+    renderContent();
+  };
 
   function cfStepEdit() {
     var f = cfFlow();
@@ -1034,11 +1207,20 @@ var CreateFlow = (function () {
       + connectors.map(function (c) {
           return '<div class="cf-connector' + (c.ok ? ' ok' : '') + '"><span>' + c.name + '</span><span>' + c.status + ' ✓</span></div>';
         }).join('')
-      + '<div class="cf-field" style="margin-top:12px;"><label>Campaign</label>'
-      + '<select onchange="appState.cfCampaign=this.value">'
-      + ['Sourdough Saturday Launch', 'Summer 2026', 'Brand awareness'].map(function (c) {
-          return '<option' + (appState.cfCampaign === c ? ' selected' : '') + '>' + c + '</option>';
-        }).join('') + '</select></div>'
+      + (function () {
+          /* Real campaigns from state — fall back to a "None" option if the
+             user hasn't created any yet. Prevents stale demo names showing. */
+          var real = (appState.campaigns || []).map(function (c) { return c.name; }).filter(Boolean);
+          var opts = real.length ? real : ['No campaign'];
+          if (real.length && !real.indexOf(appState.cfCampaign) < 0 && appState.cfCampaign) {
+            /* Preserve current selection even if not in list yet */
+          }
+          return '<div class="cf-field" style="margin-top:12px;"><label>Campaign</label>'
+            + '<select onchange="appState.cfCampaign=this.value">'
+            + opts.map(function (c) {
+                return '<option' + (appState.cfCampaign === c ? ' selected' : '') + '>' + c + '</option>';
+              }).join('') + '</select></div>';
+        })()
       + '<div class="cf-field"><label>Schedule</label>'
       + '<select onchange="appState.cfScheduleTime=this.value">'
       + ['Thu 10:00 AM', 'Fri 8:00 AM', 'Sat 9:00 AM', 'Custom…'].map(function (t) {
@@ -1203,16 +1385,22 @@ var CreateFlow = (function () {
       return;
     }
     if (f.step === 1) { f.step = 2; renderContent(); return; }
-    /* Step 2 → 3: need a platform */
+    /* Step 2 → 4 (skipping the old step 3 — Format is now inline on step 2).
+       Format still must be selected before continuing. cfSelectPlatform already
+       applies the recommended format, so this is only blocked if the user has
+       cleared it manually or the platform has no formats defined. */
     if (f.step === 2 && !f.platform) return;
+    /* Format is required — chips are visible inline so no state toggle needed */
+    if (f.step === 2 && !f.format) return;
     if (f.step === 2) {
-      f.step = 3;
-      if (!f.format) cfApplyFormat(f, cfSuggestedIndex(f.modality, f.platform));
+      f.step = 4;
+      cfAutoFillBriefFromConcept();
       renderContent(); return;
     }
-    /* Step 3 → 4: need a format */
+    /* Legacy step 3 (Format) — no longer reachable via cfContinue but kept for
+       any stale state that lands here (e.g. a saved wizard mid-Format). */
     if (f.step === 3 && !f.format) return;
-    if (f.step === 3) { f.step = 4; renderContent(); return; }
+    if (f.step === 3) { f.step = 4; cfAutoFillBriefFromConcept(); renderContent(); return; }
     /* Step 4 → 5: always kick off generation regardless of intel */
     if (f.step === 4) {
       f.step = 5; f.variation = null; f.genPhase = 0;
@@ -1237,6 +1425,8 @@ var CreateFlow = (function () {
       if (f.useCanvasMode) { f.step = 1; renderContent(); return; }
       f.step = 5; renderContent(); return;
     }
+    /* Step 4 (Brief) goes back to step 2 (Where) — step 3 (Format) is folded in */
+    if (f.step === 4) { f.step = 2; renderContent(); return; }
     f.step--; renderContent();
   };
   window.cfPublish = function (mode) {
@@ -1271,7 +1461,10 @@ var CreateFlow = (function () {
       step: 1, modality: null, platform: null, format: null, aspect: '1:1', dims: '',
       generating: false, genPhase: 0, variation: null, editContent: '',
       published: false, publishMode: null, genStartedAt: null,
-      campaignBannerDismissed: false
+      campaignBannerDismissed: false,
+      /* Fresh session: brief may auto-fill again and the "pre-filled" banner reappears */
+      briefManuallyEdited: false,
+      briefBannerDismissed: false
     };
     nav('create-flow');
   };
@@ -1510,7 +1703,8 @@ var CreateFlow = (function () {
   function cfCanContinue() {
     var f = cfFlow();
     if (f.step === 1) return !!f.modality;
-    if (f.step === 2) return !!f.platform;
+    /* Step 2 now includes format selection (inline picker). Both required. */
+    if (f.step === 2) return !!f.platform && !!f.format;
     if (f.step === 3) return !!f.format;
     if (f.step === 5) return f.variation !== null && !f.generating;
     return true;
@@ -1558,14 +1752,37 @@ var CreateFlow = (function () {
         + '<div class="cf-dec-card-arrow">&#8250;</div>'
         + '</div>';
 
-    var campaignCard = '<div class="cf-dec-card" onclick="cfStartCampaignFromCreate()">'
-      + '<div class="cf-dec-card-accent cf-dec-accent-campaign"></div>'
-      + '<div class="cf-dec-card-body">'
-      + '<div class="cf-dec-card-title">Add to campaign</div>'
-      + '<div class="cf-dec-card-desc">Extend this into a multi-platform campaign. Brief and assets carry over.</div>'
-      + '</div>'
-      + '<div class="cf-dec-card-arrow">&#8250;</div>'
-      + '</div>';
+    /* Add to campaign — the shape of this card depends on what campaigns
+       already exist:
+       – With existing campaigns: expands to show a dropdown of real
+         campaigns from appState.campaigns + a "Create new campaign" option
+         at the bottom of the list.
+       – With no campaigns yet: single-click routes straight to
+         cfStartCampaignFromCreate() (the promo banner above the decision
+         screen still offers the same path). */
+    var existingCampaigns = (appState.campaigns || []);
+    var campaignCard;
+    if (f.decisionMode === 'campaign' && existingCampaigns.length) {
+      campaignCard = cfRenderAddToCampaignPanel(existingCampaigns);
+    } else if (existingCampaigns.length) {
+      campaignCard = '<div class="cf-dec-card" onclick="cfOpenDecisionCampaign()">'
+        + '<div class="cf-dec-card-accent cf-dec-accent-campaign"></div>'
+        + '<div class="cf-dec-card-body">'
+        + '<div class="cf-dec-card-title">Add to campaign</div>'
+        + '<div class="cf-dec-card-desc">Attach to an existing campaign or start a new one. Brief and assets carry over.</div>'
+        + '</div>'
+        + '<div class="cf-dec-card-arrow">&#8250;</div>'
+        + '</div>';
+    } else {
+      campaignCard = '<div class="cf-dec-card" onclick="cfStartCampaignFromCreate()">'
+        + '<div class="cf-dec-card-accent cf-dec-accent-campaign"></div>'
+        + '<div class="cf-dec-card-body">'
+        + '<div class="cf-dec-card-title">Start a campaign</div>'
+        + '<div class="cf-dec-card-desc">Extend this into a multi-platform campaign. Brief and assets carry over.</div>'
+        + '</div>'
+        + '<div class="cf-dec-card-arrow">&#8250;</div>'
+        + '</div>';
+    }
 
     var draftCard = '<div class="cf-dec-card cf-dec-card-ghost" onclick="cfPublish(\'draft\')">'
       + '<div class="cf-dec-card-accent cf-dec-accent-draft"></div>'
@@ -1616,6 +1833,60 @@ var CreateFlow = (function () {
 
   window.cfOpenDecisionPublish = function() { cfFlow().decisionMode = 'publish'; renderContent(); };
   window.cfCloseDecisionPublish = function() { cfFlow().decisionMode = null; renderContent(); };
+  window.cfOpenDecisionCampaign = function() { cfFlow().decisionMode = 'campaign'; renderContent(); };
+  window.cfCloseDecisionCampaign = function() { cfFlow().decisionMode = null; renderContent(); };
+
+  /* Expanded "Add to campaign" panel — real campaigns from appState.campaigns
+     plus a "Create new campaign" option at the bottom of the select. */
+  function cfRenderAddToCampaignPanel(campaigns) {
+    var f = cfFlow();
+    var selected = f.decisionCampaignPick || (campaigns[0] && campaigns[0].id) || '';
+    var options = campaigns.map(function (c) {
+      return '<option value="' + c.id + '"' + (selected === c.id ? ' selected' : '') + '>' + (c.name || 'Untitled campaign') + '</option>';
+    }).join('');
+    options += '<option value="__new__"' + (selected === '__new__' ? ' selected' : '') + '>+ Create new campaign</option>';
+    return '<div class="cf-dec-card cf-dec-card-expanded">'
+      + '<div class="cf-dec-card-accent cf-dec-accent-campaign"></div>'
+      + '<div class="cf-dec-card-body">'
+      + '<div class="cf-dec-card-title">Add to a campaign</div>'
+      + '<div class="cf-dec-card-desc" style="margin-bottom:14px;">Pick an existing campaign or start a new one. The brief carries over.</div>'
+      + '<div class="cf-field" style="margin-bottom:14px;"><label>Campaign</label>'
+      + '<select onchange="cfPickDecisionCampaign(this.value)">' + options + '</select></div>'
+      + '<div style="display:flex;gap:8px;">'
+      + '<button class="btn btn-primary cf-pub-btn-expand" onclick="cfConfirmAddToCampaign()">Add to campaign</button>'
+      + '<button class="btn btn-outline" onclick="cfCloseDecisionCampaign()">Cancel</button>'
+      + '</div>'
+      + '</div></div>';
+  }
+
+  window.cfPickDecisionCampaign = function (val) {
+    var f = cfFlow();
+    f.decisionCampaignPick = val;
+    /* Don't re-render — the select is already reflecting the value. Skipping
+       a re-render also avoids focus loss on the dropdown. */
+  };
+  window.cfConfirmAddToCampaign = function () {
+    var f = cfFlow();
+    var pick = f.decisionCampaignPick;
+    var campaigns = appState.campaigns || [];
+    /* "Create new" or unresolved → route to the campaign wizard as before */
+    if (!pick || pick === '__new__') {
+      window.cfStartCampaignFromCreate();
+      return;
+    }
+    var target = null;
+    for (var i = 0; i < campaigns.length; i++) {
+      if (campaigns[i].id === pick) { target = campaigns[i]; break; }
+    }
+    if (!target) {
+      window.cfStartCampaignFromCreate();
+      return;
+    }
+    /* Attach to the picked campaign — the item's `campaign` field is read
+       from appState.cfCampaign when cfPublish saves the item. */
+    appState.cfCampaign = target.name;
+    window.cfPublish('campaign');
+  };
   window.cfConfirmPublishNow = function() {
     var f = cfFlow();
     var date = f.publishDate || '';
@@ -2008,9 +2279,11 @@ var CreateFlow = (function () {
       ? '<span class="cf-step5-pick-hint">Select a variation to continue</span>'
       : '<button class="btn btn-primary"' + (cfCanContinue() ? '' : ' disabled') + ' onclick="cfContinue()">' + cfContinueLabel() + '</button>';
 
+    var visibleStep = CF_STEP_TO_VISIBLE[f.step] || f.step;
+    var visibleLabel = CF_STEPS[visibleStep - 1] || '';
     var footer = '<div class="cf-footer">'
       + '<button class="btn btn-outline"' + (f.step <= 1 ? ' disabled' : '') + ' onclick="cfBack()">← Back</button>'
-      + '<div class="cf-footer-mid"><span class="cf-eta">Step ' + f.step + ' of ' + CF_STEPS.length + ' &mdash; ' + CF_STEPS[f.step - 1] + '</span></div>'
+      + '<div class="cf-footer-mid"><span class="cf-eta">Step ' + visibleStep + ' of ' + CF_STEPS.length + ' &mdash; ' + visibleLabel + '</span></div>'
       + continueSlot
       + '</div>';
 

@@ -362,6 +362,19 @@ var CampaignFlow = (function () {
       claraThinking: false,
       claraSuggested: false,
       intelBannerPending: false,
+      /* Series step is skipped for single-series campaigns unless the user
+         has explicitly visited it (via "Add another series" on Asset Mix). */
+      seriesStepVisited: false,
+      /* Campaign brief edit-mode toggle — when a from-create flow enters the
+         brief step it's shown read-only. User clicks "Edit brief" to open. */
+      briefEditMode: false,
+      /* Asset Mix has been reached at least once — used to gate when the
+         "Add another series" link becomes visible for from-create flows.
+         `assetMixVisitedOnce` marks the first arrival, `assetMixVisited`
+         flips to true on the second+ arrival. Standalone flows use only
+         `assetMixVisited` (set immediately on first arrival). */
+      assetMixVisited: false,
+      assetMixVisitedOnce: false,
       brief: {
         shared: cpBriefFromIntelligence(state),
         overrides: {}
@@ -459,17 +472,51 @@ var CampaignFlow = (function () {
   }
 
   function cpStepper() {
-    var step = cpFlow().step;
+    var f = cpFlow();
+    var step = f.step;
+    /* When Series is being skipped this session, render its dot as skipped
+       (dimmed, no number) so the user sees the step exists but was bypassed. */
+    var seriesSkipped = f.series && f.series.length <= 1 && !f.seriesStepVisited;
     var html = '<div class="cf-stepper-wrap"><div class="wizard-steps">';
     CP_STEPS.forEach(function (label, i) {
       var n = i + 1;
-      var cls = n < step ? 'done' : n === step ? 'active' : 'pending';
+      var isSeriesStep = (n === 3);
+      var isSkipped = isSeriesStep && seriesSkipped;
+      var cls;
+      if (isSkipped) cls = 'skipped';
+      else if (n < step) cls = 'done';
+      else if (n === step) cls = 'active';
+      else cls = 'pending';
+      var dotLabel = isSkipped ? '\u2014' : (n < step ? '\u2713' : n);
       html += '<div class="wizard-step" style="flex-direction:column;align-items:center;">'
-        + '<div class="wiz-dot ' + cls + '">' + (n < step ? '✓' : n) + '</div>'
-        + '<div class="wiz-label">' + label + '</div></div>';
-      if (i < CP_STEPS.length - 1) html += '<div class="wiz-line' + (n < step ? ' done' : '') + '"></div>';
+        + '<div class="wiz-dot ' + cls + '">' + dotLabel + '</div>'
+        + '<div class="wiz-label' + (isSkipped ? ' wiz-label-skipped' : '') + '">' + label + '</div></div>';
+      if (i < CP_STEPS.length - 1) {
+        html += '<div class="wiz-line' + (n < step ? ' done' : '') + '"></div>';
+      }
     });
-    return html + '</div></div>';
+    /* Honest "Step X of Y" indicator — Y reflects the actual number of steps
+       this user will pass through, not the total possible. Also lets the user
+       see the objective is inherited by mentioning it in the light copy. */
+    var totalSteps = seriesSkipped ? CP_STEPS.length - 1 : CP_STEPS.length;
+    /* Convert internal step to displayed position (subtract 1 if we're past
+       the skipped Series step). */
+    var displayedStep = step;
+    if (seriesSkipped && step > 3) displayedStep = step - 1;
+    if (seriesSkipped && step === 3) displayedStep = 3; /* only happens once user reveals it */
+    var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+    var objectiveInherited = !!(concept && concept.gtmComplete && concept.gtm && concept.gtm.plan
+      && concept.gtm.plan.actions && concept.gtm.plan.actions[0]);
+    var progressNote = 'Step ' + displayedStep + ' of ' + totalSteps;
+    if (objectiveInherited && step === 1) {
+      progressNote += ' \u00b7 objective inherited from your GTM strategy';
+    } else if (seriesSkipped) {
+      progressNote += ' \u00b7 series step skipped for single-series campaign';
+    }
+    html += '</div>'
+      + '<div class="cp-stepper-progress-note">' + progressNote + '</div>'
+      + '</div>';
+    return html;
   }
 
   function cpStepGoalTiming() {
@@ -480,14 +527,39 @@ var CampaignFlow = (function () {
     } else if (f.claraSuggested) {
       claraIndicator = '<div class="clara-ready"><span>\u2736</span> Clara pre-filled Platforms &amp; Asset Mix \u2014 tweak freely on the next steps.</div>';
     }
+
+    /* If the active concept has a completed GTM strategy, inherit the objective
+       silently and replace the dropdown with a read-only inheritance line.
+       Re-checked on every render so switching concepts mid-flow updates this. */
+    var concept = window.clarityActiveConcept ? window.clarityActiveConcept() : null;
+    var g = (concept && concept.gtm) || {};
+    var firstAction = (g.plan && g.plan.actions && g.plan.actions.length && g.plan.actions[0] && g.plan.actions[0].title)
+      ? String(g.plan.actions[0].title).trim() : '';
+    var objectiveInherited = !!(concept && concept.gtmComplete && firstAction);
+    /* Silent default so downstream code (canContinue, cpApplyBriefFromIntelligence,
+       stored campaign objects) always has a value. */
+    if (objectiveInherited && !f.objective) f.objective = 'Launch';
+
+    var objectiveBlock;
+    if (objectiveInherited) {
+      var truncated = firstAction.length > 60 ? firstAction.substring(0, 60) + '\u2026' : firstAction;
+      objectiveBlock = '<div class="cp-field">'
+        + '<label>Objective</label>'
+        + '<div class="cp-objective-inherited">Inherited from your GTM strategy: '
+        + '<strong>' + truncated + '</strong></div>'
+        + '</div>';
+    } else {
+      objectiveBlock = '<div class="cp-field"><label>Objective</label><select onchange="campaignSetObjective(this.value)">'
+        + CP_OBJECTIVES.map(function (o) { return '<option' + (f.objective === o ? ' selected' : '') + '>' + o + '</option>'; }).join('')
+        + '</select></div>';
+    }
+
     return '<div class="cp-setup-center">'
       + '<div class="cp-step-title">Campaign setup</div>'
       + '<div class="cp-step-sub">Define goal and timing for this campaign.</div>'
       + '<div class="cp-form">'
       + '<div class="cp-field"><label>Campaign name</label><input value="' + f.name + '" onblur="campaignNameBlur(this.value)"></div>'
-      + '<div class="cp-field"><label>Objective</label><select onchange="campaignSetObjective(this.value)">'
-      + CP_OBJECTIVES.map(function (o) { return '<option' + (f.objective === o ? ' selected' : '') + '>' + o + '</option>'; }).join('')
-      + '</select></div>'
+      + objectiveBlock
       + '<div class="cp-row">'
       + '<div class="cp-field"><label>Start date</label><input type="date" value="' + f.startDate + '" onchange="campaignSetField(\'startDate\',this.value)"></div>'
       + '<div class="cp-field"><label>Start time</label><input type="time" value="' + (f.startTime || '09:00') + '" onchange="campaignSetField(\'startTime\',this.value)"></div>'
@@ -601,9 +673,24 @@ var CampaignFlow = (function () {
     cpEnsureDefaultMix();
     var claraBadge = f.claraSuggested ? '<span class="clara-badge">\u2736 Suggested by Clara</span>' : '';
 
+    /* "Add another series" link — visible when we're on a single-series campaign
+       and either (a) the user is on a standalone flow, or (b) they came from
+       create AND have now landed on Asset Mix at least once. Never shown until
+       the user is actually here. */
+    var fromCreate = !!(f.prefilledFromCreate);
+    var showAddSeriesLink = f.series.length === 1
+      && !f.seriesStepVisited
+      && (!fromCreate || f.assetMixVisited);
+    var addSeriesLink = showAddSeriesLink
+      ? '<div class="cp-add-series-link-row">'
+        + '<span class="cp-add-series-link" onclick="campaignRevealSeriesStep()">Running one series. Add another \u2192</span>'
+        + '</div>'
+      : '';
+
     if (f.series.length === 1) {
       // Single series: flat rendering identical to original, no visible series layer
-      return '<div class="cp-step-title">Asset mix' + claraBadge + '</div>'
+      return addSeriesLink
+        + '<div class="cp-step-title">Asset mix' + claraBadge + '</div>'
         + '<div class="cp-step-sub">Suggested bundle based on selected platforms. You can adjust counts.</div>'
         + cpMixGrid(0, f.series[0].assetMix);
     }
@@ -734,6 +821,17 @@ var CampaignFlow = (function () {
     f.activeSeriesIdx = f.series.length - 1;
     renderContent();
   };
+  /* Unhide the Series step for this session (called from the "Add another
+     series" link on Asset Mix) and jump the wizard back to it. Once visited,
+     the stepper renders it normally and the forward/back skip logic no
+     longer bypasses it. */
+  window.campaignRevealSeriesStep = function () {
+    var f = cpFlow();
+    if (!f) return;
+    f.seriesStepVisited = true;
+    f.step = 3;
+    renderContent();
+  };
   window.campaignRemoveSeries = function (idx) {
     var f = cpFlow();
     if (f.series.length <= 1) return;
@@ -782,6 +880,13 @@ var CampaignFlow = (function () {
   window.campaignSetBriefShared = function (field, value) {
     var f = cpFlow();
     f.brief.shared[field] = value;
+    renderContent();
+  };
+  /* Toggle the from-create read-only brief view into edit mode (and back). */
+  window.campaignToggleBriefEdit = function () {
+    var f = cpFlow();
+    if (!f) return;
+    f.briefEditMode = !f.briefEditMode;
     renderContent();
   };
   window.campaignToggleBriefOverride = function (platform) {
@@ -962,14 +1067,51 @@ var CampaignFlow = (function () {
           }).join('')
         + '</div>'
       : '';
+    /* Coming from the create wizard: the shared brief is already pre-filled
+       from the create step and probably will not be re-edited. Show it
+       read-only with an explicit "Edit brief" link that toggles the fields
+       into editable mode. Standalone campaigns keep the fully-editable view. */
+    var fromCreate = !!f.prefilledFromCreate;
+    var sharedBriefBlock;
+    if (fromCreate && !f.briefEditMode) {
+      sharedBriefBlock = '<div class="card cp-brief-card cp-brief-readonly">'
+        + '<div class="cp-brief-readonly-head">'
+        + '<div class="label" style="margin:0;">Shared campaign brief</div>'
+        + '<button class="cp-brief-edit-link" onclick="campaignToggleBriefEdit()">Edit brief \u2192</button>'
+        + '</div>'
+        + '<div class="cp-brief-readonly-grid">'
+        + '<div class="cp-brief-readonly-field">'
+        + '<span class="cp-brief-readonly-label">Persona</span>'
+        + '<span class="cp-brief-readonly-value">' + (shared.persona || '\u2014') + '</span></div>'
+        + '<div class="cp-brief-readonly-field">'
+        + '<span class="cp-brief-readonly-label">Message</span>'
+        + '<span class="cp-brief-readonly-value">' + (shared.message || '\u2014') + '</span></div>'
+        + '<div class="cp-brief-readonly-field">'
+        + '<span class="cp-brief-readonly-label">Proof</span>'
+        + '<span class="cp-brief-readonly-value">' + (shared.proof || '\u2014') + '</span></div>'
+        + '<div class="cp-brief-readonly-field">'
+        + '<span class="cp-brief-readonly-label">CTA</span>'
+        + '<span class="cp-brief-readonly-value">' + (shared.cta || '\u2014') + '</span></div>'
+        + '</div>'
+        + '</div>';
+    } else {
+      /* Editable mode — either standalone flow or from-create user clicked Edit */
+      var collapseLink = fromCreate
+        ? '<button class="cp-brief-edit-link" onclick="campaignToggleBriefEdit()">Done editing</button>'
+        : '';
+      sharedBriefBlock = '<div class="card cp-brief-card">'
+        + (collapseLink
+          ? '<div class="cp-brief-readonly-head"><div class="label" style="margin:0;">Shared campaign brief</div>' + collapseLink + '</div>'
+          : '<div class="label">Shared campaign brief</div>')
+        + '<div class="cp-form">'
+        + cpSharedBriefFields(shared)
+        + '</div>'
+        + '</div>';
+    }
+
     return '<div class="cp-step-title">Brief</div>'
       + '<div class="cp-step-sub">' + (f.series.length > 1 ? 'Fill in the shared brief below, then customise each series\u2019 angle. Fields left blank inherit from the shared brief.' : 'Set the campaign brief your generator will use to produce content.') + '</div>'
-      + '<div class="card cp-brief-card">'
-      + '<div class="label">Shared campaign brief</div>'
-      + '<div class="cp-form">'
-      + cpSharedBriefFields(shared)
-      + '</div>'
-      + '</div>'
+      + sharedBriefBlock
       + seriesOverrides
       + (platforms.length
         ? '<div class="cp-override-list">' + platforms.map(function (p) {
@@ -1760,6 +1902,17 @@ var CampaignFlow = (function () {
     if (f.step > floor) {
       if (f.step === 6) f.intelBannerPending = false;
       f.step--;
+      /* Mirror the forward-skip: if Series was skipped on the way in,
+         skip it on the way back too so the user never sees an empty step. */
+      if (f.step === 3 && f.series && f.series.length <= 1 && !f.seriesStepVisited) {
+        f.step = 2;
+      }
+      /* Any back-navigation to Asset Mix counts as a subsequent visit — reveal
+         the "Add another series" nudge to from-create flows now that the
+         user has explored past this step. */
+      if (f.step === 4 && f.prefilledFromCreate) {
+        f.assetMixVisited = true;
+      }
       renderContent();
     }
   };
@@ -1767,7 +1920,31 @@ var CampaignFlow = (function () {
     var f = cpFlow();
     if (!canContinue()) return;
     if (f.step < 8) {
+      var prevStep = f.step;
       f.step++;
+      /* Step 3 (Series) is skipped for single-series campaigns unless the
+         user has explicitly asked to visit it. Casual users go 2 → 4. */
+      if (f.step === 3 && f.series && f.series.length <= 1 && !f.seriesStepVisited) {
+        f.step = 4;
+      }
+      /* Mark Asset Mix as visited only on the SECOND+ arrival — the very first
+         time the user lands on Asset Mix from a create-wizard flow we hide
+         the "Add another series" link so they aren't nudged before they've
+         even seen the step. Standalone flows show it immediately. */
+      if (f.step === 4 && prevStep !== 4) {
+        if (f.prefilledFromCreate) {
+          /* First arrival: leave assetMixVisited false. Subsequent arrivals
+             (navigating away and back) will flip it to true via campaignBack
+             or from an earlier step's Continue firing again. */
+          if (f.assetMixVisitedOnce) {
+            f.assetMixVisited = true;
+          } else {
+            f.assetMixVisitedOnce = true;
+          }
+        } else {
+          f.assetMixVisited = true;
+        }
+      }
       if (f.step === 6) {
         if (!cpHasIntelligence()) {
           f.intelBannerPending = true;
@@ -2222,6 +2399,18 @@ var CampaignFlow = (function () {
       claraThinking: false,
       claraSuggested: false,
       intelBannerPending: false,
+      /* Series step is skipped for single-series campaigns unless explicitly
+         requested by the user via the "Add another series" link */
+      seriesStepVisited: false,
+      /* Brief pre-filled from the create wizard → collapse into read-only mode
+         and let the user opt in to editing */
+      briefEditMode: false,
+      /* Track when Asset Mix has been reached at least once for from-create
+         flows so the "Add another series" link only appears after that.
+         `assetMixVisitedOnce` is set on the first arrival, `assetMixVisited`
+         on subsequent arrivals. */
+      assetMixVisited: false,
+      assetMixVisitedOnce: false,
       prefilledFromCreate: true,
       seedAsset: seedAsset || null,
       brief: {

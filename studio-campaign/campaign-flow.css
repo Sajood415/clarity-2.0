@@ -821,3 +821,98 @@
   .cp-pub-content .cp-publish-split { margin: 0; }
   .cp-pub-done { margin-top: 16px; padding: 13px 18px; font-size: 13px; }
 }
+
+/* ============================================================
+   FLOW SIMPLIFICATION (Phase 2)
+   – cp-objective-inherited:     read-only inheritance line on Step 1
+   – cp-brief-readonly:          collapsed brief card on Step 5 (from-create)
+   – cp-brief-readonly-*:        field labels + values inside that card
+   – cp-brief-edit-link:         "Edit brief →" toggle
+   – cp-add-series-link:         "Running one series. Add another →" on Asset Mix
+   – cp-stepper-progress-note:   "Step X of Y" honest indicator
+   – wiz-dot.skipped:            greyed dot for the skipped Series step
+   ============================================================ */
+
+/* -- Objective inheritance line on Goal & Timing -- */
+.cp-objective-inherited {
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  background: var(--card2); border: 1px dashed var(--border);
+  font-size: 13px; color: var(--muted); font-style: italic; line-height: 1.5;
+}
+.cp-objective-inherited strong {
+  color: var(--text); font-weight: 600; font-style: normal;
+}
+
+/* -- Read-only shared brief card on Step 5 (from-create only) -- */
+.cp-brief-readonly {
+  padding: 18px 20px; margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.cp-brief-readonly-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.cp-brief-readonly-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 18px;
+}
+.cp-brief-readonly-field {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0;
+}
+.cp-brief-readonly-label {
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.cp-brief-readonly-value {
+  font-size: 13px; color: var(--text); line-height: 1.5;
+  word-break: break-word;
+}
+.cp-brief-edit-link {
+  background: transparent; border: none; color: var(--primary);
+  font-size: 12px; font-weight: 600; cursor: pointer; padding: 0;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.cp-brief-edit-link:hover { color: var(--primary-hover, #e2b866); }
+
+/* -- "Add another series" link at top of Asset Mix -- */
+.cp-add-series-link-row {
+  margin-bottom: 12px;
+}
+.cp-add-series-link {
+  font-size: 12px; color: var(--muted); cursor: pointer;
+  padding: 4px 0; display: inline-block;
+  transition: color 0.15s;
+}
+.cp-add-series-link:hover { color: var(--primary); }
+
+/* -- Step X of Y progress note below the stepper -- */
+.cp-stepper-progress-note {
+  text-align: center; font-size: 11px; color: var(--muted);
+  margin-top: -14px; margin-bottom: 20px;
+  letter-spacing: 0.02em;
+}
+
+/* -- Skipped Series dot in the stepper -- */
+.wiz-dot.skipped {
+  background: transparent; color: var(--muted); opacity: 0.5;
+  border: 1px dashed var(--border);
+}
+.wiz-label-skipped { opacity: 0.5; }
+
+/* -- Light mode overrides -- */
+[data-theme="light"] .cp-objective-inherited {
+  background: #f7f2e8; border-color: rgba(0,0,0,0.10); color: #6a6055;
+}
+[data-theme="light"] .cp-objective-inherited strong { color: #2a2620; }
+[data-theme="light"] .cp-brief-readonly-value { color: #2a2620; }
+[data-theme="light"] .cp-brief-readonly-label { color: #7a7060; }
+[data-theme="light"] .cp-brief-edit-link { color: #b8894a; }
+[data-theme="light"] .cp-add-series-link { color: #7a7060; }
+[data-theme="light"] .cp-add-series-link:hover { color: #b8894a; }
+[data-theme="light"] .cp-stepper-progress-note { color: #7a7060; }
+[data-theme="light"] .wiz-dot.skipped { border-color: rgba(0,0,0,0.15); color: #9a8f82; }
+
+/* -- Mobile -- */
+@media (max-width: 767px) {
+  .cp-brief-readonly-grid { grid-template-columns: 1fr; }
+  .cp-brief-readonly-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cp-stepper-progress-note { padding: 0 12px; }
+}

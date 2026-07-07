@@ -26,17 +26,6 @@
   animation: ob-enter 0.32s cubic-bezier(.22,.68,0,1.2) both;
 }
 
-/* Log out link — floats top-right on Welcome and Auth only. Both parents
-   are position:relative, so absolute positioning anchors to the screen. */
-.ob-exit-link {
-  position: absolute; top: 16px; right: 16px;
-  font-size: 12px; color: var(--ob-muted);
-  cursor: pointer; z-index: 10;
-  padding: 4px 8px;
-  transition: color 0.15s;
-}
-.ob-exit-link:hover { color: var(--ob-text); }
-
 /* ============================================================
    SCREEN 1 — WELCOME
    ============================================================ */

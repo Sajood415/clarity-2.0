@@ -1110,3 +1110,111 @@
   .cv-canvas-area { max-width: none; }
   [data-theme="light"] .cv-canvas-panel { border-top-color: rgba(0,0,0,0.06); }
 }
+
+/* ============================================================
+   FLOW SIMPLIFICATION (Phase 2)
+   – cf-brief-banner:            amber "Pre-filled from your research" strip
+   – cf-brief-summary:           read-only brief chip card above Generate
+   – cf-format-inline-picker:    format picker folded under Platform step
+   – cf-format-inline-chip:      compact "Format: X — Recommended · Change" chip
+   ============================================================ */
+
+/* -- Pre-fill banner on the Brief step -- */
+.cf-brief-banner {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: rgba(212,168,83,0.10); border: 1px solid rgba(212,168,83,0.30);
+  border-radius: var(--radius); padding: 12px 14px;
+  margin: 4px 0 14px;
+  animation: cf-step-fade 0.2s ease both;
+}
+.cf-brief-banner-icon {
+  color: var(--primary); font-size: 15px; line-height: 1.4; flex-shrink: 0;
+}
+.cf-brief-banner-body { flex: 1; min-width: 0; }
+.cf-brief-banner-title {
+  font-size: 12px; font-weight: 700; color: var(--primary);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px;
+}
+.cf-brief-banner-text {
+  font-size: 13px; color: var(--text); line-height: 1.5;
+}
+.cf-brief-banner-close {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 14px; padding: 2px 6px;
+  border-radius: 4px; line-height: 1; flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.cf-brief-banner-close:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+/* -- Brief summary card above Generate step -- */
+.cf-brief-summary {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px;
+  margin: 0 0 18px; display: flex; flex-direction: column; gap: 8px;
+}
+.cf-brief-summary-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.cf-brief-summary-label {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.cf-brief-summary-edit {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px;
+  padding: 4px 10px; font-size: 11px; cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.cf-brief-summary-edit:hover {
+  color: var(--primary); border-color: var(--primary);
+  background: rgba(212,168,83,0.06);
+}
+.cf-brief-summary-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cf-brief-summary-chip {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 10px;
+  font-size: 12px; max-width: 100%;
+}
+.cf-brief-summary-chip-k {
+  font-size: 9px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.cf-brief-summary-chip-v {
+  color: var(--text); font-weight: 500; max-width: 240px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* -- Inline format row under platform tiles --
+   Always visible when a platform is selected. Small pill chips with the
+   recommended one badged. Tapping a chip swaps the format instantly. */
+.cf-format-inline {
+  margin-top: 22px; padding: 14px 16px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: var(--radius);
+  animation: cf-step-fade 0.2s ease both;
+}
+.cf-format-inline-title {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+}
+.cf-format-inline-sub {
+  font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 10px;
+}
+.cf-format-inline .format-chip-row { margin: 0; }
+
+/* -- Light mode overrides -- */
+[data-theme="light"] .cf-brief-banner {
+  background: rgba(184,137,74,0.10); border-color: rgba(184,137,74,0.30);
+}
+[data-theme="light"] .cf-brief-banner-title { color: #b8894a; }
+[data-theme="light"] .cf-brief-banner-text { color: #2a2620; }
+[data-theme="light"] .cf-brief-banner-close:hover { background: rgba(0,0,0,0.04); }
+[data-theme="light"] .cf-brief-summary-chip-v { color: #2a2620; }
+
+/* -- Mobile -- */
+@media (max-width: 768px) {
+  .cf-brief-summary-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .cf-brief-summary-chip-v { max-width: 160px; }
+}

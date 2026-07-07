@@ -152,7 +152,6 @@ var OnboardingFlow = (function () {
      ============================================================ */
   function screenWelcome() {
     return '<div class="ob-screen ob-welcome-screen">'
-      + '<a class="ob-exit-link" onclick="clarityLogout()">Log out</a>'
       + '<div class="ob-welcome-main">'
       + '<div class="ob-welcome-wrap">'
       + '<div class="ob-wordmark"><em>Clarity</em></div>'
@@ -222,7 +221,6 @@ var OnboardingFlow = (function () {
       + '</div>';
 
     return '<div class="ob-auth-screen">'
-      + '<a class="ob-exit-link" onclick="clarityLogout()">Log out</a>'
       + leftPanel + rightPanel
       + '</div>';
   }
