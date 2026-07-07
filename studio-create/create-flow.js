@@ -1867,23 +1867,65 @@ var CreateFlow = (function () {
   };
   window.cfConfirmAddToCampaign = function () {
     var f = cfFlow();
-    var pick = f.decisionCampaignPick;
     var campaigns = appState.campaigns || [];
-    /* "Create new" or unresolved → route to the campaign wizard as before */
+    /* The dropdown visually defaults to the first campaign on render, but the
+       onchange handler only fires when the user actually changes it. If they
+       hit "Add to campaign" without touching the select, decisionCampaignPick
+       is still undefined — fall back to the first campaign so the visible
+       selection matches what actually gets used. */
+    var pick = f.decisionCampaignPick || (campaigns[0] && campaigns[0].id) || '';
+    /* Explicit "Create new" → route to the campaign wizard as before */
     if (!pick || pick === '__new__') {
       window.cfStartCampaignFromCreate();
       return;
     }
+    /* Match by id first (the <option value=""> uses c.id), then fall back to
+       name for legacy resilience. If no match, spin up a fresh campaign. */
     var target = null;
     for (var i = 0; i < campaigns.length; i++) {
-      if (campaigns[i].id === pick) { target = campaigns[i]; break; }
+      if (campaigns[i].id === pick || campaigns[i].name === pick) { target = campaigns[i]; break; }
     }
     if (!target) {
       window.cfStartCampaignFromCreate();
       return;
     }
-    /* Attach to the picked campaign — the item's `campaign` field is read
-       from appState.cfCampaign when cfPublish saves the item. */
+    /* Build an asset from the selected variation and actually push it onto
+       the campaign's assets array — otherwise "Add to campaign" only tagged
+       the item's campaign name and the asset never showed up on the campaign
+       detail page. Shape mirrors seedAsset in cfStartCampaignFromCreate so
+       cpDetailAssetCard / cpGroupAssetsByPlatform render it correctly. */
+    var brief = appState.createBrief;
+    var vars = f.modality === 'image' ? CF_IMAGE_VARS
+      : f.modality === 'video' ? CF_VIDEO_VARS
+      : f.modality === 'audio' ? CF_AUDIO_VARS
+      : CF_TEXT_VARS;
+    var v = f.variation !== null ? vars[f.variation] : vars[0];
+    var asset = {
+      id: 'asset-' + Date.now(),
+      platform: f.platform || '',
+      modality: f.modality || 'text',
+      format: f.format || '',
+      label: cfPrettyModality(f.modality) + (f.platform ? ' for ' + f.platform : ''),
+      title: (brief.message || 'Generated content').substring(0, 72),
+      content: f.modality === 'text' ? (f.editContent || (v && v.text) || brief.message || '') : (brief.message || ''),
+      status: 'Ready',
+      approved: true,
+      scheduledDate: null,
+      fromCreate: true,
+      storyboard: v ? v.storyboard : '',
+      rationale: v ? v.rationale : ''
+    };
+    if (!target.assets) target.assets = [];
+    target.assets.push(asset);
+    target.totalAssets = target.assets.length;
+    /* Ensure the campaign lists the platform this new asset is on — the
+       detail page's Channel mix / platform sections read c.platforms and
+       group by asset.platform. Adding a platform not previously in the mix
+       keeps the two views consistent. */
+    if (asset.platform && Array.isArray(target.platforms) && target.platforms.indexOf(asset.platform) < 0) {
+      target.platforms.push(asset.platform);
+    }
+    /* Same field the success screen reads for the "Added to campaign: X" line */
     appState.cfCampaign = target.name;
     window.cfPublish('campaign');
   };
