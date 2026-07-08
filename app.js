@@ -534,23 +534,22 @@ function _renderInitialState(root) {
   const blob2Style = 'position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(232,132,90,0.05);filter:blur(100px);bottom:50px;right:5%;pointer-events:none;z-index:0;';
   const blob3Style = 'position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(245,166,35,0.04);filter:blur(80px);bottom:100px;left:5%;pointer-events:none;z-index:0;';
 
-  const contentStyle = 'position:relative;z-index:1;max-width:660px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;align-items:stretch;width:100%;';
+  const contentStyle = 'position:relative;z-index:1;max-width:660px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;align-items:center;width:100%;';
 
-  const questionBlockStyle = 'width:100%;max-width:600px;margin:0 auto 40px;opacity:0;animation:cl-init-fade-in 500ms cubic-bezier(0.2,0.7,0.2,1) 150ms forwards;';
-
-  const questionRowStyle = 'display:flex;align-items:center;gap:12px;';
+  const questionBlockStyle = 'width:100%;max-width:600px;margin:0 auto 40px;display:flex;flex-direction:column;align-items:center;text-align:center;opacity:0;animation:cl-init-fade-in 500ms cubic-bezier(0.2,0.7,0.2,1) 150ms forwards;';
 
   const avatarStyle = [
-    'width:28px', 'height:28px', 'border-radius:50%',
+    'width:32px', 'height:32px', 'border-radius:50%',
     'background:linear-gradient(135deg, #F5A623 0%, #D4860A 100%)',
     'display:flex', 'align-items:center', 'justify-content:center',
     'flex-shrink:0',
-    'color:#000', 'font-size:12px', 'font-weight:700', 'line-height:1',
-    'box-shadow:0 2px 12px rgba(245,166,35,0.3)'
+    'color:#000', 'font-size:13px', 'font-weight:700', 'line-height:1',
+    'box-shadow:0 2px 12px rgba(245,166,35,0.3)',
+    'margin-bottom:16px'
   ].join(';') + ';';
 
-  const questionStyle = 'font-size:32px;font-weight:700;color:#F5F0E8;letter-spacing:-0.02em;line-height:1.2;';
-  const followupStyle = 'font-size:20px;font-weight:400;color:rgba(245,240,232,0.5);line-height:1.4;margin-top:8px;padding-left:40px;';
+  const questionStyle = 'font-size:32px;font-weight:700;color:#F5F0E8;letter-spacing:-0.02em;line-height:1.2;text-align:center;';
+  const followupStyle = 'font-size:20px;font-weight:400;color:rgba(245,240,232,0.5);line-height:1.4;margin-top:8px;text-align:center;';
 
   const inputBarStyle = 'width:100%;padding:0;margin:0;display:flex;justify-content:center;';
 
@@ -575,10 +574,8 @@ function _renderInitialState(root) {
       <div style="${blob3Style}"></div>
       <div style="${contentStyle}">
         <div class="cl-greeting" style="${questionBlockStyle}">
-          <div style="${questionRowStyle}">
-            <div class="cl-init-avatar" style="${avatarStyle}">C</div>
-            <div style="${questionStyle}">Tell me about your business.</div>
-          </div>
+          <div class="cl-init-avatar" style="${avatarStyle}">C</div>
+          <div style="${questionStyle}">Tell me about your business.</div>
           <div style="${followupStyle}">What are you trying to achieve right now?</div>
         </div>
         <div class="cl-input-bar" id="clInputBar" style="${inputBarStyle}">
