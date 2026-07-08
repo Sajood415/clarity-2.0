@@ -401,21 +401,66 @@ function renderWelcome(root) {
   const isReturning = !!(appState.clara && appState.clara.onboardingComplete);
   const rawName = (appState.user && appState.user.name) ? String(appState.user.name) : '';
   const firstName = rawName ? rawName.split(' ')[0] : 'there';
-  const subtitle = isReturning
-    ? 'Clara already knows your business.'
-    : 'Clara is getting to know your business.';
+  const nameLine = 'Hey, ' + (firstName === 'there' ? 'there' : _escape(firstName)) + '.';
+
+  const screenStyle = [
+    'position:fixed', 'inset:0',
+    'background:radial-gradient(ellipse at 50% 50%, #241a06 0%, #0F0D0B 70%)',
+    'display:flex', 'flex-direction:column',
+    'align-items:center', 'justify-content:center',
+    'z-index:1000', 'overflow:hidden'
+  ].join(';') + ';';
+
+  const blob1Style = 'position:absolute;width:600px;height:600px;border-radius:50%;background:rgba(245,166,35,0.07);filter:blur(140px);top:-150px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:0;';
+  const blob2Style = 'position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(232,132,90,0.05);filter:blur(100px);bottom:50px;right:5%;pointer-events:none;z-index:0;';
+  const blob3Style = 'position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(245,166,35,0.04);filter:blur(80px);bottom:100px;left:5%;pointer-events:none;z-index:0;';
+
+  const contentStyle = 'position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:0;text-align:center;padding:0 24px;';
+
+  const nameStyle = [
+    'font-size:56px', 'font-weight:800',
+    'color:#F5F0E8', 'letter-spacing:-0.03em', 'line-height:1',
+    'opacity:0',
+    'animation:wl-fade-in 500ms cubic-bezier(0.2,0.7,0.2,1) 200ms forwards'
+  ].join(';') + ';';
+
+  const lineStyle = [
+    'width:40px', 'height:2px',
+    'background:#F5A623', 'border-radius:1px',
+    'margin:24px auto 0',
+    'transform:scaleX(0)',
+    'animation:wl-line-in 300ms cubic-bezier(0.2,0.7,0.2,1) 600ms forwards'
+  ].join(';') + ';';
+
+  const subtitleStyle = [
+    'font-size:16px', 'color:rgba(245,240,232,0.4)',
+    'font-weight:400', 'line-height:1.4',
+    'margin-top:16px',
+    'opacity:0',
+    'animation:wl-fade-in 500ms cubic-bezier(0.2,0.7,0.2,1) 900ms forwards'
+  ].join(';') + ';';
+
+  const dotsStyle = [
+    'margin-top:32px', 'display:inline-flex', 'align-items:center', 'gap:6px',
+    'opacity:0',
+    'animation:wl-fade-in 500ms cubic-bezier(0.2,0.7,0.2,1) 1200ms forwards'
+  ].join(';') + ';';
+
+  const dotBase = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:#F5A623;opacity:0.6;animation:cl-bounce 0.8s ease-in-out infinite;';
 
   root.innerHTML = `
-    <div class="wl-screen" id="wlScreen">
-      <div class="wl-glow"></div>
-      <div class="wl-content">
-        <div class="wl-avatar">C</div>
-        <div class="wl-name">Welcome, ${_escape(firstName)}.</div>
-        <div class="wl-subtitle">${_escape(subtitle)}</div>
-        <div class="wl-dots">
-          <span class="wl-dot"></span>
-          <span class="wl-dot"></span>
-          <span class="wl-dot"></span>
+    <div class="wl-screen" id="wlScreen" style="${screenStyle}">
+      <div class="wl-blob wl-blob-1" style="${blob1Style}"></div>
+      <div class="wl-blob wl-blob-2" style="${blob2Style}"></div>
+      <div class="wl-blob wl-blob-3" style="${blob3Style}"></div>
+      <div class="wl-content" style="${contentStyle}">
+        <div class="wl-name" style="${nameStyle}">${nameLine}</div>
+        <div class="wl-line" style="${lineStyle}"></div>
+        <div class="wl-subtitle" style="${subtitleStyle}">Clara is ready for you.</div>
+        <div class="wl-dots" style="${dotsStyle}">
+          <span class="wl-dot" style="${dotBase}"></span>
+          <span class="wl-dot" style="${dotBase}animation-delay:0.15s;"></span>
+          <span class="wl-dot" style="${dotBase}animation-delay:0.3s;"></span>
         </div>
       </div>
     </div>
@@ -477,37 +522,65 @@ function renderOnboarding(root) {
 }
 
 function _renderInitialState(root) {
-  const rawName = (appState.user && appState.user.name) ? String(appState.user.name) : '';
-  const firstName = rawName ? rawName.split(' ')[0] : 'there';
+  const outerStyle = [
+    'min-height:100vh', 'padding:0',
+    'display:flex', 'flex-direction:column',
+    'align-items:center', 'justify-content:center',
+    'background:radial-gradient(ellipse at 50% 35%, #261c08 0%, #0F0D0B 60%)',
+    'position:relative', 'overflow:hidden'
+  ].join(';') + ';';
 
-  const outerStyle = 'min-height:100vh; padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background: radial-gradient(ellipse at 50% 40%, #2a1f0a 0%, #0F0D0B 65%); position:relative; overflow:hidden;';
-  const blob1Style = 'position:absolute; width:500px; height:500px; border-radius:50%; background:rgba(245,166,35,0.06); filter:blur(120px); top:-100px; left:50%; transform:translateX(-50%); pointer-events:none; z-index:0;';
-  const blob2Style = 'position:absolute; width:300px; height:300px; border-radius:50%; background:rgba(232,132,90,0.04); filter:blur(80px); bottom:100px; right:10%; pointer-events:none; z-index:0;';
-  const contentStyle = 'position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 24px; max-width:640px; width:100%;';
-  const logoStyle = 'width:52px; height:52px; border-radius:50%; background:#F5A623; display:flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 0 40px rgba(245,166,35,0.3); color:#000; font-size:20px; font-weight:700; line-height:1;';
-  const brandStyle = 'font-size:15px; font-weight:600; color:rgba(245,166,35,0.8); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:12px;';
-  const greetingStyle = 'font-size:40px; font-weight:800; color:#F5F0E8; letter-spacing:-0.03em; line-height:1.1; margin-bottom:10px;';
-  const subStyle = 'font-size:17px; color:#8A7F72; font-weight:400; margin-bottom:48px; line-height:1.4;';
-  const inputBarStyle = 'width:100%; padding:0; margin:0;';
-  const chipsRowStyle = 'margin-top:20px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; width:100%;';
-  const chipStyle = 'background:rgba(28,24,20,0.8); border:1px solid rgba(255,240,220,0.1); border-radius:24px; padding:10px 18px; font-size:13px; color:#8A7F72; cursor:pointer; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:border-color 200ms ease, color 200ms ease, background 200ms ease; font-family:inherit;';
+  const blob1Style = 'position:absolute;width:600px;height:600px;border-radius:50%;background:rgba(245,166,35,0.07);filter:blur(140px);top:-150px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:0;';
+  const blob2Style = 'position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(232,132,90,0.05);filter:blur(100px);bottom:50px;right:5%;pointer-events:none;z-index:0;';
+  const blob3Style = 'position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(245,166,35,0.04);filter:blur(80px);bottom:100px;left:5%;pointer-events:none;z-index:0;';
+
+  const contentStyle = 'position:relative;z-index:1;max-width:660px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;align-items:stretch;width:100%;';
+
+  const questionBlockStyle = 'width:100%;max-width:600px;margin:0 auto 40px;opacity:0;animation:cl-init-fade-in 500ms cubic-bezier(0.2,0.7,0.2,1) 150ms forwards;';
+
+  const questionRowStyle = 'display:flex;align-items:center;gap:12px;';
+
+  const avatarStyle = [
+    'width:28px', 'height:28px', 'border-radius:50%',
+    'background:linear-gradient(135deg, #F5A623 0%, #D4860A 100%)',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'flex-shrink:0',
+    'color:#000', 'font-size:12px', 'font-weight:700', 'line-height:1',
+    'box-shadow:0 2px 12px rgba(245,166,35,0.3)'
+  ].join(';') + ';';
+
+  const questionStyle = 'font-size:32px;font-weight:700;color:#F5F0E8;letter-spacing:-0.02em;line-height:1.2;';
+  const followupStyle = 'font-size:20px;font-weight:400;color:rgba(245,240,232,0.5);line-height:1.4;margin-top:8px;padding-left:40px;';
+
+  const inputBarStyle = 'width:100%;padding:0;margin:0;display:flex;justify-content:center;';
+
+  const chipsRowStyle = 'margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:600px;width:100%;margin-left:auto;margin-right:auto;';
+  const chipStyle = 'background:rgba(255,240,220,0.04);border:1px solid rgba(255,240,220,0.08);border-radius:24px;padding:10px 20px;font-size:13px;color:rgba(245,240,232,0.5);cursor:pointer;transition:all 200ms ease;font-family:inherit;';
 
   root.innerHTML = `
     <style>
+      @keyframes cl-init-fade-in {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
       .cl-init-chip:hover {
-        border-color: rgba(245,166,35,0.4) !important;
-        color: #F5A623 !important;
         background: rgba(245,166,35,0.08) !important;
+        border-color: rgba(245,166,35,0.3) !important;
+        color: #F5A623 !important;
       }
     </style>
     <div class="cl-onboarding cl-initial-state" id="clOnboarding" style="${outerStyle}">
       <div style="${blob1Style}"></div>
       <div style="${blob2Style}"></div>
+      <div style="${blob3Style}"></div>
       <div style="${contentStyle}">
-        <div style="${logoStyle}">C</div>
-        <div style="${brandStyle}">Clarity</div>
-        <div style="${greetingStyle}">Good to see you, ${_escape(firstName)}.</div>
-        <div style="${subStyle}">Ask Clara anything about your business.</div>
+        <div class="cl-greeting" style="${questionBlockStyle}">
+          <div style="${questionRowStyle}">
+            <div class="cl-init-avatar" style="${avatarStyle}">C</div>
+            <div style="${questionStyle}">Tell me about your business.</div>
+          </div>
+          <div style="${followupStyle}">What are you trying to achieve right now?</div>
+        </div>
         <div class="cl-input-bar" id="clInputBar" style="${inputBarStyle}">
           ${_renderInputContainerHtml()}
         </div>
@@ -522,19 +595,19 @@ function _renderInitialState(root) {
 
   const initialContainer = root.querySelector('.cl-initial-state .cl-input-container');
   if (initialContainer) {
-    initialContainer.style.maxWidth = '580px';
+    initialContainer.style.maxWidth = '600px';
     initialContainer.style.width = '100%';
     initialContainer.style.margin = '0 auto';
-    initialContainer.style.background = 'rgba(28,24,20,0.9)';
-    initialContainer.style.border = '1px solid rgba(255,240,220,0.15)';
-    initialContainer.style.borderRadius = '18px';
-    initialContainer.style.boxShadow = '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(245,166,35,0.05)';
-    initialContainer.style.padding = '14px 14px 14px 20px';
+    initialContainer.style.background = 'rgba(28,24,20,0.95)';
+    initialContainer.style.border = '1px solid rgba(255,240,220,0.12)';
+    initialContainer.style.borderRadius = '20px';
+    initialContainer.style.boxShadow = '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,166,35,0.06)';
+    initialContainer.style.padding = '16px 16px 16px 20px';
     initialContainer.style.display = 'flex';
     initialContainer.style.alignItems = 'flex-end';
-    initialContainer.style.gap = '10px';
-    initialContainer.style.backdropFilter = 'blur(10px)';
-    initialContainer.style.webkitBackdropFilter = 'blur(10px)';
+    initialContainer.style.gap = '12px';
+    initialContainer.style.backdropFilter = 'blur(20px)';
+    initialContainer.style.webkitBackdropFilter = 'blur(20px)';
   }
 
   _bindInputEvents();
@@ -544,13 +617,34 @@ function _renderInitialState(root) {
 function _renderChatState(root, opts) {
   const animateLast = !!(opts && opts.animateLast);
 
+  const rootStyle = [
+    'min-height:100vh',
+    'display:flex',
+    'flex-direction:column',
+    'background:radial-gradient(ellipse at 50% 0%, #1e1508 0%, #0F0D0B 50%)'
+  ].join(';') + ';';
+
+  const watermarkStyle = [
+    'font-size:11px',
+    'font-weight:600',
+    'color:rgba(245,166,35,0.12)',
+    'letter-spacing:0.25em',
+    'text-transform:uppercase',
+    'padding-top:20px',
+    'padding-bottom:16px',
+    'text-align:center',
+    'flex-shrink:0'
+  ].join(';') + ';';
+
+  const disclaimerStyle = 'max-width:640px;margin:10px auto 0;text-align:center;font-size:11px;color:rgba(245,240,232,0.18);line-height:1.4;';
+
   root.innerHTML = `
-    <div class="cl-onboarding cl-chat-state" id="clOnboarding">
-      <div class="cl-watermark">Clarity</div>
+    <div class="cl-onboarding cl-chat-state" id="clOnboarding" style="${rootStyle}">
+      <div class="cl-watermark" style="${watermarkStyle}">Clarity</div>
       <main class="cl-chat-area" id="clChatArea"></main>
       <div class="cl-input-bar" id="clInputBar">
         ${_renderInputContainerHtml()}
-        <div class="cl-disclaimer">Clara may make mistakes. Always verify important decisions.</div>
+        <div class="cl-disclaimer" style="${disclaimerStyle}">Clara may make mistakes. Always verify important decisions.</div>
       </div>
     </div>
   `;
@@ -600,7 +694,7 @@ function _bindInputEvents() {
 
   const autoGrow = function () {
     input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+    input.style.height = Math.min(input.scrollHeight, 150) + 'px';
   };
 
   input.addEventListener('input', function () {
@@ -630,23 +724,71 @@ function _bindStarterChips() {
   });
 }
 
+const CL_GROUP_BASE_STYLE = 'max-width:640px;margin:0 auto 28px;width:100%;padding:0 20px;';
+const CL_GROUP_CLARA_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;flex-direction:row;align-items:flex-start;gap:12px;';
+const CL_GROUP_USER_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;justify-content:flex-end;';
+
+const CL_AVATAR_STYLE = [
+  'width:32px', 'height:32px', 'border-radius:50%',
+  'background:linear-gradient(135deg, #F5A623 0%, #D4860A 100%)',
+  'color:#000', 'display:flex', 'align-items:center', 'justify-content:center',
+  'flex-shrink:0',
+  'font-size:13px', 'font-weight:700',
+  'margin-top:2px',
+  'box-shadow:0 2px 12px rgba(245,166,35,0.3)'
+].join(';') + ';';
+
+const CL_CLARA_TEXT_STYLE = [
+  'background:transparent',
+  'border:none',
+  'border-radius:0',
+  'padding:0',
+  'font-size:16px',
+  'color:#F5F0E8',
+  'line-height:1.75',
+  'flex:1',
+  'max-width:none',
+  'word-wrap:break-word',
+  'white-space:pre-wrap'
+].join(';') + ';';
+
+const CL_USER_TEXT_STYLE = [
+  'background:rgba(245,166,35,0.12)',
+  'border:1px solid rgba(245,166,35,0.2)',
+  'border-radius:18px 18px 4px 18px',
+  'padding:14px 20px',
+  'font-size:15px',
+  'color:#F5F0E8',
+  'max-width:75%',
+  'line-height:1.5',
+  'word-wrap:break-word',
+  'white-space:pre-wrap',
+  'box-shadow:0 2px 12px rgba(245,166,35,0.1)'
+].join(';') + ';';
+
+const CL_BOUNCE_DOT_STYLE = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(245,240,232,0.3);margin:0 3px;animation:cl-bounce 0.8s ease-in-out infinite;';
+
 function _buildMessageEl(role, text, animate) {
   const group = document.createElement('div');
   group.className = 'cl-msg-group cl-msg-' + role;
+  group.setAttribute('style', role === 'clara' ? CL_GROUP_CLARA_STYLE : CL_GROUP_USER_STYLE);
 
   if (role === 'clara') {
     const avatar = document.createElement('div');
     avatar.className = 'cl-avatar';
+    avatar.setAttribute('style', CL_AVATAR_STYLE);
     avatar.textContent = 'C';
     group.appendChild(avatar);
 
     const textEl = document.createElement('div');
     textEl.className = 'cl-clara-text';
+    textEl.setAttribute('style', CL_CLARA_TEXT_STYLE);
     textEl.textContent = text;
     group.appendChild(textEl);
   } else {
     const textEl = document.createElement('div');
     textEl.className = 'cl-user-text';
+    textEl.setAttribute('style', CL_USER_TEXT_STYLE);
     textEl.textContent = text;
     group.appendChild(textEl);
   }
@@ -661,15 +803,23 @@ function _buildThinkingBubbleEl() {
   const group = document.createElement('div');
   group.className = 'cl-msg-group cl-msg-clara';
   group.id = 'clThinkingBubble';
+  group.setAttribute('style', CL_GROUP_CLARA_STYLE);
 
   const avatar = document.createElement('div');
   avatar.className = 'cl-avatar';
+  avatar.setAttribute('style', CL_AVATAR_STYLE);
   avatar.textContent = 'C';
   group.appendChild(avatar);
 
   const textEl = document.createElement('div');
   textEl.className = 'cl-clara-text';
-  textEl.innerHTML = '<span class="cl-bounce-dots"><span class="cl-bounce-dot"></span><span class="cl-bounce-dot"></span><span class="cl-bounce-dot"></span></span>';
+  textEl.setAttribute('style', CL_CLARA_TEXT_STYLE);
+  textEl.innerHTML =
+    '<span class="cl-bounce-dots" style="display:inline-flex;align-items:center;height:20px;">'
+    + '<span class="cl-bounce-dot" style="' + CL_BOUNCE_DOT_STYLE + '"></span>'
+    + '<span class="cl-bounce-dot" style="' + CL_BOUNCE_DOT_STYLE + 'animation-delay:0.15s;"></span>'
+    + '<span class="cl-bounce-dot" style="' + CL_BOUNCE_DOT_STYLE + 'animation-delay:0.3s;"></span>'
+    + '</span>';
   group.appendChild(textEl);
 
   return group;
