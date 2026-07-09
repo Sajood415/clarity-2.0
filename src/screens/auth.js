@@ -192,16 +192,17 @@ function _handleGoogleAuth() {
 
   const nameEl = document.getElementById('auth-name');
   const enteredName = nameEl ? nameEl.value.trim() : '';
-  const fallbackName = 'there';
+  const fallbackName = 'Sajood';
+  const fallbackEmail = 'sajood@gmail.com';
 
   if (isSignup) {
     appState.user = {
       name: enteredName || fallbackName,
-      email: 'user@gmail.com'
+      email: fallbackEmail
     };
   } else {
     const existingName = (appState.user && appState.user.name) || enteredName || fallbackName;
-    const existingEmail = (appState.user && appState.user.email) || 'user@gmail.com';
+    const existingEmail = (appState.user && appState.user.email) || fallbackEmail;
     appState.user = Object.assign({}, appState.user || {}, {
       name: existingName,
       email: existingEmail

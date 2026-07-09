@@ -1,5 +1,7 @@
 /* ==========================================
-   Concept header (on every home view)
+   Concept header — two modes:
+     .ch-header-chat       (single row, 44px)   \u2014 chat page
+     .ch-header-workspace  (two rows,   80px)   \u2014 workspace page
    ========================================== */
 
 .hm-shell {
@@ -14,7 +16,7 @@
 }
 
 .hm-empty {
-  min-height: calc(100vh - 40px);
+  min-height: calc(100vh - 44px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,45 +29,56 @@
   letter-spacing: -0.01em;
 }
 
+/* --- Sticky header shell (both modes) --- */
+
 .ch-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  /* Fades from mostly-opaque at the top to translucent at the bottom so
+     content scrolling underneath the header blurs and blends smoothly
+     into the header \u2014 same trick Claude and Linear use to avoid a hard
+     divider line. */
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 13, 11, 0.85) 0%,
+    rgba(15, 13, 11, 0.65) 100%
+  );
+  backdrop-filter: blur(22px) saturate(1.15);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+}
+
+/* A very short gradient extends BELOW the sticky bounds to soften the
+   handoff between the header and the content when there\u2019s no scroll
+   yet. Purely cosmetic; disappears completely a few pixels down. */
+.ch-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 14px;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 13, 11, 0.35),
+    rgba(15, 13, 11, 0)
+  );
+  pointer-events: none;
+}
+
+/* --- Info row (shared) --- */
+
+.ch-info-row {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 20px;
-  min-height: 40px;
-  background: rgba(15, 13, 11, 0.72);
-  border-bottom: 1px solid rgba(255, 240, 220, 0.05);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  min-height: 44px;
 }
 
-.ch-header::before {
-  /* Thin colored accent bar so the concept color reads even in peripheral vision */
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--concept-color, var(--accent));
-  opacity: 0.55;
-}
-
-.ch-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+.ch-header-workspace .ch-info-row {
+  min-height: 36px;
+  padding: 6px 20px;
 }
 
 .ch-info {
@@ -84,17 +97,231 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 60vw;
+  max-width: 40vw;
 }
 
 .ch-meta {
   font-size: 10.5px;
   color: rgba(245, 240, 232, 0.4);
   letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
 
-/* Chat view already has its own tall gradient background — soften the
-   header there so it blends in. */
+.ch-spacer {
+  flex: 1;
+}
+
+/* --- Chat mode: "Workspace \u2192" button --- */
+
+.ch-workspace-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 14px;
+  border-radius: 8px;
+  background: rgba(245, 166, 35, 0.09);
+  border: 1px solid rgba(245, 166, 35, 0.24);
+  color: #F5F0E8;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.ch-workspace-btn:hover {
+  background: rgba(245, 166, 35, 0.16);
+  border-color: rgba(245, 166, 35, 0.42);
+}
+
+.ch-workspace-btn:hover .ch-workspace-btn-arrow {
+  transform: translateX(2px);
+}
+
+.ch-workspace-btn:focus-visible {
+  outline: none;
+  border-color: rgba(245, 166, 35, 0.55);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
+}
+
+.ch-workspace-btn-label {
+  color: #F5F0E8;
+}
+
+.ch-workspace-btn-arrow {
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+/* Unlock animation — plays exactly once, the render immediately after
+   Clara finishes onboarding. Chat is still open; the button just
+   materializes on the right so the user notices their workspace is
+   ready. */
+
+.ch-workspace-btn-unlocking {
+  animation: ch-workspace-unlock 780ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes ch-workspace-unlock {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.92);
+    background: rgba(245, 166, 35, 0.35);
+    border-color: rgba(245, 166, 35, 0.65);
+    box-shadow: 0 0 0 6px rgba(245, 166, 35, 0.14);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.02);
+    background: rgba(245, 166, 35, 0.22);
+    border-color: rgba(245, 166, 35, 0.5);
+    box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    background: rgba(245, 166, 35, 0.09);
+    border-color: rgba(245, 166, 35, 0.24);
+    box-shadow: 0 0 0 0 rgba(245, 166, 35, 0);
+  }
+}
+
+/* --- Workspace mode: "\u2190 Chat" back link --- */
+
+.ch-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: rgba(245, 240, 232, 0.5);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.ch-back-btn:hover {
+  background: rgba(255, 240, 220, 0.05);
+  color: #F5F0E8;
+}
+
+.ch-back-btn:hover .ch-back-arrow {
+  transform: translateX(-2px);
+}
+
+.ch-back-arrow {
+  font-size: 14px;
+  line-height: 1;
+  color: rgba(245, 240, 232, 0.6);
+  transition: transform 160ms ease;
+}
+
+.ch-info-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 240, 220, 0.1);
+  flex-shrink: 0;
+}
+
+/* --- Workspace mode: tab strip (row 2) --- */
+
+.ch-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 20px;
+  min-height: 44px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ch-tabs::-webkit-scrollbar { display: none; }
+
+.ch-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 14px 11px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(245, 240, 232, 0.5);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  transition: color 160ms ease;
+}
+
+.ch-tab::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  background: var(--concept-color, var(--accent));
+  border-radius: 2px 2px 0 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.ch-tab:hover:not(.ch-tab-active) {
+  color: rgba(245, 240, 232, 0.85);
+}
+
+.ch-tab-active {
+  color: #F5F0E8;
+}
+
+.ch-tab-active::after {
+  transform: scaleX(1);
+}
+
+.ch-tab:focus-visible {
+  outline: none;
+  color: #F5F0E8;
+}
+
+.ch-tab:focus-visible::after {
+  transform: scaleX(1);
+  opacity: 0.5;
+}
+
+/* --- Content region min-heights (below the sticky header) ---
+   Chat page has a 44px header, workspace page has an 80px header. The
+   inline styles on .cl-onboarding hardcode 44px, so those don't need
+   help. Overview / Today / Create / Results use the CSS below. */
+
 .hm-content .cl-onboarding {
-  min-height: calc(100vh - 40px);
+  min-height: calc(100vh - 44px);
+}
+
+/* --- Mobile --- */
+
+@media (max-width: 767px) {
+  .ch-info-row {
+    padding: 8px 16px;
+  }
+  .ch-tabs {
+    padding: 0 8px;
+  }
+  .ch-tab {
+    padding: 12px 10px 11px;
+    font-size: 12.5px;
+  }
+  .ch-name {
+    max-width: 35vw;
+  }
 }

@@ -87,6 +87,14 @@
   gap: 0;
 }
 
+/* When the chat is short (few messages), stick them to the BOTTOM of the
+   area so the user isn't staring at a giant empty warm gradient with two
+   messages marooned at the top. Once the chat grows past viewport height,
+   `margin-top: auto` collapses to 0 and messages flow normally. */
+.cl-chat-area > *:first-child {
+  margin-top: auto;
+}
+
 .cl-msg-group {
   animation: cl-fade-up 300ms ease both;
 }
@@ -166,6 +174,12 @@ body.sb-open .cl-chat-state .cl-input-bar {
   gap: 10px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.cl-input-container:focus-within {
+  border-color: rgba(245, 166, 35, 0.32);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(245, 166, 35, 0.08);
 }
 
 .cl-attach-btn {

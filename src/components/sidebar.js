@@ -1,16 +1,17 @@
 // ---------------------------------------------
-// Clarity 2.0 — Unified Sidebar (workspace rail)
+// Clarity 2.0 — Sidebar (concept list, Claude/GPT style)
 // ---------------------------------------------
 //
-// The sidebar is the same shape on every screen in home mode. It shows:
-//   1. Brand
-//   2. + New concept button
-//   3. CONCEPTS list — click to switch
-//   4. VIEWS list — Chat / Today / Create / Results (of active concept)
-//   5. User footer
+// One purpose: list the user's concepts. Nothing else. Clicking a concept
+// makes it active and re-renders home. The per-concept navigation (Chat,
+// Overview, Today, Create, Results) lives inside the concept header as a
+// tab strip — that's where views belong, not here.
 //
-// Chat is a first-class view. Today/Create/Results are locked until the
-// active concept has completed onboarding (chat.onboardingComplete = true).
+// Shape:
+//   1. Brand
+//   2. + New concept
+//   3. CONCEPTS list — click to switch, hover reveals delete
+//   4. User footer
 //
 // The sidebar is only mounted in home mode. Splash/auth/loading/welcome
 // screens are chromeless.
@@ -20,6 +21,14 @@ const SB_ALLOWED_MODES = ['home'];
 function _syncSidebar() {
   const shouldShow = SB_ALLOWED_MODES.indexOf(appState.mode) !== -1;
   const existing = document.getElementById('sbSidebar');
+
+  // In workspace mode (activeView is anything other than 'chat') we
+  // slide the sidebar off-screen and drop the content padding so the
+  // workspace feels focused and full-width. The only way out is the
+  // "\u2190 Chat" back link in the workspace header \u2014 which brings the
+  // sidebar back on the next render.
+  const workspaceMode = appState.mode === 'home' && appState.activeView && appState.activeView !== 'chat';
+  document.body.classList.toggle('sb-workspace', workspaceMode);
 
   if (shouldShow && !existing) {
     document.body.classList.add('sb-open');
@@ -45,13 +54,18 @@ function _mountSidebar(initialOpen) {
 
 function _buildSidebarHtml() {
   const rawName = (appState.user && appState.user.name) ? String(appState.user.name) : '';
+  const rawEmail = (appState.user && appState.user.email) ? String(appState.user.email) : '';
   const displayName = rawName || 'Guest';
   const firstInitial = (rawName ? rawName.trim().charAt(0) : 'C').toUpperCase() || 'C';
+  const subLine = rawEmail || (rawName ? 'Free plan' : 'Not signed in');
 
   const userFooter = `
     <div class="sb-bottom">
       <div class="sb-user-avatar">${_escape(firstInitial)}</div>
-      <div class="sb-user-name">${_escape(displayName)}</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">${_escape(displayName)}</div>
+        <div class="sb-user-sub">${_escape(subLine)}</div>
+      </div>
       <button type="button" class="sb-settings-btn" id="sbSettingsBtn" title="Log out" aria-label="Log out">
         ${SB_LOGOUT_ICON_SVG}
       </button>
@@ -71,7 +85,6 @@ function _buildSidebarHtml() {
         const color = c.color || '#F5A623';
         return (
           '<div class="sb-concept-row' + (active ? ' sb-concept-row-active' : '') + '" data-concept="' + id + '" style="--concept-color:' + color + '">'
-          +   '<span class="sb-concept-dot"></span>'
           +   '<span class="sb-concept-name">' + _escape(name) + '</span>'
           +   (canDelete
                 ? '<button type="button" class="sb-concept-delete" data-delete-concept="' + id + '" title="Delete concept" aria-label="Delete concept">' + SB_TRASH_ICON_SVG + '</button>'
@@ -80,31 +93,6 @@ function _buildSidebarHtml() {
         );
       }).join('')
     : '<div class="sb-recent-empty">No concepts yet</div>';
-
-  const activeConcept = getActiveConcept();
-  const canUseViews = !!(activeConcept && activeConcept.chat.onboardingComplete);
-  const currentView = appState.activeView || 'chat';
-
-  const viewItems = [
-    { id: 'chat',     label: 'Chat',     icon: VIEW_ICONS.chat,     alwaysOn: true },
-    { id: 'overview', label: 'Overview', icon: VIEW_ICONS.overview, alwaysOn: false },
-    { id: 'today',    label: 'Today',    icon: VIEW_ICONS.today,    alwaysOn: false },
-    { id: 'create',   label: 'Create',   icon: VIEW_ICONS.create,   alwaysOn: false },
-    { id: 'results',  label: 'Results',  icon: VIEW_ICONS.results,  alwaysOn: false }
-  ];
-
-  const viewsHtml = viewItems.map(function (v) {
-    const enabled = v.alwaysOn || canUseViews;
-    const active = v.id === currentView ? ' sb-view-active' : '';
-    const disabled = !enabled ? ' sb-view-disabled' : '';
-    return (
-      '<button type="button" class="sb-view' + active + disabled + '" data-view="' + v.id + '"'
-      + (!enabled ? ' disabled aria-disabled="true"' : '') + '>'
-      +   '<span class="sb-view-icon">' + v.icon + '</span>'
-      +   '<span class="sb-view-label">' + v.label + '</span>'
-      + '</button>'
-    );
-  }).join('');
 
   return `
     <div class="sb-top">
@@ -118,10 +106,6 @@ function _buildSidebarHtml() {
       <div class="sb-section">
         <div class="sb-section-label">CONCEPTS</div>
         <div class="sb-concepts-list">${conceptsHtml}</div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-section-label">VIEWS</div>
-        <div class="sb-views">${viewsHtml}</div>
       </div>
     </div>
     ${userFooter}
@@ -166,16 +150,6 @@ function _bindSidebarEvents() {
       const id = btn.getAttribute('data-delete-concept');
       if (!id) return;
       _deleteConcept(id);
-    });
-  });
-
-  document.querySelectorAll('.sb-view').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      if (btn.hasAttribute('disabled')) return;
-      const next = btn.getAttribute('data-view');
-      if (!next || next === appState.activeView) return;
-      setActiveView(next);
-      renderApp();
     });
   });
 }

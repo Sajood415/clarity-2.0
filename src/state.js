@@ -103,7 +103,11 @@ function _newConcept(opts) {
     business: business,
     chat: { messages: [], onboardingComplete: false },
     create: _defaultCreate(),
-    results: _defaultResults()
+    results: _defaultResults(),
+    // Remembers which workspace tab (overview/today/create/results) the
+    // user last had open, so clicking "Workspace \u2192" from the chat page
+    // returns them there instead of always dumping them on Overview.
+    lastWorkspaceView: 'overview'
   };
 }
 
@@ -215,6 +219,9 @@ function _normalizeState() {
     c.create = Object.assign(_defaultCreate(), c.create || {});
     c.results = Object.assign(_defaultResults(), c.results || {});
     if (!Array.isArray(c.results.items)) c.results.items = [];
+    if (!c.lastWorkspaceView || ['overview', 'today', 'create', 'results'].indexOf(c.lastWorkspaceView) === -1) {
+      c.lastWorkspaceView = 'overview';
+    }
   });
 
   // Ensure active concept id is valid
@@ -270,16 +277,15 @@ function createConcept(opts) {
   return concept.id;
 }
 
-// Switch the active concept. Auto-forces Chat view when the target concept
-// hasn't finished onboarding yet — you can't get to Today/Create/Results
-// until Clara has enough context.
+// Switch the active concept. Clicking a concept in the sidebar always
+// opens its Chat page \u2014 that matches the Claude/GPT pattern users
+// already know, and keeps the workspace as something you deliberately
+// step into. From Chat, the user can hit "Workspace \u2192" to jump to
+// where they left off inside that concept.
 function switchConcept(conceptId) {
   if (!appState.concepts[conceptId]) return;
   appState.activeConceptId = conceptId;
-  const c = appState.concepts[conceptId];
-  if (!c.chat.onboardingComplete) {
-    appState.activeView = 'chat';
-  }
+  appState.activeView = 'chat';
   _saveState();
 }
 
@@ -287,6 +293,12 @@ function setActiveView(view) {
   const allowed = ['chat', 'overview', 'today', 'create', 'results'];
   if (allowed.indexOf(view) === -1) return;
   appState.activeView = view;
+  // Remember the last workspace tab so pressing "Workspace \u2192" from chat
+  // lands back on it rather than always going to Overview.
+  if (view !== 'chat') {
+    const c = getActiveConcept();
+    if (c) c.lastWorkspaceView = view;
+  }
   _saveState();
 }
 

@@ -21,10 +21,21 @@
   transform: translateX(0);
 }
 
+/* Workspace mode: sidebar slides off, content reclaims full width.
+   The "\u2190 Chat" back link in the workspace header is the way back. */
+body.sb-workspace .sb-sidebar {
+  transform: translateX(calc(-1 * var(--sidebar-w)));
+  pointer-events: none;
+}
+
+body.sb-open.sb-workspace #app {
+  padding-left: 0;
+}
+
 /* --- Header --- */
 
 .sb-top {
-  padding: 16px 16px 12px;
+  padding: 20px 20px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -32,65 +43,77 @@
 }
 
 .sb-brand {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
   color: #F5F0E8;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
-/* --- New concept button --- */
+/* --- New concept button (Claude-style: icon-in-circle + text, no border) --- */
 
 .sb-new-concept {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 12px 8px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: rgba(245, 166, 35, 0.08);
-  border: 1px solid rgba(245, 166, 35, 0.22);
-  color: #F5F0E8;
+  gap: 12px;
+  margin: 0 8px 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: rgba(245, 240, 232, 0.88);
   cursor: pointer;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
-  transition: background 150ms ease, border-color 150ms ease;
+  letter-spacing: -0.005em;
+  text-align: left;
+  transition: background 150ms ease, color 150ms ease;
+  width: calc(100% - 16px);
 }
 
 .sb-new-concept:hover {
-  background: rgba(245, 166, 35, 0.14);
-  border-color: rgba(245, 166, 35, 0.35);
+  background: rgba(255, 240, 220, 0.045);
+  color: #F5F0E8;
 }
 
 .sb-new-concept-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
-  width: 16px;
-  height: 16px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 240, 220, 0.06);
+  color: rgba(245, 240, 232, 0.7);
   flex-shrink: 0;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
-/* --- Scroll region wrapping concepts + views --- */
+.sb-new-concept:hover .sb-new-concept-icon {
+  background: rgba(245, 166, 35, 0.16);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.28);
+}
+
+/* --- Scroll region wrapping concepts --- */
 
 .sb-scroll {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding: 4px 0 8px;
+  padding: 8px 0 12px;
 }
 
 .sb-section {
-  padding: 8px 0 4px;
+  padding: 6px 0 4px;
 }
 
 .sb-section-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: rgba(245, 240, 232, 0.28);
-  padding: 4px 20px 6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  color: rgba(245, 240, 232, 0.32);
+  padding: 8px 20px 10px;
   text-transform: uppercase;
 }
 
@@ -100,56 +123,60 @@
   display: flex;
   flex-direction: column;
   padding: 0 8px;
-  gap: 2px;
+  gap: 1px;
 }
 
 .sb-concept-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px 8px 10px;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms ease;
   min-width: 0;
-  border-left: 2px solid transparent;
   position: relative;
 }
 
 .sb-concept-row:hover {
-  background: rgba(255, 240, 220, 0.04);
+  background: rgba(255, 240, 220, 0.035);
 }
 
 .sb-concept-row-active,
 .sb-concept-row-active:hover {
-  background: rgba(245, 166, 35, 0.08);
-  border-left-color: var(--concept-color, var(--accent));
+  background: rgba(255, 240, 220, 0.055);
 }
 
-.sb-concept-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--concept-color, rgba(245, 240, 232, 0.25));
-  opacity: 0.55;
-  flex-shrink: 0;
-  transition: opacity 150ms ease;
-}
-
-.sb-concept-row-active .sb-concept-dot {
-  opacity: 1;
+/* A slim concept-color bar sits inside the left padding of the active
+   row \u2014 replaces the old dot as the "which concept am I on" marker,
+   while staying much quieter than the previous filled amber background. */
+.sb-concept-row-active::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--concept-color, var(--accent));
+  opacity: 0.75;
 }
 
 .sb-concept-name {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 400;
-  color: rgba(245, 240, 232, 0.65);
+  color: rgba(245, 240, 232, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.005em;
   transition: color 150ms ease;
+}
+
+.sb-concept-row:hover .sb-concept-name {
+  color: rgba(245, 240, 232, 0.9);
 }
 
 .sb-concept-row-active .sb-concept-name {
@@ -158,8 +185,8 @@
 }
 
 .sb-concept-delete {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   background: transparent;
   border: none;
@@ -167,7 +194,7 @@
   display: none;
   align-items: center;
   justify-content: center;
-  color: rgba(245, 240, 232, 0.3);
+  color: rgba(245, 240, 232, 0.28);
   padding: 0;
   transition: background 150ms ease, color 150ms ease;
   flex-shrink: 0;
@@ -178,76 +205,15 @@
 }
 
 .sb-concept-delete:hover {
-  background: rgba(255, 100, 100, 0.1);
+  background: rgba(255, 100, 100, 0.08);
   color: #FF8A65;
-}
-
-/* --- Views list (Chat / Today / Create / Results) --- */
-
-.sb-views {
-  display: flex;
-  flex-direction: column;
-  padding: 0 8px;
-  gap: 2px;
-}
-
-.sb-view {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px 8px 8px;
-  border-radius: 8px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: rgba(245, 240, 232, 0.7);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 400;
-  text-align: left;
-  border-left: 2px solid transparent;
-  transition: background 150ms ease, color 150ms ease;
-}
-
-.sb-view:hover:not(.sb-view-disabled) {
-  background: rgba(255, 240, 220, 0.04);
-  color: #F5F0E8;
-}
-
-.sb-view-active,
-.sb-view-active:hover {
-  background: rgba(245, 166, 35, 0.1);
-  color: #F5F0E8;
-  border-left-color: #F5A623;
-}
-
-.sb-view-disabled {
-  color: rgba(245, 240, 232, 0.25);
-  cursor: not-allowed;
-}
-
-.sb-view-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  color: currentColor;
-  flex-shrink: 0;
-}
-
-.sb-view-icon svg {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-  color: currentColor;
 }
 
 /* --- Footer --- */
 
 .sb-bottom {
-  padding: 12px;
-  border-top: 1px solid rgba(255, 240, 220, 0.06);
+  padding: 12px 12px 14px;
+  border-top: 1px solid rgba(255, 240, 220, 0.05);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -255,52 +221,71 @@
 }
 
 .sb-user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: var(--accent);
+  background: linear-gradient(135deg, #F5A623 0%, #D4860A 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #000;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.25);
+}
+
+.sb-user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .sb-user-name {
-  flex: 1;
-  min-width: 0;
   font-size: 13px;
-  font-weight: 500;
-  color: rgba(245, 240, 232, 0.7);
+  font-weight: 600;
+  color: rgba(245, 240, 232, 0.85);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.005em;
+}
+
+.sb-user-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(245, 240, 232, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
 }
 
 .sb-settings-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   background: transparent;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(245, 240, 232, 0.35);
+  color: rgba(245, 240, 232, 0.32);
   transition: background 150ms ease, color 150ms ease;
   flex-shrink: 0;
 }
 
 .sb-settings-btn:hover {
-  background: rgba(255, 240, 220, 0.06);
+  background: rgba(255, 240, 220, 0.05);
   color: rgba(245, 240, 232, 0.75);
 }
 
 .sb-recent-empty {
-  padding: 4px 20px;
+  padding: 6px 20px;
   font-size: 12px;
-  color: rgba(245, 240, 232, 0.32);
+  color: rgba(245, 240, 232, 0.3);
+  letter-spacing: -0.005em;
 }

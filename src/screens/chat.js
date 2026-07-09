@@ -46,8 +46,8 @@ const CL_CLARA_TEXT_STYLE = [
 ].join(';') + ';';
 
 const CL_USER_TEXT_STYLE = [
-  'background:rgba(245,166,35,0.12)',
-  'border:1px solid rgba(245,166,35,0.2)',
+  'background:rgba(245,166,35,0.2)',
+  'border:1px solid rgba(245,166,35,0.32)',
   'border-radius:18px 18px 4px 18px',
   'padding:14px 20px',
   'font-size:15px',
@@ -56,7 +56,7 @@ const CL_USER_TEXT_STYLE = [
   'line-height:1.5',
   'word-wrap:break-word',
   'white-space:pre-wrap',
-  'box-shadow:0 2px 12px rgba(245,166,35,0.1)'
+  'box-shadow:0 2px 16px rgba(245,166,35,0.14)'
 ].join(';') + ';';
 
 const CL_BOUNCE_DOT_STYLE = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(245,240,232,0.3);margin:0 3px;animation:cl-bounce 0.8s ease-in-out infinite;';
@@ -83,7 +83,7 @@ function _renderInitialState(container) {
     : 'What are you trying to achieve right now?';
 
   const outerStyle = [
-    'min-height:calc(100vh - 40px)', 'padding:0',
+    'min-height:calc(100vh - 44px)', 'padding:0',
     'display:flex', 'flex-direction:column',
     'align-items:center', 'justify-content:center',
     'background:radial-gradient(ellipse at 50% 35%, #261c08 0%, #0F0D0B 60%)',
@@ -164,29 +164,16 @@ function _renderChatState(container, opts) {
   const animateLast = !!(opts && opts.animateLast);
 
   const rootStyle = [
-    'min-height:calc(100vh - 40px)',
+    'min-height:calc(100vh - 44px)',
     'display:flex',
     'flex-direction:column',
     'background:radial-gradient(ellipse at 50% 0%, #1e1508 0%, #0F0D0B 50%)'
-  ].join(';') + ';';
-
-  const watermarkStyle = [
-    'font-size:11px',
-    'font-weight:600',
-    'color:rgba(245,166,35,0.12)',
-    'letter-spacing:0.25em',
-    'text-transform:uppercase',
-    'padding-top:20px',
-    'padding-bottom:16px',
-    'text-align:center',
-    'flex-shrink:0'
   ].join(';') + ';';
 
   const disclaimerStyle = 'max-width:640px;margin:10px auto 0;text-align:center;font-size:11px;color:rgba(245,240,232,0.18);line-height:1.4;';
 
   container.innerHTML = `
     <div class="cl-onboarding cl-chat-state" id="clOnboarding" style="${rootStyle}">
-      <div class="cl-watermark" style="${watermarkStyle}">Clarity</div>
       <main class="cl-chat-area" id="clChatArea"></main>
       <div class="cl-input-bar" id="clInputBar">
         ${_renderInputContainerHtml()}
@@ -543,10 +530,19 @@ function _startThinking() {
   setTimeout(function () {
     const chat = getChat();
     chat.onboardingComplete = true;
-    // Land on Overview so the user sees the whole concept at a glance
-    // (today's tasks + create + results tiles) instead of being dropped
-    // into a raw task list.
-    appState.activeView = 'overview';
+    // Stay in the chat. The chat page is where the conversation lives —
+    // the workspace is a separate page you deliberately open. What we
+    // DO on this render is materialize the "Workspace \u2192" button in
+    // the top-right with a color-flush animation so the user notices
+    // their workspace has just been built.
+    appState.activeView = 'chat';
+    window._justUnlockedConcept = true;
+    // Push the "workspace ready" nudge into the log so the chat has a
+    // clear closing beat and points the user to the new button.
+    chat.messages.push({
+      role: 'clara',
+      text: 'Your workspace is ready. Open it from the top-right when you want to see today\u2019s tasks and start creating.'
+    });
     _saveState();
     renderApp();
   }, 3000);

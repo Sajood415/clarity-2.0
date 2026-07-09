@@ -51,6 +51,7 @@ function _renderHome(root) {
       <div id="homeContent" class="hm-content"></div>
     </div>
   `;
+  _bindConceptHeaderEvents();
   const container = document.getElementById('homeContent');
   _renderActiveView(container);
 }
