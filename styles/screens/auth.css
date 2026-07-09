@@ -1,0 +1,350 @@
+/* ==========================================
+   Auth screen (split layout)
+   ========================================== */
+
+.au-split {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  background: var(--bg);
+}
+
+/* --- Left panel (branding + features) --- */
+
+.au-left {
+  flex: 0 0 55%;
+  position: relative;
+  overflow: hidden;
+  padding: 60px 64px;
+  background: radial-gradient(ellipse at 50% 60%, #1a1208 0%, #0F0D0B 70%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.au-left-glow {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: rgba(245, 166, 35, 0.08);
+  border-radius: 50%;
+  filter: blur(100px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.au-left-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.au-left-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 560px;
+}
+
+.au-brand {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.au-divider-line {
+  width: 2px;
+  height: 32px;
+  background: rgba(245, 166, 35, 0.4);
+  margin: 16px 0;
+}
+
+.au-headline {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.au-tagline {
+  font-size: 18px;
+  color: rgba(245, 240, 232, 0.45);
+  font-weight: 400;
+  line-height: 1.6;
+  margin-top: 16px;
+}
+
+.au-features {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.au-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.au-feature-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.au-feature-text {
+  font-size: 15px;
+  color: rgba(245, 240, 232, 0.65);
+  line-height: 1.5;
+  padding-top: 4px;
+}
+
+.au-social-proof {
+  font-size: 12px;
+  color: rgba(245, 240, 232, 0.25);
+  line-height: 1.4;
+  padding-top: 24px;
+}
+
+/* --- Right panel (form) --- */
+
+.au-right {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 48px;
+}
+
+.au-right-content {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.au-right-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.au-right-sub {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 32px;
+}
+
+.au-inline-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.au-inline-link:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+
+.au-tabs {
+  background: rgba(255, 240, 220, 0.05);
+  border-radius: 10px;
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+  width: 100%;
+}
+
+.au-tab {
+  flex: 1;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  transition: background 200ms ease, color 200ms ease;
+}
+
+.au-tab-active {
+  background: rgba(255, 240, 220, 0.08);
+  color: var(--text);
+}
+
+.au-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.au-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.au-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(245, 240, 232, 0.65);
+  margin-bottom: 6px;
+}
+
+.au-input {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  height: 48px;
+  padding: 0 16px;
+  font-size: 15px;
+  color: var(--text);
+  width: 100%;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.au-input::placeholder {
+  color: rgba(245, 240, 232, 0.2);
+}
+
+.au-input:focus {
+  border-color: var(--accent);
+  background: var(--surface-3);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);
+}
+
+.au-submit-btn {
+  width: 100%;
+  height: 52px;
+  background: var(--accent);
+  color: #000;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  margin-top: 20px;
+  box-shadow: var(--shadow-accent);
+  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.au-submit-btn:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(245, 166, 35, 0.3);
+}
+
+.au-error {
+  font-size: 13px;
+  color: #FF8A65;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.au-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  font-size: 12px;
+  color: var(--muted);
+  width: 100%;
+}
+
+.au-divider::before,
+.au-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 240, 220, 0.08);
+}
+
+.au-google-btn {
+  width: 100%;
+  height: 48px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: inherit;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.au-google-btn:hover {
+  background: var(--surface-3);
+  border-color: rgba(255, 240, 220, 0.18);
+  color: var(--text);
+}
+
+.au-google-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.au-terms {
+  font-size: 12px;
+  color: rgba(245, 240, 232, 0.2);
+  text-align: center;
+  margin-top: 20px;
+  line-height: 1.5;
+}
+
+/* --- Mobile: single column --- */
+
+@media (max-width: 767px) {
+  .au-left {
+    display: none;
+  }
+
+  .au-right {
+    flex: 1 1 100%;
+    padding: 40px 24px;
+  }
+
+  .au-right-title {
+    font-size: 24px;
+  }
+}

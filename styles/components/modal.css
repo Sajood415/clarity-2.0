@@ -1,0 +1,138 @@
+/* ==========================================
+   New Concept Modal
+   ========================================== */
+
+.nm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  padding: 24px;
+}
+
+.nm-overlay-open {
+  opacity: 1;
+}
+
+.nm-overlay-closing {
+  opacity: 0;
+}
+
+.nm-modal {
+  background: rgba(28, 24, 20, 0.98);
+  border: 1px solid rgba(255, 240, 220, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  transform: translateY(8px);
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.nm-overlay-open .nm-modal {
+  transform: translateY(0);
+}
+
+.nm-header {
+  margin-bottom: 20px;
+}
+
+.nm-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #F5F0E8;
+  letter-spacing: -0.02em;
+}
+
+.nm-sub {
+  font-size: 13px;
+  color: rgba(245, 240, 232, 0.45);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.nm-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.nm-input::placeholder {
+  color: rgba(245, 240, 232, 0.25);
+}
+
+.nm-input:focus {
+  border-color: var(--accent);
+  background: var(--surface-3);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
+}
+
+.nm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.nm-cancel {
+  height: 40px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid rgba(255, 240, 220, 0.1);
+  border-radius: 10px;
+  color: rgba(245, 240, 232, 0.6);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.nm-cancel:hover {
+  background: rgba(255, 240, 220, 0.04);
+  color: #F5F0E8;
+}
+
+.nm-create {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-accent);
+  transition: background 150ms ease, transform 150ms ease, opacity 150ms ease;
+  font-family: inherit;
+}
+
+.nm-create:hover:not(:disabled) {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+.nm-create:disabled {
+  background: rgba(255, 240, 220, 0.08);
+  color: rgba(245, 240, 232, 0.3);
+  cursor: default;
+  box-shadow: none;
+}

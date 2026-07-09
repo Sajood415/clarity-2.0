@@ -1,0 +1,85 @@
+/* ==========================================
+   Concept header (on every home view)
+   ========================================== */
+
+.hm-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.hm-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ch-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  background: rgba(15, 13, 11, 0.72);
+  border-bottom: 1px solid rgba(255, 240, 220, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.ch-header::before {
+  /* Thin colored accent bar so the concept color reads even in peripheral vision */
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--concept-color, var(--accent));
+  opacity: 0.55;
+}
+
+.ch-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.ch-info {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ch-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #F5F0E8;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60vw;
+}
+
+.ch-meta {
+  font-size: 11px;
+  color: rgba(245, 240, 232, 0.4);
+  letter-spacing: 0.02em;
+}
+
+/* Chat view already has its own tall gradient background — soften the
+   header there so it blends in. */
+.hm-content .cl-onboarding {
+  min-height: calc(100vh - 56px);
+}

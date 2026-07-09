@@ -1,0 +1,260 @@
+/* ==========================================
+   Results view
+   ========================================== */
+
+.rs-wrap {
+  padding: 32px 24px 64px 24px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.rs-heading {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.rs-subtext {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.rs-locked-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rs-locked-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  opacity: 0.45;
+  position: relative;
+}
+
+.rs-locked-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.rs-locked-dash {
+  font-size: 32px;
+  color: var(--muted);
+  margin: 8px 0;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.rs-locked-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.rs-lock-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: var(--muted);
+}
+
+.rs-unlock-cta {
+  width: 100%;
+  height: 48px;
+  background: var(--accent);
+  color: #000;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  margin-top: 16px;
+  box-shadow: var(--shadow-accent);
+  transition: background 150ms ease;
+}
+
+.rs-unlock-cta:hover {
+  background: var(--accent-dark);
+}
+
+.rs-summary-row {
+  display: flex;
+  gap: 10px;
+}
+
+.rs-stat-card {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 16px 12px;
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+
+.rs-stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rs-stat-value-accent {
+  color: var(--accent);
+}
+
+.rs-stat-value-small {
+  font-size: 16px;
+}
+
+.rs-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.rs-insight-card {
+  background: rgba(245, 166, 35, 0.05);
+  border: 1px solid rgba(245, 166, 35, 0.15);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.rs-insight-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.rs-insight-text {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.rs-content-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.rs-content-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.rs-content-row {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rs-content-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rs-thumb-post {
+  background: rgba(245, 166, 35, 0.2);
+  color: var(--accent);
+}
+
+.rs-thumb-image {
+  background: rgba(232, 132, 90, 0.2);
+  color: var(--accent-secondary);
+}
+
+.rs-thumb-video {
+  background: rgba(200, 169, 110, 0.2);
+  color: #C8A96E;
+}
+
+.rs-thumb-audio {
+  background: rgba(138, 127, 114, 0.2);
+  color: var(--text-secondary);
+}
+
+.rs-content-mid {
+  flex: 1;
+  min-width: 0;
+}
+
+.rs-content-platform {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rs-content-status {
+  font-size: 11px;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.rs-status-published {
+  color: #C8A96E;
+}
+
+.rs-status-draft {
+  color: var(--muted);
+}
+
+.rs-content-time {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.rs-content-reach-wrap {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.rs-content-reach {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rs-content-reach-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}

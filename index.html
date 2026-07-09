@@ -7,10 +7,61 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+
+<!-- Design tokens + base -->
+<link rel="stylesheet" href="styles/tokens.css">
+
+<!-- Components -->
+<link rel="stylesheet" href="styles/components/sidebar.css">
+<link rel="stylesheet" href="styles/components/conceptHeader.css">
+<link rel="stylesheet" href="styles/components/modal.css">
+
+<!-- Screens -->
+<link rel="stylesheet" href="styles/screens/splash.css">
+<link rel="stylesheet" href="styles/screens/loading.css">
+<link rel="stylesheet" href="styles/screens/welcome.css">
+<link rel="stylesheet" href="styles/screens/auth.css">
+<link rel="stylesheet" href="styles/screens/chat.css">
+<link rel="stylesheet" href="styles/screens/today.css">
+<link rel="stylesheet" href="styles/screens/create.css">
+<link rel="stylesheet" href="styles/screens/results.css">
 </head>
 <body>
 <div id="app"></div>
-<script src="app.js"></script>
+
+<!--
+  Script load order matters (no bundler, script tags share global scope):
+    1. state       — appState + persistence + concept helpers
+    2. utils/icons — pure helpers used everywhere
+    3. clara/*     — extraction, canned copy, task generation
+    4. components  — sidebar (reads state, uses icons)
+    5. screens/*   — each view / route
+    6. router.js   — renderApp() dispatch
+    7. main.js     — entry point (DOMContentLoaded)
+-->
+
+<script src="src/state.js"></script>
+<script src="src/utils.js"></script>
+<script src="src/icons.js"></script>
+
+<script src="src/clara/extractor.js"></script>
+<script src="src/clara/responses.js"></script>
+<script src="src/clara/tasks.js"></script>
+
+<script src="src/components/newConceptModal.js"></script>
+<script src="src/components/conceptHeader.js"></script>
+<script src="src/components/sidebar.js"></script>
+
+<script src="src/screens/splash.js"></script>
+<script src="src/screens/auth.js"></script>
+<script src="src/screens/loading.js"></script>
+<script src="src/screens/welcome.js"></script>
+<script src="src/screens/chat.js"></script>
+<script src="src/screens/today.js"></script>
+<script src="src/screens/create.js"></script>
+<script src="src/screens/results.js"></script>
+
+<script src="src/router.js"></script>
+<script src="src/main.js"></script>
 </body>
 </html>
