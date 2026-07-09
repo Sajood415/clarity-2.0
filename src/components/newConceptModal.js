@@ -8,19 +8,31 @@
 // the concept's name. With a name pre-set, Clara only extracts type /
 // product / goal from the first chat message.
 
-function _openNewConceptModal() {
+function _openNewConceptModal(opts) {
   if (document.getElementById('nmOverlay')) return;
+
+  const mandatory = !!(opts && opts.mandatory);
+  const firstTime = !!(opts && opts.firstTime);
+
+  // First-time users get a warmer variant. Existing users adding a second
+  // concept get the terser "New concept" header.
+  const title = firstTime ? 'Let\u2019s name your business.' : 'New concept';
+  const sub = firstTime
+    ? 'What do you want to call this? Clara will build everything around it.'
+    : 'Give this business or brand a name. Clara will take it from there.';
+  const cta = firstTime ? 'Get started \u2192' : 'Create \u2192';
 
   const overlay = document.createElement('div');
   overlay.id = 'nmOverlay';
-  overlay.className = 'nm-overlay';
+  overlay.className = 'nm-overlay' + (mandatory ? ' nm-overlay-mandatory' : '');
   overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-label', 'New concept');
+  overlay.setAttribute('aria-label', title);
+  overlay.setAttribute('data-mandatory', mandatory ? '1' : '0');
   overlay.innerHTML = `
     <div class="nm-modal">
       <div class="nm-header">
-        <div class="nm-title">New concept</div>
-        <div class="nm-sub">Give this business or brand a name. Clara will take it from there.</div>
+        <div class="nm-title">${_escape(title)}</div>
+        <div class="nm-sub">${_escape(sub)}</div>
       </div>
       <input
         class="nm-input"
@@ -31,8 +43,8 @@ function _openNewConceptModal() {
         maxlength="60"
       />
       <div class="nm-actions">
-        <button type="button" class="nm-cancel" id="nmCancel">Cancel</button>
-        <button type="button" class="nm-create" id="nmCreate" disabled>Create \u2192</button>
+        ${mandatory ? '' : '<button type="button" class="nm-cancel" id="nmCancel">Cancel</button>'}
+        <button type="button" class="nm-create" id="nmCreate" disabled>${_escape(cta)}</button>
       </div>
     </div>
   `;
@@ -45,7 +57,7 @@ function _openNewConceptModal() {
   const input = document.getElementById('nmInput');
   const createBtn = document.getElementById('nmCreate');
   const cancelBtn = document.getElementById('nmCancel');
-  if (!input || !createBtn || !cancelBtn) return;
+  if (!input || !createBtn) return;
 
   setTimeout(function () { input.focus(); }, 50);
 
@@ -57,16 +69,17 @@ function _openNewConceptModal() {
     if (e.key === 'Enter' && !createBtn.disabled) {
       e.preventDefault();
       _submitNewConcept();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === 'Escape' && !mandatory) {
       e.preventDefault();
       _closeNewConceptModal();
     }
   });
 
   createBtn.addEventListener('click', _submitNewConcept);
-  cancelBtn.addEventListener('click', _closeNewConceptModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', _closeNewConceptModal);
 
   overlay.addEventListener('click', function (e) {
+    if (mandatory) return;
     if (e.target === overlay) _closeNewConceptModal();
   });
 }

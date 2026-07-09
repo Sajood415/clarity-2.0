@@ -98,20 +98,26 @@ function _hasCompletedConcept() {
 }
 
 function _enterHome() {
-  // If the user has no concepts at all (fresh signup), spin one up now
-  // and drop them into the Chat view so Clara can start onboarding.
+  appState.mode = 'home';
+
+  // Fresh signup — no concepts exist yet. Render the home shell (sidebar
+  // + empty content) and open the mandatory "New concept" modal so the
+  // user names their business upfront. This prevents the extractor from
+  // silently turning "how do I get more sales?" into a concept name.
   if (!appState.activeConceptId || !getActiveConcept()) {
-    createConcept({ focusChat: true });
-  } else {
-    // Returning user with concepts: if the active one is incomplete, force
-    // Chat view so they resume where Clara left off.
-    const active = getActiveConcept();
-    if (!active.chat.onboardingComplete) {
-      appState.activeView = 'chat';
-    }
+    _saveState();
+    renderApp();
+    _openNewConceptModal({ mandatory: true, firstTime: true });
+    return;
   }
 
-  appState.mode = 'home';
+  // Returning user with concepts: if the active one is incomplete, force
+  // Chat view so they resume where Clara left off.
+  const active = getActiveConcept();
+  if (!active.chat.onboardingComplete) {
+    appState.activeView = 'chat';
+  }
+
   _saveState();
   renderApp();
 }

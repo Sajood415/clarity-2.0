@@ -83,7 +83,7 @@ function _renderInitialState(container) {
     : 'What are you trying to achieve right now?';
 
   const outerStyle = [
-    'min-height:calc(100vh - 56px)', 'padding:0',
+    'min-height:calc(100vh - 40px)', 'padding:0',
     'display:flex', 'flex-direction:column',
     'align-items:center', 'justify-content:center',
     'background:radial-gradient(ellipse at 50% 35%, #261c08 0%, #0F0D0B 60%)',
@@ -164,7 +164,7 @@ function _renderChatState(container, opts) {
   const animateLast = !!(opts && opts.animateLast);
 
   const rootStyle = [
-    'min-height:calc(100vh - 56px)',
+    'min-height:calc(100vh - 40px)',
     'display:flex',
     'flex-direction:column',
     'background:radial-gradient(ellipse at 50% 0%, #1e1508 0%, #0F0D0B 50%)'
@@ -345,6 +345,39 @@ function _scrollChatToBottom() {
   if (area) area.scrollTop = area.scrollHeight;
 }
 
+// Flash the input red + shake and show a transient hint. Non-blocking:
+// caller just returns after invoking. Used to reject too-short onboarding
+// answers without a modal.
+function _flashInputError(hint) {
+  const container = document.querySelector('.cl-input-container');
+  if (!container) return;
+  container.classList.remove('cl-input-error');
+  // Force reflow so re-adding the class replays the animation.
+  void container.offsetWidth;
+  container.classList.add('cl-input-error');
+
+  let hintEl = document.getElementById('clInputHint');
+  if (!hintEl) {
+    hintEl = document.createElement('div');
+    hintEl.id = 'clInputHint';
+    hintEl.className = 'cl-input-hint';
+    const bar = document.getElementById('clInputBar');
+    const parent = bar || container.parentNode;
+    if (parent) parent.appendChild(hintEl);
+  }
+  hintEl.textContent = hint || 'Please give a real answer.';
+  hintEl.classList.add('cl-input-hint-show');
+
+  clearTimeout(_flashInputError._t1);
+  clearTimeout(_flashInputError._t2);
+  _flashInputError._t1 = setTimeout(function () {
+    container.classList.remove('cl-input-error');
+  }, 700);
+  _flashInputError._t2 = setTimeout(function () {
+    if (hintEl && hintEl.parentNode) hintEl.classList.remove('cl-input-hint-show');
+  }, 2200);
+}
+
 function _appendMessage(role, text) {
   const chat = document.getElementById('clChatArea');
   if (!chat) return;
@@ -365,11 +398,20 @@ function _handleSend() {
   if (!input) return;
   const text = input.value.trim();
   if (!text) return;
+
+  const chat = getChat();
+
+  // Onboarding needs real answers. Reject one- and two-character noise
+  // ("k", "ok", ".") so Clara doesn't burn a question on a shrug.
+  if (!chat.onboardingComplete && text.length < 3) {
+    _flashInputError('Give Clara a bit more to work with.');
+    return;
+  }
+
   input.value = '';
   input.style.height = 'auto';
   if (btn) btn.disabled = true;
 
-  const chat = getChat();
   const wasInitial = (chat.messages || []).length === 0;
   chat.messages.push({ role: 'user', text: text });
 
@@ -472,10 +514,12 @@ function _resumeConversation() {
       if (appState.activeView !== 'chat') return;
       _removeThinkingBubble();
       _claraSay(CLARA_FINAL);
+      // Give the "give me a moment" line a beat to read, then flip the
+      // input bar into the thinking state so there's no dead space.
       setTimeout(function () {
         if (appState.activeView !== 'chat') return;
         _startThinking();
-      }, 1500);
+      }, 400);
     }, 800);
   } else if (userMsgCount === 3 && claraMsgCount === 3 && !chat.onboardingComplete) {
     _startThinking();
@@ -499,7 +543,10 @@ function _startThinking() {
   setTimeout(function () {
     const chat = getChat();
     chat.onboardingComplete = true;
-    appState.activeView = 'today';
+    // Land on Overview so the user sees the whole concept at a glance
+    // (today's tasks + create + results tiles) instead of being dropped
+    // into a raw task list.
+    appState.activeView = 'overview';
     _saveState();
     renderApp();
   }, 3000);

@@ -148,8 +148,15 @@ function _migrateState(saved) {
     });
   }
 
+  // Fresh install (null or an empty object): no concepts yet, no active id.
+  // Welcome will pop the "New concept" modal and force the user to name
+  // their first business before Clara starts asking questions.
+  if (!saved || (typeof saved === 'object' && Object.keys(saved).length === 0)) {
+    return _defaultState();
+  }
+
   // Legacy: {mode, tab, user, business, clara, create, results, ...}
-  const legacy = saved || {};
+  const legacy = saved;
   const legacyBusiness = legacy.business || _defaultBusiness();
   const legacyClara = legacy.clara || {};
   const legacyCreate = legacy.create || _defaultCreate();
@@ -277,7 +284,7 @@ function switchConcept(conceptId) {
 }
 
 function setActiveView(view) {
-  const allowed = ['chat', 'today', 'create', 'results'];
+  const allowed = ['chat', 'overview', 'today', 'create', 'results'];
   if (allowed.indexOf(view) === -1) return;
   appState.activeView = view;
   _saveState();

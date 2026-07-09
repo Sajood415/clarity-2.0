@@ -56,15 +56,19 @@ function _renderHome(root) {
 }
 
 function _renderActiveView(container) {
-  // Guardrails: if the active concept isn't done with onboarding yet,
-  // force Chat view. The sidebar disables the other views but this is
-  // the belt-and-braces server-side check.
   const active = getActiveConcept();
+
+  // No active concept means we're a brand-new user pre-modal. The welcome
+  // screen has already opened the mandatory "New concept" dialog on top;
+  // render a soft placeholder underneath so the shell isn't visually empty.
   if (!active) {
-    // Shouldn't happen (welcome creates one), but be safe.
-    createConcept({ focusChat: true });
-    return _renderActiveView(container);
+    container.innerHTML = '<div class="hm-empty"><div class="hm-empty-inner">Name your first concept to get started.</div></div>';
+    return;
   }
+
+  // Guardrail: if the active concept isn't done with onboarding, force
+  // Chat view. The sidebar disables Overview/Today/Create/Results in that
+  // state; this is the belt-and-braces server-side check.
   if (!active.chat.onboardingComplete && appState.activeView !== 'chat') {
     appState.activeView = 'chat';
     _saveState();
@@ -73,6 +77,9 @@ function _renderActiveView(container) {
   switch (appState.activeView) {
     case 'chat':
       renderChat(container);
+      break;
+    case 'overview':
+      renderOverview(container);
       break;
     case 'today':
       renderToday(container);
@@ -84,7 +91,7 @@ function _renderActiveView(container) {
       renderResults(container);
       break;
     default:
-      renderToday(container);
+      renderOverview(container);
       break;
   }
 }

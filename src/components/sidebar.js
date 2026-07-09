@@ -86,10 +86,11 @@ function _buildSidebarHtml() {
   const currentView = appState.activeView || 'chat';
 
   const viewItems = [
-    { id: 'chat',    label: 'Chat',    icon: VIEW_ICONS.chat,    alwaysOn: true },
-    { id: 'today',   label: 'Today',   icon: VIEW_ICONS.today,   alwaysOn: false },
-    { id: 'create',  label: 'Create',  icon: VIEW_ICONS.create,  alwaysOn: false },
-    { id: 'results', label: 'Results', icon: VIEW_ICONS.results, alwaysOn: false }
+    { id: 'chat',     label: 'Chat',     icon: VIEW_ICONS.chat,     alwaysOn: true },
+    { id: 'overview', label: 'Overview', icon: VIEW_ICONS.overview, alwaysOn: false },
+    { id: 'today',    label: 'Today',    icon: VIEW_ICONS.today,    alwaysOn: false },
+    { id: 'create',   label: 'Create',   icon: VIEW_ICONS.create,   alwaysOn: false },
+    { id: 'results',  label: 'Results',  icon: VIEW_ICONS.results,  alwaysOn: false }
   ];
 
   const viewsHtml = viewItems.map(function (v) {

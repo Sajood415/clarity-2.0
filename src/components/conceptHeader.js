@@ -18,7 +18,9 @@ function _renderConceptHeader() {
 
   const typeLabel = (b.type && b.type !== 'other') ? _capitalize(b.type) : '';
   const reachLabel = b.reach === 'local' ? 'Local' : (b.reach === 'online' ? 'Online' : '');
-  const meta = [typeLabel, reachLabel].filter(Boolean).join(' \u00b7 ');
+  // Only show meta when we actually know the business type. Otherwise a
+  // stray "Online" or "Local" floats there looking like a status pill.
+  const meta = typeLabel ? [typeLabel, reachLabel].filter(Boolean).join(' \u00b7 ') : '';
 
   return `
     <div class="ch-header" style="--concept-color:${color}">
