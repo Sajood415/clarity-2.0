@@ -102,12 +102,21 @@ function _newConcept(opts) {
     color: (opts && opts.color) || _nextConceptColor(),
     business: business,
     chat: { messages: [], onboardingComplete: false },
+    // Separate mini-conversation that lives inside the workspace's
+    // floating "C" chatbot. Kept isolated from `chat.messages` so the
+    // main Chat page stays focused on onboarding + deep conversations
+    // while the widget is a lightweight, workspace-scoped helper.
+    widgetChat: { messages: [] },
     create: _defaultCreate(),
     results: _defaultResults(),
     // Remembers which workspace tab (overview/today/create/results) the
     // user last had open, so clicking "Workspace \u2192" from the chat page
     // returns them there instead of always dumping them on Overview.
-    lastWorkspaceView: 'overview'
+    lastWorkspaceView: 'overview',
+    // True once the little Clara greeter has popped in the bottom-right
+    // corner of the workspace for this concept. Ensures the greeting is
+    // strictly a first-time-in-workspace moment per concept.
+    hasSeenWorkspaceIntro: false
   };
 }
 
@@ -216,12 +225,15 @@ function _normalizeState() {
     c.business = Object.assign(_defaultBusiness(), c.business || {});
     c.chat = Object.assign({ messages: [], onboardingComplete: false }, c.chat || {});
     if (!Array.isArray(c.chat.messages)) c.chat.messages = [];
+    c.widgetChat = Object.assign({ messages: [] }, c.widgetChat || {});
+    if (!Array.isArray(c.widgetChat.messages)) c.widgetChat.messages = [];
     c.create = Object.assign(_defaultCreate(), c.create || {});
     c.results = Object.assign(_defaultResults(), c.results || {});
     if (!Array.isArray(c.results.items)) c.results.items = [];
     if (!c.lastWorkspaceView || ['overview', 'today', 'create', 'results'].indexOf(c.lastWorkspaceView) === -1) {
       c.lastWorkspaceView = 'overview';
     }
+    if (typeof c.hasSeenWorkspaceIntro !== 'boolean') c.hasSeenWorkspaceIntro = false;
   });
 
   // Ensure active concept id is valid

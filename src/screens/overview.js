@@ -52,12 +52,6 @@ function renderOverview(container) {
         ${_renderCreateTile(draftCount)}
         ${_renderResultsTile(publishedCount)}
       </div>
-
-      <button type="button" class="ov-ask" data-nav="chat">
-        <span class="ov-ask-avatar">C</span>
-        <span class="ov-ask-text">Ask Clara something specific</span>
-        <span class="ov-ask-arrow">\u2192</span>
-      </button>
     </section>
   `;
 

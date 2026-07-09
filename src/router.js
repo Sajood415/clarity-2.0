@@ -21,6 +21,7 @@ function renderApp() {
   }
 
   _syncSidebar();
+  if (typeof _syncWorkspaceGreeter === 'function') _syncWorkspaceGreeter();
 
   switch (appState.mode) {
     case 'splash':
