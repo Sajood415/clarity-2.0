@@ -6,6 +6,25 @@
   padding: 32px 24px 64px 24px;
   max-width: 720px;
   margin: 0 auto;
+  transition: max-width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Kanban needs more horizontal room for three columns to breathe. */
+.td-wrap-kanban {
+  max-width: 1120px;
+}
+
+.td-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.td-top-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .td-greeting {
@@ -21,7 +40,55 @@
   letter-spacing: -0.02em;
   line-height: 1.2;
   margin-top: 4px;
-  margin-bottom: 28px;
+  margin-bottom: 0;
+}
+
+/* --- View toggle (top-right of the Today content area) --- */
+
+.td-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: rgba(255, 240, 220, 0.02);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.td-view-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.td-view-btn:hover {
+  color: var(--text-secondary);
+}
+
+.td-view-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+.td-view-btn-active {
+  background: rgba(245, 166, 35, 0.12);
+  color: var(--accent);
+}
+
+.td-view-btn-active:hover {
+  color: var(--accent);
 }
 
 .td-cards {
@@ -48,6 +115,29 @@
 
 .td-card:active {
   transform: scale(0.995);
+}
+
+/* Head row that sits at the top of each list card. When the task is
+   done the small teal check tile appears on the right; the type's
+   colored dot is hidden by .td-card-done rules below. */
+.td-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.td-card-done-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #5AAAB0;
+  background: rgba(90, 170, 176, 0.14);
+  border: 1px solid rgba(90, 170, 176, 0.32);
+  flex-shrink: 0;
 }
 
 .td-card-type {
@@ -93,11 +183,95 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+}
+
+.td-card-bottom-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .td-card-time {
   font-size: 12px;
   color: var(--muted);
+}
+
+/* --- Status-cycling checkbox (bottom-left of every list card) --- */
+
+.td-status-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    color 160ms ease,
+    transform 120ms ease,
+    background 160ms ease;
+}
+
+.td-status-btn:hover {
+  transform: scale(1.08);
+}
+
+.td-status-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+.td-status-btn[data-status="todo"] {
+  color: var(--muted);
+}
+
+.td-status-btn[data-status="todo"]:hover {
+  color: var(--text-secondary);
+}
+
+.td-status-btn[data-status="in_progress"] {
+  color: var(--accent);
+}
+
+.td-status-btn[data-status="done"] {
+  color: #5AAAB0;
+}
+
+.td-status-btn svg {
+  display: block;
+}
+
+/* --- Done-state overlay on the whole card --- */
+
+.td-card-done {
+  opacity: 0.55;
+}
+
+.td-card-done:hover {
+  opacity: 0.75;
+}
+
+/* When done, hide the accent dot next to the type label. The teal
+   check tile in the head row takes its role. */
+.td-card-done .td-card-type::before {
+  display: none;
+}
+
+.td-card-done .td-card-type {
+  color: var(--muted);
+}
+
+.td-card-done .td-card-desc {
+  text-decoration: line-through;
+  text-decoration-color: rgba(196, 186, 168, 0.7);
+  text-decoration-thickness: 1px;
 }
 
 .td-card-why {
@@ -131,4 +305,157 @@
   font-size: 12px;
   color: var(--muted);
   margin-top: 20px;
+}
+
+/* ==========================================
+   Kanban view
+   ========================================== */
+
+.td-kanban {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.td-kanban-col {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 240, 220, 0.02);
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 200px;
+  border: 1px solid transparent;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.td-kanban-col-hover {
+  background: rgba(245, 166, 35, 0.06);
+  border-color: rgba(245, 166, 35, 0.24);
+}
+
+.td-kanban-col-header {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.td-kanban-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+}
+
+/* --- Kanban card (compact version of td-card) --- */
+
+.td-kanban-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: grab;
+  user-select: none;
+  transition:
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    opacity 200ms ease,
+    transform 100ms ease;
+}
+
+.td-kanban-card:hover {
+  background: var(--surface-2);
+  border-color: rgba(255, 240, 220, 0.14);
+  box-shadow: var(--shadow);
+}
+
+.td-kanban-card:active {
+  cursor: grabbing;
+}
+
+.td-kanban-card-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.td-kanban-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.td-kanban-card-desc {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+.td-kanban-card-time {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+  margin-top: auto;
+}
+
+/* Done column visuals: dimmed card + small teal checkmark. */
+
+.td-kanban-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #5AAAB0;
+  background: rgba(90, 170, 176, 0.14);
+  border: 1px solid rgba(90, 170, 176, 0.28);
+  flex-shrink: 0;
+}
+
+.td-kanban-card-done {
+  opacity: 0.5;
+}
+
+.td-kanban-card-done .td-kanban-card-desc {
+  text-decoration: line-through;
+  text-decoration-color: rgba(196, 186, 168, 0.5);
+}
+
+.td-kanban-card-done:hover {
+  opacity: 0.7;
+}
+
+/* --- Responsive: stack the kanban columns vertically on narrow screens.
+   Cards stay draggable; drop targets shift accordingly. --- */
+
+@media (max-width: 767px) {
+  .td-wrap-kanban {
+    max-width: 100%;
+  }
+  .td-kanban {
+    flex-direction: column;
+  }
+  .td-kanban-col {
+    width: 100%;
+  }
+  .td-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .td-view-toggle {
+    align-self: flex-end;
+  }
 }

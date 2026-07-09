@@ -57,6 +57,11 @@ function _defaultState() {
     user: null,
     auth: { mode: 'signup' },
     sidebarOpen: false,
+    // Global UI preference for the Today tab \u2014 'list' or 'kanban'.
+    // Sticky across concepts so the user's view choice follows them.
+    // The actual task list (with statuses) lives per-concept on
+    // `concept.today.tasks`.
+    today: { view: 'list' },
     concepts: {}
   };
 }
@@ -107,6 +112,10 @@ function _newConcept(opts) {
     // main Chat page stays focused on onboarding + deep conversations
     // while the widget is a lightweight, workspace-scoped helper.
     widgetChat: { messages: [] },
+    // Concrete task list (with kanban statuses). Seeded lazily by
+    // the Today screen from `_todayTasks()` on first render so each
+    // concept persists its own todo/in_progress/done state.
+    today: { tasks: [] },
     create: _defaultCreate(),
     results: _defaultResults(),
     // Remembers which workspace tab (overview/today/create/results) the
@@ -212,6 +221,8 @@ function _normalizeState() {
   if (!appState.activeView) appState.activeView = 'today';
   if (!appState.auth || !appState.auth.mode) appState.auth = { mode: 'signup' };
   if (typeof appState.sidebarOpen !== 'boolean') appState.sidebarOpen = false;
+  if (!appState.today || typeof appState.today !== 'object') appState.today = { view: 'list' };
+  if (appState.today.view !== 'list' && appState.today.view !== 'kanban') appState.today.view = 'list';
   if (!appState.concepts || typeof appState.concepts !== 'object') appState.concepts = {};
 
   // Normalize each concept
@@ -227,6 +238,8 @@ function _normalizeState() {
     if (!Array.isArray(c.chat.messages)) c.chat.messages = [];
     c.widgetChat = Object.assign({ messages: [] }, c.widgetChat || {});
     if (!Array.isArray(c.widgetChat.messages)) c.widgetChat.messages = [];
+    c.today = Object.assign({ tasks: [] }, c.today || {});
+    if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
     c.create = Object.assign(_defaultCreate(), c.create || {});
     c.results = Object.assign(_defaultResults(), c.results || {});
     if (!Array.isArray(c.results.items)) c.results.items = [];
