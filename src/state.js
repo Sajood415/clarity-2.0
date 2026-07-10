@@ -102,20 +102,25 @@ function _defaultBusiness() {
 }
 
 function _defaultCreate() {
-  // New Create wizard shape (4 steps, no free text, Clara drives).
-  // The three "selected*" fields are the only things that need to
-  // persist across steps; `variations` is a cache regenerated each
-  // time the user re-enters step 3.
+  // Create wizard is now format-first (Image / Video / Text / Audio),
+  // matching how the user actually thinks about "what am I making".
+  // Step 1 picks contentType, Step 2 picks platform (+ subFormat for
+  // text: post / email / newsletter / thread), Step 3 shows variations
+  // shaped per format, Step 4 previews + publishes.
   return {
     step: 1,
-    selectedSuggestion: null,
-    selectedPlatform: null,
+    contentType: null,       // 'image' | 'video' | 'text' | 'audio'
+    subFormat: null,         // (text only): 'post' | 'email' | 'newsletter' | 'thread'
+    selectedPlatform: null,  // 'instagram' | 'tiktok' | 'youtube' | 'facebook'
+                             // | 'linkedin' | 'x' | 'email' | 'podcast'
     selectedVariation: null,
-    // Step 2 lets the user edit Clara's angle as a "brief". If untouched
-    // it stays empty and the textarea shows the raw suggestion angle;
-    // any edit here shadows it.
+    // Step 2 pre-fills a Clara-authored brief the user can edit before
+    // hitting Generate. Empty until Step 2 renders for the first time.
     customBrief: '',
     variations: [],
+    // If the user arrived here via a Today task, this holds the task
+    // so _crInit can pre-select sensible defaults for contentType,
+    // subFormat, and platform. Cleared on Publish / Start over.
     fromTask: null,
     generating: false
   };
@@ -334,7 +339,7 @@ function _normalizeState() {
     if (!Array.isArray(c.create.variations)) c.create.variations = [];
     // Sweep any lingering fields from the pre-wizard flow so localStorage
     // stays clean and stringified state is predictable.
-    ['askSubmitted', 'userRequest', 'type', 'platform', 'angle', 'selected', 'draftSaved'].forEach(function (k) {
+    ['askSubmitted', 'userRequest', 'type', 'platform', 'angle', 'selected', 'draftSaved', 'selectedSuggestion'].forEach(function (k) {
       if (k in c.create) delete c.create[k];
     });
     c.results = Object.assign(_defaultResults(), c.results || {});

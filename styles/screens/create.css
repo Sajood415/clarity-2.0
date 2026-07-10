@@ -69,113 +69,95 @@
 }
 
 /* ==========================================
-   Step 1 — Suggestion cards
+   Step 1 — Content-type picker (2×2 grid)
    ========================================== */
 
-.cr-suggestions {
-  display: flex;
-  flex-direction: column;
+.cr-format-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 20px;
 }
 
-.cr-sug-card {
+/* Each card is a tap target: icon slot on top, label + short description
+   underneath. Buttons (not divs) so keyboard nav + focus rings work
+   without extra JS. */
+.cr-format-card {
   position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 18px;
+  padding: 18px 16px 16px;
   cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 132px;
+  transition: border-color 150ms ease, background 150ms ease, transform 100ms ease;
 }
 
-.cr-sug-card:hover,
-.cr-sug-card-active {
+.cr-format-card:hover,
+.cr-format-card-active {
   border-color: var(--accent);
   background: rgba(245, 166, 35, 0.04);
 }
 
-.cr-sug-from-pill {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent);
-  background: rgba(245, 166, 35, 0.12);
-  border: 1px solid rgba(245, 166, 35, 0.25);
-  padding: 2px 10px;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  letter-spacing: 0.005em;
+.cr-format-card:active {
+  transform: scale(0.985);
 }
 
-.cr-sug-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.cr-format-card:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
 }
 
-.cr-sug-type-chip {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  background: rgba(245, 166, 35, 0.1);
-  border-radius: 6px;
-  padding: 3px 8px;
-  line-height: 1.4;
-}
-
-.cr-sug-check {
+.cr-format-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(245, 166, 35, 0.09);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.cr-format-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.cr-format-desc {
+  display: block;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.cr-format-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--accent);
   color: #000;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
-}
-
-.cr-sug-angle {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text);
-  line-height: 1.4;
-  margin-top: 10px;
-}
-
-.cr-sug-why {
-  display: inline-block;
-  font-size: 12px;
-  color: var(--accent);
-  margin-top: 10px;
-  cursor: pointer;
-  user-select: none;
-  transition: opacity 150ms ease;
-}
-
-.cr-sug-why:hover {
-  opacity: 0.75;
-}
-
-.cr-sug-reason {
-  display: none;
-  font-size: 13px;
-  font-style: italic;
-  color: var(--muted);
-  line-height: 1.55;
-  margin-top: 8px;
-  padding-left: 10px;
-  border-left: 2px solid rgba(245, 166, 35, 0.25);
-}
-
-.cr-sug-reason-open {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* --- Continue / Generate / Publish primary action --- */
@@ -239,6 +221,50 @@
   background: rgba(245, 166, 35, 0.08);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Platform chips inside Step 2 carry a small glyph now so the row reads
+   at a glance instead of by label alone. Sub-format chips reuse the
+   base .cr-platform-chip styles minus the icon slot. */
+
+.cr-platform-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 12px;
+}
+
+.cr-platform-chip-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  color: var(--muted);
+  transition: color 150ms ease;
+}
+
+.cr-platform-chip:hover .cr-platform-chip-glyph,
+.cr-platform-chip-active .cr-platform-chip-glyph {
+  color: var(--accent);
+}
+
+/* Small uppercase field label used above the sub-format + platform
+   rows. Same visual language as .cr-brief-label so the whole step
+   reads consistently. */
+.cr-field-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin: 4px 0 8px;
+}
+
+.cr-subformat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
 }
 
 .cr-brief-head {
@@ -375,14 +401,55 @@
   line-height: 1.6;
 }
 
-/* Format-specific inner blocks (EMAIL + VIDEO).
-   Labels stay small + muted so the readable content dominates. */
+/* Format-specific inner blocks. Labels stay small + muted so the
+   readable content dominates. All variants share the same column
+   layout — the difference is which sub-labels appear. */
 
 .cr-variation-email,
-.cr-variation-video {
+.cr-variation-video,
+.cr-variation-audio,
+.cr-variation-image,
+.cr-variation-newsletter {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* Threads are numbered lines — small pill for the position + the line
+   text. Reads like an actual X/LinkedIn thread scaffold. */
+
+.cr-variation-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cr-variation-thread-line {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.cr-variation-thread-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.cr-variation-thread-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
 }
 
 .cr-variation-sublabel {
@@ -400,7 +467,8 @@
 }
 
 .cr-variation-email > .cr-variation-sublabel:first-child,
-.cr-variation-video > .cr-variation-sublabel:first-child {
+.cr-variation-video > .cr-variation-sublabel:first-child,
+.cr-variation-audio > .cr-variation-sublabel:first-child {
   margin-top: 0;
 }
 
@@ -566,8 +634,20 @@
   .cr-heading-sm {
     font-size: 18px;
   }
-  .cr-sug-card,
+  .cr-format-card,
   .cr-variation-card {
     padding: 16px;
+    min-height: 118px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* On phones the 2-column grid gets cramped — the 12.5px description
+     starts wrapping awkwardly. Stack into a single column instead. */
+  .cr-format-grid {
+    grid-template-columns: 1fr;
+  }
+  .cr-format-card {
+    min-height: 96px;
   }
 }

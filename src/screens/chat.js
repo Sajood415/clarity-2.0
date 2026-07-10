@@ -30,7 +30,12 @@
 //     is always populated (Clara's opening is auto-appended after 600ms
 //     for a brand-new concept).
 
-const CL_GROUP_BASE_STYLE = 'max-width:640px;margin:0 auto 28px;width:100%;padding:0 20px;';
+// Vertical spacing between message groups. 18px is the "new turn" gap;
+// 6px is the "same speaker still talking" gap, applied via opts.continued
+// in _buildMessageEl. This is what makes a burst like "Got it. / A couple
+// more quick ones. / Where are you marketing?" read as one thought
+// instead of three separate replies.
+const CL_GROUP_BASE_STYLE = 'max-width:640px;margin:0 auto 18px;width:100%;padding:0 20px;';
 const CL_GROUP_CLARA_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;flex-direction:row;align-items:flex-start;gap:12px;';
 const CL_GROUP_USER_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;justify-content:flex-end;';
 
@@ -135,8 +140,9 @@ function _paintExistingMessages() {
   const chatArea = document.getElementById('clChatArea');
   if (!chatArea) return;
   const messages = getChat().messages || [];
-  messages.forEach(function (m) {
-    chatArea.appendChild(_buildMessageEl(m.role, m.text, false));
+  messages.forEach(function (m, i) {
+    const continued = i > 0 && messages[i - 1].role === m.role;
+    chatArea.appendChild(_buildMessageEl(m.role, m.text, false, { continued: continued }));
   });
   _scrollChatToBottom();
 }
@@ -587,15 +593,23 @@ function _completeOnboardingNow() {
 // Message primitives (append / scroll / thinking)
 // ---------------------------------------------
 
-function _buildMessageEl(role, text, animate) {
+function _buildMessageEl(role, text, animate, opts) {
+  const continued = !!(opts && opts.continued);
   const group = document.createElement('div');
-  group.className = 'cl-msg-group cl-msg-' + role;
-  group.setAttribute('style', role === 'clara' ? CL_GROUP_CLARA_STYLE : CL_GROUP_USER_STYLE);
+  group.className = 'cl-msg-group cl-msg-' + role + (continued ? ' cl-msg-continued' : '');
+  // Continued messages sit close under the previous one (6px gap vs 18px)
+  // and — for Clara — hide the avatar so the text column flows under a
+  // single head. This is how Claude/GPT/Linear render bursts.
+  const base = role === 'clara' ? CL_GROUP_CLARA_STYLE : CL_GROUP_USER_STYLE;
+  const styleAdd = continued ? 'margin-top:-10px;margin-bottom:6px;' : '';
+  group.setAttribute('style', base + styleAdd);
 
   if (role === 'clara') {
     const avatar = document.createElement('div');
     avatar.className = 'cl-avatar';
-    avatar.setAttribute('style', CL_AVATAR_STYLE);
+    // The avatar slot stays in the layout (so text stays aligned) but
+    // becomes invisible on continued groups.
+    avatar.setAttribute('style', CL_AVATAR_STYLE + (continued ? 'visibility:hidden;' : ''));
     avatar.textContent = 'C';
     group.appendChild(avatar);
 
@@ -618,15 +632,33 @@ function _buildMessageEl(role, text, animate) {
   return group;
 }
 
-function _buildThinkingBubbleEl() {
+// Returns true if the last real (non-thinking, non-options-row) message
+// group in the DOM already belongs to this role. Used so freshly
+// appended messages can render as "continued" — no avatar, tight gap.
+function _prevGroupIsSameRole(role) {
+  const chat = document.getElementById('clChatArea');
+  if (!chat) return false;
+  const groups = chat.querySelectorAll('.cl-msg-group');
+  // Walk backwards skipping the thinking bubble if it's the tail.
+  for (let i = groups.length - 1; i >= 0; i--) {
+    const g = groups[i];
+    if (g.id === 'clThinkingBubble') continue;
+    return g.classList.contains('cl-msg-' + role);
+  }
+  return false;
+}
+
+function _buildThinkingBubbleEl(opts) {
+  const continued = !!(opts && opts.continued);
   const group = document.createElement('div');
-  group.className = 'cl-msg-group cl-msg-clara';
+  group.className = 'cl-msg-group cl-msg-clara' + (continued ? ' cl-msg-continued' : '');
   group.id = 'clThinkingBubble';
-  group.setAttribute('style', CL_GROUP_CLARA_STYLE);
+  const styleAdd = continued ? 'margin-top:-10px;margin-bottom:6px;' : '';
+  group.setAttribute('style', CL_GROUP_CLARA_STYLE + styleAdd);
 
   const avatar = document.createElement('div');
   avatar.className = 'cl-avatar';
-  avatar.setAttribute('style', CL_AVATAR_STYLE);
+  avatar.setAttribute('style', CL_AVATAR_STYLE + (continued ? 'visibility:hidden;' : ''));
   avatar.textContent = 'C';
   group.appendChild(avatar);
 
@@ -652,7 +684,7 @@ function _showThinkingBubble() {
   // them so the visual order is: last user reply → Clara thinking →
   // (next options will replace the thinking bubble anyway).
   const options = document.getElementById('clOptionsRow');
-  const bubble = _buildThinkingBubbleEl();
+  const bubble = _buildThinkingBubbleEl({ continued: _prevGroupIsSameRole('clara') });
   if (options) chat.insertBefore(bubble, options);
   else chat.appendChild(bubble);
   _scrollChatToBottom();
@@ -704,7 +736,7 @@ function _appendMessage(role, text) {
   // chronological order (user reply above, options remain anchored to
   // the most recent Clara question below).
   const options = document.getElementById('clOptionsRow');
-  const el = _buildMessageEl(role, text, true);
+  const el = _buildMessageEl(role, text, true, { continued: _prevGroupIsSameRole(role) });
   if (options) chat.insertBefore(el, options);
   else chat.appendChild(el);
   _scrollChatToBottom();

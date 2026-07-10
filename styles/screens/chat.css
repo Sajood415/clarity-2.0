@@ -20,7 +20,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 12px auto 24px;
+  /* Pulled up close under Clara's question so it reads as "her prompt +
+     these buttons", not a floating panel. Bottom margin matches the new
+     message-group spacing so the log rhythm stays consistent. */
+  margin: 4px auto 18px;
   max-width: 640px;
   width: 100%;
   padding: 0 20px 0 60px;
@@ -111,7 +114,11 @@
 .cl-chat-area {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 0 160px;
+  /* Top: tight so the first message doesn't float too far from the
+     sticky header. Bottom: matches the fixed input bar height (~140px
+     with the new tighter padding + disclaimer) so the last message
+     lands just above it, no clipping. */
+  padding: 8px 0 140px;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -174,8 +181,11 @@
   right: 0;
   background: linear-gradient(to top, #0F0D0B 60%, rgba(15, 13, 11, 0));
   border-top: none;
-  padding: 20px 20px 28px;
-  padding-bottom: max(28px, env(safe-area-inset-bottom));
+  /* Tighter than before (was 20/28) — saves ~16px of vertical space
+     without making the input feel cramped. Bottom padding still honors
+     the iOS safe area. */
+  padding: 12px 20px 18px;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
   z-index: 10;
   transition: left 280ms cubic-bezier(0.4, 0, 0.2, 1);
 }
