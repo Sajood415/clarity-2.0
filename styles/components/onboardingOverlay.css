@@ -1,0 +1,388 @@
+/* ==========================================
+   Dashboard shell + onboarding modal
+   ==========================================
+   Dashboard shell is the wrapper inside #app in home mode: sidebar-inset
+   flex column with a top bar and a content area. The onboarding modal
+   lives on top of the whole viewport as a fixed backdrop + centered card.
+*/
+
+.hm-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+}
+
+.hm-content {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.hm-shell-onboarding {
+  min-height: 100vh;
+}
+
+.hm-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 48px);
+  padding: 24px;
+}
+
+.hm-empty-inner {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+/* ==========================================
+   Onboarding modal
+   ==========================================
+   Layout:
+     .ob-backdrop  \u2014 fixed inset 0, dim + blur, z 500
+       .ob-modal   \u2014 480px card, centered, warm surface
+         .ob-modal-logo         (36px amber C)
+         .ob-progress-bar       (4px filled amber)
+         .ob-progress-row       (Back link + Step X of 7)
+         .ob-content
+           .ob-question         (20/700)
+           .ob-subtitle         (13/muted)
+           .ob-answer           (chips / textarea / thinking)
+*/
+
+.ob-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: ob-backdrop-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes ob-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ob-backdrop-out {
+  animation: ob-backdrop-out 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes ob-backdrop-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.ob-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  position: relative;
+  animation: ob-modal-in 320ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+}
+
+@keyframes ob-modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Logo (top of modal) --- */
+
+.ob-modal-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F5A623 0%, #D4860A 100%);
+  color: #0F0D0B;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 6px 20px rgba(245, 166, 35, 0.28);
+  letter-spacing: -0.01em;
+}
+
+/* --- Progress bar --- */
+
+.ob-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 240, 220, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.ob-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 380ms cubic-bezier(0.22, 0.7, 0.24, 1);
+  box-shadow: 0 0 12px rgba(245, 166, 35, 0.35);
+}
+
+.ob-progress-fill.ob-progress-full {
+  animation: ob-progress-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ob-progress-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(245, 166, 35, 0.35); opacity: 1; }
+  50%      { box-shadow: 0 0 20px rgba(245, 166, 35, 0.6);  opacity: 0.9; }
+}
+
+/* --- Progress row (Back link + Step counter) --- */
+
+.ob-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  margin-bottom: 24px;
+  min-height: 16px;
+}
+
+.ob-back-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: -0.005em;
+  transition: color 150ms ease;
+}
+
+.ob-back-link:hover { color: var(--text); }
+
+.ob-step-counter {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+  margin-left: auto;
+}
+
+/* --- Content (question + subtitle + answer) --- */
+
+.ob-content {
+  transition: opacity 200ms ease;
+}
+
+.ob-content-out {
+  opacity: 0;
+}
+
+.ob-question {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.ob-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ob-answer {
+  margin-top: 20px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 260ms ease 60ms, transform 260ms ease 60ms;
+}
+
+.ob-answer.ob-answer-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Chips (single + multi select) --- */
+
+.ob-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ob-chip {
+  background: rgba(255, 240, 220, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 120ms ease;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+}
+
+.ob-chip:hover {
+  background: rgba(255, 240, 220, 0.08);
+  border-color: var(--border-strong);
+}
+
+.ob-chip:active {
+  transform: scale(0.97);
+}
+
+.ob-chip-selected,
+.ob-chip-selected:hover {
+  background: rgba(245, 166, 35, 0.10);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* --- Textarea (free text) --- */
+
+.ob-textarea {
+  width: 100%;
+  background: rgba(255, 240, 220, 0.04);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.5;
+  min-height: 80px;
+  resize: none;
+  outline: none;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 200ms ease;
+}
+
+.ob-textarea::placeholder { color: rgba(245, 240, 232, 0.2); }
+
+.ob-textarea:focus {
+  border-color: var(--accent);
+  background: rgba(255, 240, 220, 0.06);
+  box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.08);
+}
+
+.ob-textarea-short {
+  min-height: 48px;
+  line-height: 20px;
+  padding: 12px 16px;
+}
+
+/* --- Continue button --- */
+
+.ob-continue-btn {
+  margin-top: 16px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background 150ms ease, transform 120ms ease, box-shadow 200ms ease, color 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ob-continue-btn-active {
+  background: linear-gradient(135deg, #F5A623 0%, #D4860A 100%);
+  color: #0F0D0B;
+  box-shadow: 0 8px 24px rgba(245, 166, 35, 0.22);
+}
+
+.ob-continue-btn-active:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(245, 166, 35, 0.32);
+}
+
+.ob-continue-btn-active:active {
+  transform: translateY(0);
+}
+
+.ob-continue-btn-disabled {
+  background: rgba(255, 240, 220, 0.04);
+  color: rgba(245, 240, 232, 0.3);
+  cursor: not-allowed;
+}
+
+/* --- Thinking state --- */
+
+.ob-thinking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0 4px;
+  gap: 14px;
+}
+
+.ob-thinking-label {
+  font-size: 16px;
+  color: var(--text);
+  letter-spacing: -0.005em;
+  text-align: center;
+}
+
+.ob-thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ob-thinking-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(245, 166, 35, 0.5);
+  opacity: 0.35;
+  animation: ob-dot-pulse 1s ease-in-out infinite;
+}
+
+.ob-thinking-dot:nth-child(2) { animation-delay: 0.15s; }
+.ob-thinking-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes ob-dot-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1);    }
+}
+
+/* ==========================================
+   Responsive
+   ========================================== */
+
+@media (max-width: 520px) {
+  .ob-modal {
+    padding: 28px 22px;
+    border-radius: 18px;
+  }
+  .ob-question { font-size: 18px; }
+}

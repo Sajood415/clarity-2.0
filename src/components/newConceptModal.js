@@ -90,7 +90,10 @@ function _submitNewConcept() {
   const name = input.value.trim();
   if (!name) return;
   _closeNewConceptModal();
-  createConcept({ name: name, focusChat: true });
+  // Dead code path: the sidebar/welcome flows no longer open this
+  // modal (the concept-name step now lives inside Clara's onboarding
+  // conversation). Kept here so the file compiles until we delete it.
+  createConcept({ name: name });
   renderApp();
 }
 

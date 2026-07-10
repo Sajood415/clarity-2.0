@@ -1,6 +1,12 @@
 /* ==========================================
-   Unified Sidebar Rail (home mode only)
-   ========================================== */
+   Dashboard Sidebar (240px, always visible in home mode)
+   ==========================================
+   Structure top \u2192 bottom:
+     brand \u00b7 concept picker \u00b7 NAVIGATION section \u00b7 (spacer) \u00b7 user footer
+
+   The old "workspace mode" slide-off is gone \u2014 the sidebar is
+   permanent chrome now, so #app is always inset by --sidebar-w.
+*/
 
 .sb-sidebar {
   position: fixed;
@@ -9,211 +15,297 @@
   bottom: 0;
   width: var(--sidebar-w);
   background: #0D0B09;
-  border-right: 1px solid rgba(255, 240, 220, 0.06);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   z-index: 50;
-  transform: translateX(calc(-1 * var(--sidebar-w)));
-  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sb-sidebar-open {
   transform: translateX(0);
 }
 
-/* Workspace mode: sidebar slides off, content reclaims full width.
-   The "\u2190 Chat" back link in the workspace header is the way back. */
-body.sb-workspace .sb-sidebar {
-  transform: translateX(calc(-1 * var(--sidebar-w)));
-  pointer-events: none;
-}
+/* Legacy class kept for the mount transition, but no slide anymore. */
+.sb-sidebar-open { transform: translateX(0); }
 
-body.sb-open.sb-workspace #app {
-  padding-left: 0;
-}
+/* No more workspace-mode collapse. Overrides just in case a stale
+   body class hangs around. */
+body.sb-workspace .sb-sidebar { transform: translateX(0); pointer-events: auto; }
+body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 
-/* --- Header --- */
+/* --- Brand --- */
 
 .sb-top {
-  padding: 20px 20px 14px;
+  padding: 20px 16px 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-shrink: 0;
 }
 
 .sb-brand {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
-  color: #F5F0E8;
-  letter-spacing: -0.025em;
+  color: var(--text);
+  letter-spacing: -0.015em;
 }
 
-/* --- New concept button (Claude-style: icon-in-circle + text, no border) --- */
+/* --- Concept picker --- */
 
-.sb-new-concept {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 8px 4px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: transparent;
-  border: none;
-  color: rgba(245, 240, 232, 0.88);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  text-align: left;
-  transition: background 150ms ease, color 150ms ease;
-  width: calc(100% - 16px);
-}
-
-.sb-new-concept:hover {
-  background: rgba(255, 240, 220, 0.045);
-  color: #F5F0E8;
-}
-
-.sb-new-concept-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: rgba(255, 240, 220, 0.06);
-  color: rgba(245, 240, 232, 0.7);
-  flex-shrink: 0;
-  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
-}
-
-.sb-new-concept:hover .sb-new-concept-icon {
-  background: rgba(245, 166, 35, 0.16);
-  color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.28);
-}
-
-/* --- Scroll region wrapping concepts --- */
-
-.sb-scroll {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-  padding: 8px 0 12px;
-}
-
-.sb-section {
-  padding: 6px 0 4px;
-}
-
-.sb-section-label {
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.09em;
-  color: rgba(245, 240, 232, 0.32);
-  padding: 8px 20px 10px;
-  text-transform: uppercase;
-}
-
-/* --- Concepts list --- */
-
-.sb-concepts-list {
-  display: flex;
-  flex-direction: column;
-  padding: 0 8px;
-  gap: 1px;
-}
-
-.sb-concept-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 150ms ease;
-  min-width: 0;
+.sb-concept-picker {
   position: relative;
+  padding: 0 12px 4px;
 }
 
-.sb-concept-row:hover {
-  background: rgba(255, 240, 220, 0.035);
+.sb-concept-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(255, 240, 220, 0.04);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  letter-spacing: -0.005em;
+  transition: background 150ms ease, border-color 150ms ease;
 }
 
-.sb-concept-row-active,
-.sb-concept-row-active:hover {
-  background: rgba(255, 240, 220, 0.055);
+.sb-concept-trigger:hover {
+  background: rgba(255, 240, 220, 0.07);
 }
 
-/* A slim concept-color bar sits inside the left padding of the active
-   row \u2014 replaces the old dot as the "which concept am I on" marker,
-   while staying much quieter than the previous filled amber background. */
-.sb-concept-row-active::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 9px;
-  bottom: 9px;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--concept-color, var(--accent));
-  opacity: 0.75;
+.sb-concept-picker-open .sb-concept-trigger {
+  background: rgba(255, 240, 220, 0.07);
+  border-color: rgba(245, 166, 35, 0.28);
 }
 
-.sb-concept-name {
+.sb-concept-trigger-name {
   flex: 1;
   min-width: 0;
-  font-size: 13.5px;
-  font-weight: 400;
-  color: rgba(245, 240, 232, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.005em;
-  transition: color 150ms ease;
 }
 
-.sb-concept-row:hover .sb-concept-name {
-  color: rgba(245, 240, 232, 0.9);
-}
-
-.sb-concept-row-active .sb-concept-name {
-  color: #F5F0E8;
-  font-weight: 500;
-}
-
-.sb-concept-delete {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: none;
+.sb-concept-trigger-chev {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(245, 240, 232, 0.28);
-  padding: 0;
-  transition: background 150ms ease, color 150ms ease;
+  color: var(--muted);
+  transition: transform 180ms ease, color 150ms ease;
   flex-shrink: 0;
 }
 
-.sb-concept-row:hover .sb-concept-delete {
+.sb-concept-picker-open .sb-concept-trigger-chev {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+/* Dropdown positioned absolutely below the trigger, floating over the
+   nav section beneath. Left/right honor the picker's padding so it
+   aligns to the trigger's edges. */
+.sb-cp-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 12px;
+  right: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  padding: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: sb-dropdown-in 140ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes sb-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sb-cp-list {
   display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.sb-concept-delete:hover {
-  background: rgba(255, 100, 100, 0.08);
-  color: #FF8A65;
+.sb-cp-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 10px 8px 12px;
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  position: relative;
+  transition: background 120ms ease;
 }
 
-/* --- Footer --- */
+.sb-cp-row:hover {
+  background: rgba(255, 240, 220, 0.05);
+}
+
+.sb-cp-row-active {
+  background: rgba(245, 166, 35, 0.08);
+}
+
+.sb-cp-row-active::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--concept-color, var(--accent));
+}
+
+.sb-cp-row-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.005em;
+  line-height: 1.25;
+}
+
+.sb-cp-row-type {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0;
+}
+
+.sb-cp-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sb-cp-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 4px;
+}
+
+.sb-cp-action {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 10px 8px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  transition: background 120ms ease, color 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb-cp-action:hover { background: rgba(255, 240, 220, 0.05); }
+
+.sb-cp-action-primary { color: var(--accent); font-weight: 600; }
+.sb-cp-action-muted   { color: var(--muted); }
+
+.sb-cp-action-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.14);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --- Nav section --- */
+
+.sb-nav-section {
+  padding: 4px 8px 8px;
+  flex-shrink: 0;
+}
+
+.sb-nav-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 16px 8px 8px;
+}
+
+.sb-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sb-nav-item {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.sb-nav-item:hover {
+  background: rgba(255, 240, 220, 0.04);
+  color: var(--text);
+}
+
+.sb-nav-item-active,
+.sb-nav-item-active:hover {
+  background: rgba(245, 166, 35, 0.08);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.sb-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.sb-nav-label-text {
+  flex: 1;
+  min-width: 0;
+  letter-spacing: -0.005em;
+}
+
+/* --- Flex spacer pushes footer to the bottom --- */
+
+.sb-spacer { flex: 1; min-height: 0; }
+
+/* --- Footer (user) --- */
 
 .sb-bottom {
-  padding: 12px 12px 14px;
-  border-top: 1px solid rgba(255, 240, 220, 0.05);
+  padding: 12px;
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -232,7 +324,7 @@ body.sb-open.sb-workspace #app {
   font-weight: 700;
   color: #000;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.25);
+  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.22);
 }
 
 .sb-user-info {
@@ -246,7 +338,7 @@ body.sb-open.sb-workspace #app {
 .sb-user-name {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(245, 240, 232, 0.85);
+  color: rgba(245, 240, 232, 0.9);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -255,12 +347,10 @@ body.sb-open.sb-workspace #app {
 
 .sb-user-sub {
   font-size: 11px;
-  font-weight: 400;
-  color: rgba(245, 240, 232, 0.35);
+  color: rgba(245, 240, 232, 0.4);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0.01em;
 }
 
 .sb-settings-btn {
@@ -273,32 +363,22 @@ body.sb-open.sb-workspace #app {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(245, 240, 232, 0.32);
+  color: rgba(245, 240, 232, 0.35);
   transition: background 150ms ease, color 150ms ease;
   flex-shrink: 0;
 }
 
 .sb-settings-btn:hover {
   background: rgba(255, 240, 220, 0.05);
-  color: rgba(245, 240, 232, 0.75);
+  color: rgba(245, 240, 232, 0.8);
 }
 
-.sb-recent-empty {
-  padding: 6px 20px;
-  font-size: 12px;
-  color: rgba(245, 240, 232, 0.3);
-  letter-spacing: -0.005em;
-}
-
-/* --- Inline logout confirmation ---
-   Replaces the settings icon in the footer when the user has clicked
-   to log out. Two text buttons: "Yes, log out" in warm coral to signal
-   the destructive intent, "Cancel" in muted text to bail out. */
+/* --- Inline logout confirmation --- */
 
 .sb-logout-confirm {
   display: inline-flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-shrink: 0;
   padding: 0 2px;
 }
@@ -309,30 +389,18 @@ body.sb-open.sb-workspace #app {
   border: none;
   padding: 0;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   letter-spacing: -0.005em;
   transition: color 150ms ease;
 }
 
-.sb-logout-yes {
-  color: #FF6B6B;
-  font-weight: 500;
-}
+.sb-logout-yes { color: #FF6B6B; font-weight: 500; }
+.sb-logout-yes:hover { color: #FF8A8A; }
+.sb-logout-no  { color: var(--muted); }
+.sb-logout-no:hover { color: var(--text); }
 
-.sb-logout-yes:hover {
-  color: #FF8A8A;
-}
-
-.sb-logout-no {
-  color: var(--muted);
-}
-
-.sb-logout-no:hover {
-  color: #F5F0E8;
-}
-
-/* --- Sidebar toast (transient, top-anchored) --- */
+/* --- Sidebar toast --- */
 
 .sb-toast {
   position: absolute;
@@ -341,18 +409,17 @@ body.sb-open.sb-workspace #app {
   right: 12px;
   z-index: 100;
   background: var(--surface-2);
-  border: 1px solid rgba(255, 240, 220, 0.08);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.4;
-  letter-spacing: -0.005em;
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity 200ms ease, transform 200ms ease;
   pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow);
 }
 
 .sb-toast-visible {

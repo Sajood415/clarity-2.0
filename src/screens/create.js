@@ -1052,7 +1052,7 @@ function _crBindStep4() {
     publishBtn.addEventListener('click', function () {
       _crPushResultItem('published');
       _resetCreate();
-      appState.activeView = 'results';
+      appState.activeView = 'insights';
       _saveState();
       renderApp();
     });

@@ -155,12 +155,12 @@ function _renderResultsTile(publishedCount) {
   const body = empty
     ? 'Ship your first post and Clara will start tracking reach, engagement, and what\u2019s working.'
     : 'See reach, top channels, and Clara\u2019s take on what\u2019s working right now.';
-  const cta = empty ? 'Preview \u2192' : 'View results \u2192';
+  const cta = empty ? 'Preview \u2192' : 'View insights \u2192';
 
   return `
-    <button type="button" class="ov-tile ov-tile-results${empty ? ' ov-tile-results-empty' : ''}" data-nav="results">
+    <button type="button" class="ov-tile ov-tile-results${empty ? ' ov-tile-results-empty' : ''}" data-nav="insights">
       <div class="ov-tile-head">
-        <span class="ov-tile-label">RESULTS</span>
+        <span class="ov-tile-label">INSIGHTS</span>
         <span class="ov-tile-arrow">\u2192</span>
       </div>
       <div class="ov-tile-title">${_escape(title)}</div>
@@ -231,35 +231,33 @@ function _ovMarketInsight(b) {
   return 'Your market has room for a business that communicates clearly and consistently.';
 }
 
-// --- Card 2: customer profile — prefer their own words, fall back by type ---
+// --- Card 2: customer profile — always a Clara-authored type-keyed
+//     description. Raw Q3 text was too uneven to display verbatim in a
+//     research card ("dddvdfvdfvv" etc.), so the card now reads as
+//     Clara's synthesized read of the customer, not the user's transcript.
+//     Raw Q3 text still lives on business.customer for the post-onboarding
+//     validation read-back and for downstream copy that needs it.
 function _ovCustomerInsight(b) {
-  const raw = (b.customer || '').trim();
-  if (raw) {
-    if (raw.length <= 120) return raw;
-    // Truncate on a word boundary so we don't lop off mid-word, then
-    // strip any trailing punctuation the cut left behind.
-    const cut = raw.substring(0, 117);
-    const lastSpace = cut.lastIndexOf(' ');
-    const trimmed = (lastSpace > 60 ? cut.substring(0, lastSpace) : cut).replace(/[,;\s]+$/, '');
-    return trimmed + '\u2026';
-  }
   const t = String(b.type || '').toLowerCase();
-  if (t === 'small' || t === 'food') {
-    return 'Local regulars who value quality and consistency over price.';
+  if (t === 'food' || t === 'small') {
+    return 'Local customers who value quality, consistency, and supporting businesses they trust.';
   }
   if (t === 'ecommerce') {
-    return 'Online shoppers comparing options who need a reason to choose you specifically.';
+    return 'Online shoppers comparing options who need a clear reason to choose you over alternatives.';
   }
-  if (t === 'service') {
-    return 'Decision-makers who want reliability and clear communication above all else.';
+  if (t === 'service' || t === 'agency') {
+    return 'Decision makers who prioritise reliability, clear communication, and proven results.';
   }
   if (t === 'tech') {
-    return 'Early adopters and pragmatists looking for a solution that just works.';
+    return 'Professionals who want tools that work without complexity or wasted time.';
   }
   if (t === 'creator') {
-    return 'Followers who want access to the real person, not the polished brand.';
+    return 'Followers who want authentic access to the real person behind the brand.';
   }
-  return 'Customers who care about quality and want to feel heard.';
+  if (t === 'nonprofit') {
+    return 'Donors and supporters who respond to impact stories that feel personal.';
+  }
+  return 'Customers who care about quality and want to feel heard and understood.';
 }
 
 // --- Card 3: competitive whitespace keyed on goal ---

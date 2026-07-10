@@ -14,11 +14,40 @@
 //   product   — extracted noun phrase from Q3
 //   channels  — Q4 multi-select array
 //   reach     — inferred 'local' | 'online' | 'mixed' | ''
+//   budget    — Q5 machine key: 'zero' | 'low' | 'medium' | 'high'
+//               | 'enterprise' | 'unknown'
 //   location  — Q6 free text ("Lahore, Pakistan" etc.)
+//
+// Budget × channels cross-check (paid-suggestion gate):
+//   `effectiveBudget` below downgrades medium/high/enterprise to `low`
+//   when the user's Q4 channels list contains NEITHER 'Google Ads' NOR
+//   'Meta Ads'. The rule: paid task suggestions are only safe when the
+//   user has BOTH the dollars AND a paid channel they've already
+//   committed to. `unknown` also collapses to `low` \u2014 we never surface
+//   paid options against a budget the user hasn't confirmed. Task
+//   branches should key off `ctx.effectiveBudget`, never `b.budget`.
 //
 // Copy always degrades gracefully: if a field is missing we substitute
 // safe fallbacks (name → "your business", product → "your services",
 // etc.) so a partially-onboarded concept still gets usable tasks.
+
+// Paid channel labels come straight from CL_OPTIONS_Q4. Keeping them
+// as a local set (not importing) avoids a load-order coupling with
+// responses.js \u2014 tasks.js can be evaluated before responses.js in some
+// bundlers and this file has no other reason to depend on it.
+const TASKS_PAID_CHANNELS = ['Google Ads', 'Meta Ads'];
+
+function _effectiveBudget(budget, channels) {
+  const list = Array.isArray(channels) ? channels : [];
+  const hasPaidChannel = TASKS_PAID_CHANNELS.some(function (p) { return list.indexOf(p) !== -1; });
+  const raw = String(budget || 'unknown');
+  // Only medium+ budgets can unlock paid suggestions. Without a paid
+  // channel commitment, downgrade so paid branches stay gated.
+  if ((raw === 'medium' || raw === 'high' || raw === 'enterprise') && !hasPaidChannel) {
+    return 'low';
+  }
+  return raw;
+}
 
 function _todayTasks() {
   const b = getBusiness();
@@ -29,15 +58,32 @@ function _todayTasks() {
   const channels = Array.isArray(b.channels) ? b.channels : [];
   const reach    = b.reach || '';
   const location = (b.location || '').trim();
+  const budget   = b.budget || 'unknown';
+  const effectiveBudget = _effectiveBudget(budget, channels);
 
   const hasChannel = function (label) { return channels.indexOf(label) !== -1; };
   const audienceLine = location ? 'People in ' + location + ' ' : 'Your audience ';
 
+  const ctx = {
+    name: name, type: type, product: product, goal: goal,
+    channels: channels, reach: reach, audienceLine: audienceLine,
+    hasChannel: hasChannel,
+    budget: budget, effectiveBudget: effectiveBudget
+  };
+
   return [
-    _postTask({ name: name, type: type, product: product, channels: channels, reach: reach, audienceLine: audienceLine, hasChannel: hasChannel }),
-    _outreachTask({ name: name, product: product, goal: goal }),
-    _offerTask({ name: name, type: type, product: product, goal: goal })
+    _postTask(ctx),
+    _outreachTask(ctx),
+    _offerTask(ctx)
   ];
+}
+
+// Small helper for downstream branches: true only when it's safe to
+// surface a paid suggestion. Never key off ctx.budget directly \u2014 use
+// this so the channels cross\u2011check is honored in one place.
+function _canSuggestPaid(ctx) {
+  const eff = ctx && ctx.effectiveBudget;
+  return eff === 'medium' || eff === 'high' || eff === 'enterprise';
 }
 
 // ---------------------------------------------
@@ -231,3 +277,5 @@ function _productFallback(type) {
 }
 
 window._todayTasks = _todayTasks;
+window._effectiveBudget = _effectiveBudget;
+window._canSuggestPaid = _canSuggestPaid;

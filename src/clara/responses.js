@@ -13,6 +13,7 @@
 //   CL_Q2_QUESTION, CL_OPTIONS_Q2, CL_Q2_ACK
 //   CL_Q3_QUESTION, CL_Q3_PLACEHOLDER, CL_Q3_ACK_1, CL_Q3_ACK_2
 //   CL_Q4_QUESTION, CL_OPTIONS_Q4, CL_Q4_ESCAPE, _q4Ack(), _inferReach()
+//   CL_Q5_QUESTION, CL_OPTIONS_Q5, CL_Q5_BUDGET_MAP, CL_Q5_ACK
 //   CL_Q6_QUESTION, CL_Q6_PLACEHOLDER, CL_Q6_ACK
 
 // --- Opening ---
@@ -188,6 +189,43 @@ function _inferReach(channels) {
   return '';
 }
 
+// --- Q5: monthly marketing budget ---
+//
+// Six approved bands. business.budget stores the machine key (not the
+// dollar label) so downstream logic \u2014 task generator, paid-channel
+// gate in tasks.js \u2014 keys off a stable identifier. `Not sure yet`
+// maps to `unknown`; the task generator treats unknown as low so we
+// never surface paid suggestions until the user has committed.
+
+const CL_Q5_QUESTION = "One more. What monthly budget do you have for marketing?";
+const CL_OPTIONS_Q5 = [
+  '$0\u2013$250',
+  '$250\u2013$1,000',
+  '$1,000\u2013$5,000',
+  '$5,000\u2013$15,000',
+  '$15,000+',
+  'Not sure yet'
+];
+const CL_Q5_BUDGET_MAP = {
+  '$0\u2013$250':        'zero',
+  '$250\u2013$1,000':    'low',
+  '$1,000\u2013$5,000':  'medium',
+  '$5,000\u2013$15,000': 'high',
+  '$15,000+':            'enterprise',
+  'Not sure yet':        'unknown'
+};
+// Warm one-liner ack per bucket, grouped so tiny/low share copy and
+// high/enterprise share copy \u2014 matches the way Clara talks about
+// scale in the rest of the flow.
+const CL_Q5_ACK = {
+  zero:       "Got it. We'll focus on what you can do without spending on ads.",
+  low:        "Got it. We'll focus on what you can do without spending on ads.",
+  medium:     "Good. That gives us options. Clara will cross\u2011check this with where you're already active before suggesting paid campaigns.",
+  high:       "Nice. That opens up a lot. Clara will start organic and introduce paid options as you get comfortable.",
+  enterprise: "Nice. That opens up a lot. Clara will start organic and introduce paid options as you get comfortable.",
+  unknown:    "No problem. Clara will figure it out from how you engage with suggestions."
+};
+
 // --- Q6: location (free text) ---
 
 const CL_Q6_QUESTION = "Last one. Where is your business based? City or country is fine.";
@@ -261,6 +299,11 @@ window.CL_Q4_ESCAPE = CL_Q4_ESCAPE;
 window.CL_Q4_LEGACY_CHANNEL_MAP = CL_Q4_LEGACY_CHANNEL_MAP;
 window._q4Ack = _q4Ack;
 window._inferReach = _inferReach;
+
+window.CL_Q5_QUESTION = CL_Q5_QUESTION;
+window.CL_OPTIONS_Q5 = CL_OPTIONS_Q5;
+window.CL_Q5_BUDGET_MAP = CL_Q5_BUDGET_MAP;
+window.CL_Q5_ACK = CL_Q5_ACK;
 
 window.CL_Q6_QUESTION = CL_Q6_QUESTION;
 window.CL_Q6_PLACEHOLDER = CL_Q6_PLACEHOLDER;

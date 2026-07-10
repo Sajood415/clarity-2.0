@@ -12,14 +12,12 @@
 //   q2           → CL_Q2_QUESTION + CL_OPTIONS_Q2               (single-select)
 //   q3           → CL_Q3_QUESTION + text input                  (free text)
 //   q4           → CL_Q4_QUESTION + CL_OPTIONS_Q4 + Done        (multi-select)
+//   q5           → CL_Q5_QUESTION + CL_OPTIONS_Q5               (single-select)
 //   q6           → CL_Q6_QUESTION + text input                  (free text)
 //   building     → thinking indicator (3s)                      (transient)
 //   validate     → customer read-back + Yes/Fix options         (single-select)
 //   validate_fix → "tell me more" text input                    (free text)
 //   done         → free chat, no options                        (terminal)
-//
-// Q5 (budget) is intentionally skipped for now — Clara will ask it later
-// when she's actually recommending paid options.
 //
 // Rendering:
 //   • Options render as .cl-options-row appended inside the chat log,
@@ -37,7 +35,14 @@
 // in _buildMessageEl. This is what makes a burst like "Got it. / A couple
 // more quick ones. / Where are you marketing?" read as one thought
 // instead of three separate replies.
-const CL_GROUP_BASE_STYLE = 'max-width:760px;margin:0 auto 18px;width:100%;padding:0 20px;';
+// Margin split intentionally: `margin: 0 auto 18px` collapses to
+// margin-top:0 which INLINE overrides the CSS rule
+//   `.cl-chat-area > *:first-child { margin-top: auto }`
+// meant to push a lone message to the bottom of the chat area. We
+// break out margin-left/right/bottom so CSS can still set margin-top
+// on first-child \u2014 critical for the onboarding overlay where the
+// viewport is otherwise a big empty rectangle above Clara's greeting.
+const CL_GROUP_BASE_STYLE = 'max-width:760px;margin-left:auto;margin-right:auto;margin-bottom:18px;width:100%;padding:0 20px;';
 const CL_GROUP_CLARA_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;flex-direction:row;align-items:flex-start;gap:12px;';
 const CL_GROUP_USER_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;justify-content:flex-end;';
 
@@ -85,6 +90,15 @@ const CL_BOUNCE_DOT_STYLE = 'display:inline-block;width:8px;height:8px;border-ra
 // Entry
 // ---------------------------------------------
 
+// After the modal onboarding restructure, chat.js only renders in one
+// context: the Chat nav item. Async continuations (thinking dots,
+// queued Clara messages) should abort the moment the user navigates
+// away from Chat. Onboarding-overlay context no longer routes through
+// this file \u2014 that lives in screens/onboardingModal.js now.
+function _chatStillMounted() {
+  return appState.mode === 'home' && appState.activeView === 'chat';
+}
+
 function renderChat(container) {
   const chat = getChat();
 
@@ -101,7 +115,7 @@ function renderChat(container) {
   if (chat.messages.length === 0 && chat.onboardingStep === 'opening') {
     _renderInputBarForStep('opening');
     setTimeout(function () {
-      if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
+      if (!_chatStillMounted()) return;
       _claraSay(CLARA_OPENING);
       _renderStepUI();
     }, 600);
@@ -124,7 +138,7 @@ function renderChat(container) {
       && !getBusiness().customerValidated) {
     _renderStepUI();
     setTimeout(function () {
-      if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
+      if (!_chatStillMounted()) return;
       const c = getChat();
       // Guard against double-fire if renderChat re-runs before the beat.
       if (c.onboardingStep !== 'done' || getBusiness().customerValidated) return;
@@ -142,8 +156,14 @@ function renderChat(container) {
 // ---------------------------------------------
 
 function _renderChatShell(container) {
+  // Fills the parent regardless of whether we're inside the onboarding
+  // overlay panel or the plain content area \u2014 both parents are
+  // configured as column-flex containers, so `flex: 1` claims the
+  // available height and `min-height: 0` lets us shrink below the
+  // content's intrinsic size (needed for chat-area overflow scrolling).
   const rootStyle = [
-    'min-height:calc(100vh - 44px)',
+    'flex:1',
+    'min-height:0',
     'display:flex',
     'flex-direction:column',
     'background:radial-gradient(ellipse at 50% 0%, #1e1508 0%, #0F0D0B 50%)'
@@ -151,6 +171,7 @@ function _renderChatShell(container) {
 
   container.innerHTML = `
     <div class="cl-onboarding cl-chat-state" id="clOnboarding" style="${rootStyle}">
+      <div class="cl-watermark" aria-hidden="true">CLARITY</div>
       <main class="cl-chat-area" id="clChatArea"></main>
       <div class="cl-input-bar" id="clInputBar"></div>
     </div>
@@ -195,6 +216,8 @@ function _renderOptionsForStep(step) {
     _appendOptionsRow('single', CL_OPTIONS_Q2);
   } else if (step === 'q4') {
     _appendOptionsRow('multi', CL_OPTIONS_Q4);
+  } else if (step === 'q5') {
+    _appendOptionsRow('single', CL_OPTIONS_Q5);
   } else if (step === 'validate') {
     _appendOptionsRow('single', CL_OPTIONS_VALIDATE);
   }
@@ -317,8 +340,8 @@ function _onMultiDone() {
   _saveState();
   _appendMessage('user', displayText);
 
-  _advanceStep('q6');
-  _claraQueue([_q4Ack(channels), CL_Q6_QUESTION], _renderStepUI);
+  _advanceStep('q5');
+  _claraQueue([_q4Ack(channels), CL_Q5_QUESTION], _renderStepUI);
 }
 
 // ---------------------------------------------
@@ -353,6 +376,19 @@ function _commitSingleAnswer(label) {
     _advanceStep('q3');
     const ack = CL_Q2_ACK[label] || "Got it.";
     _claraQueue([ack, CL_Q3_QUESTION], _renderStepUI);
+    return;
+  }
+
+  if (step === 'q5') {
+    // Store the machine key (zero/low/medium/high/enterprise/unknown) so
+    // downstream logic \u2014 the paid-channel gate in _todayTasks() \u2014
+    // keys off a stable identifier, never the dollar-band label.
+    const budgetKey = CL_Q5_BUDGET_MAP[label] || 'unknown';
+    getBusiness().budget = budgetKey;
+    _saveState();
+    _advanceStep('q6');
+    const ack = CL_Q5_ACK[budgetKey] || "Got it.";
+    _claraQueue([ack, CL_Q6_QUESTION], _renderStepUI);
     return;
   }
 
@@ -633,14 +669,14 @@ function _extractProduct(text) {
 function _claraQueue(messages, done) {
   let i = 0;
   function step() {
-    if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
+    if (!_chatStillMounted()) return;
     if (i >= messages.length) {
       if (typeof done === 'function') done();
       return;
     }
     _showThinkingBubble();
     setTimeout(function () {
-      if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
+      if (!_chatStillMounted()) return;
       _removeThinkingBubble();
       _claraSay(messages[i]);
       i++;
@@ -669,11 +705,22 @@ function _completeOnboardingNow() {
   const chat = getChat();
   chat.onboardingComplete = true;
   chat.onboardingStep = 'done';
-  appState.activeView = 'chat';
+  // Onboarding always dismisses onto the sidebar dashboard with
+  // Overview selected. Chat is never a landing view \u2014 users reach it
+  // from the sidebar nav after the workspace is open.
+  appState.activeView = 'overview';
+  appState.onboardingOverlayOpen = false;
+  // Legacy flag consumed by the old concept header. Harmless now (no
+  // reader) \u2014 kept for one release in case anything downstream still
+  // listens for it; safe to remove later.
   window._justUnlockedConcept = true;
+  // Seed one closing message into the Chat nav history so the first
+  // time the user opens Chat later, Clara's not silent. Never shown
+  // during onboarding \u2014 the overlay is already closing when this
+  // pushes.
   chat.messages.push({
     role: 'clara',
-    text: 'Your workspace is ready. Open it from the top-right when you want to see today\u2019s tasks and start creating.'
+    text: "Your workspace is ready. I'll be here in the Chat tab whenever you want to talk through anything."
   });
   _saveState();
   renderApp();

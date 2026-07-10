@@ -1,42 +1,96 @@
 /* ==========================================
-   Results view
-   ========================================== */
+   Results view (warm-lux polish)
+   ==========================================
+   Vibe: editorial, warm/amber, soft ambient glows. Cards are gradient
+   surfaces with subtle inner highlights (top edge) and interactive lift
+   on hover. The "Published" stat is treated as a hero card and gets
+   the strongest amber glow so the eye lands there first. Clara's take
+   card carries a radial glow behind it so it reads as "her voice" and
+   not another data card.
+*/
 
 .rs-wrap {
-  padding: 32px 24px 64px 24px;
-  max-width: 720px;
+  position: relative;
+  padding: 40px 24px 80px;
+  max-width: 760px;
   margin: 0 auto;
 }
 
+/* Ambient amber glow drifting from the top of the page. Sits behind
+   everything (z-index: 0) and is aria-hidden. Fades as it descends so
+   the content list at the bottom of the page reads neutrally. */
+.rs-glow {
+  position: absolute;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 720px;
+  height: 480px;
+  background: radial-gradient(ellipse at center, rgba(245, 166, 35, 0.18) 0%, rgba(245, 166, 35, 0.06) 35%, transparent 65%);
+  filter: blur(30px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Put every child above the glow. */
+.rs-wrap > *:not(.rs-glow) {
+  position: relative;
+  z-index: 1;
+}
+
+/* --- Header --- */
+
+.rs-header {
+  margin-bottom: 28px;
+  animation: rs-fade-up 400ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.rs-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
 .rs-heading {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin-bottom: 4px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #F5F0E8 0%, #F5A623 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .rs-subtext {
   font-size: 14px;
-  color: var(--muted);
-  margin-bottom: 24px;
-  line-height: 1.5;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 520px;
+  opacity: 0.75;
 }
+
+/* --- Locked (no items yet) --- */
 
 .rs-locked-cards {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  animation: rs-fade-up 500ms cubic-bezier(0.2, 0.7, 0.2, 1) 100ms both;
 }
 
 .rs-locked-card {
-  background: var(--surface);
+  background: linear-gradient(180deg, rgba(28, 24, 20, 0.85) 0%, rgba(28, 24, 20, 0.6) 100%);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  padding: 20px;
-  opacity: 0.45;
+  padding: 22px;
+  opacity: 0.55;
   position: relative;
 }
 
@@ -44,12 +98,12 @@
   font-size: 10px;
   text-transform: uppercase;
   color: var(--muted);
-  letter-spacing: 0.1em;
-  font-weight: 600;
+  letter-spacing: 0.14em;
+  font-weight: 700;
 }
 
 .rs-locked-dash {
-  font-size: 32px;
+  font-size: 34px;
   color: var(--muted);
   margin: 8px 0;
   line-height: 1;
@@ -59,202 +113,434 @@
 .rs-locked-desc {
   font-size: 13px;
   color: var(--muted);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .rs-lock-icon {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 22px;
+  right: 22px;
   color: var(--muted);
 }
 
+/* --- Primary CTAs (Create first / Create another) --- */
+
 .rs-unlock-cta {
   width: 100%;
-  height: 48px;
-  background: var(--accent);
-  color: #000;
-  border-radius: var(--radius);
+  height: 52px;
+  background: linear-gradient(135deg, #F5A623 0%, #D4860A 100%);
+  color: #1a1108;
+  border-radius: 14px;
   font-weight: 700;
   font-size: 15px;
+  letter-spacing: -0.005em;
   border: none;
   cursor: pointer;
-  margin-top: 16px;
-  box-shadow: var(--shadow-accent);
-  transition: background 150ms ease;
-}
-
-.rs-unlock-cta:hover {
-  background: var(--accent-dark);
-}
-
-.rs-summary-row {
-  display: flex;
+  margin-top: 24px;
+  box-shadow: 0 8px 28px rgba(245, 166, 35, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
 }
 
+.rs-unlock-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 36px rgba(245, 166, 35, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  filter: brightness(1.03);
+}
+
+.rs-unlock-cta:active { transform: translateY(0); }
+
+.rs-cta-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(26, 17, 8, 0.15);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --- Summary stat cards --- */
+
+.rs-summary-row {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 12px;
+  animation: rs-fade-up 500ms cubic-bezier(0.2, 0.7, 0.2, 1) 60ms both;
+}
+
 .rs-stat-card {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  padding: 16px 12px;
-  flex: 1;
-  text-align: center;
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 240, 220, 0.03) 0%, rgba(255, 240, 220, 0) 40%),
+    linear-gradient(180deg, #201a13 0%, #17130f 100%);
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  padding: 18px 16px 16px;
   min-width: 0;
+  overflow: hidden;
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1), border-color 220ms ease, box-shadow 220ms ease;
+  box-shadow: 0 1px 0 rgba(255, 240, 220, 0.05) inset, 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.rs-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 166, 35, 0.28);
+  box-shadow: 0 1px 0 rgba(255, 240, 220, 0.06) inset, 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* Hero treatment for the Published card: warm gradient bg + amber
+   outer glow + inner glow ring. The `.rs-stat-pulse` dot lives here. */
+.rs-stat-card-primary {
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(245, 166, 35, 0.18) 0%, rgba(245, 166, 35, 0) 55%),
+    linear-gradient(180deg, #2a1e10 0%, #1a130c 100%);
+  border-color: rgba(245, 166, 35, 0.32);
+  box-shadow:
+    0 1px 0 rgba(255, 220, 170, 0.1) inset,
+    0 8px 30px rgba(245, 166, 35, 0.16),
+    0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.rs-stat-card-primary:hover {
+  border-color: rgba(245, 166, 35, 0.5);
+  box-shadow:
+    0 1px 0 rgba(255, 220, 170, 0.14) inset,
+    0 12px 40px rgba(245, 166, 35, 0.28),
+    0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.rs-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  border: 1px solid rgba(245, 166, 35, 0.18);
+}
+
+.rs-stat-card-primary .rs-stat-icon {
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.28) 0%, rgba(212, 134, 10, 0.2) 100%);
+  border-color: rgba(245, 166, 35, 0.4);
+  color: #FFC97A;
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
 }
 
 .rs-stat-value {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 800;
   color: var(--text);
-  letter-spacing: -0.01em;
-  line-height: 1.1;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .rs-stat-value-accent {
-  color: var(--accent);
+  background: linear-gradient(135deg, #FFC97A 0%, #F5A623 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .rs-stat-value-small {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
 }
 
 .rs-stat-label {
   font-size: 11px;
   color: var(--muted);
-  margin-top: 4px;
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  text-transform: uppercase;
 }
 
+/* Amber pulse in the top-right of the primary card, sells "live". */
+.rs-stat-pulse {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+}
+.rs-stat-pulse > span {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #F5A623;
+  box-shadow: 0 0 12px rgba(245, 166, 35, 0.75);
+  animation: rs-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes rs-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50%       { transform: scale(1.35); opacity: 0.5; }
+}
+
+/* --- Clara's take (insight) card --- */
+
 .rs-insight-card {
-  background: rgba(245, 166, 35, 0.05);
-  border: 1px solid rgba(245, 166, 35, 0.15);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-top: 16px;
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(245, 166, 35, 0.06) 0%, rgba(245, 166, 35, 0.02) 100%),
+    linear-gradient(180deg, #1e1811 0%, #17120e 100%);
+  border: 1px solid rgba(245, 166, 35, 0.22);
+  border-radius: 16px;
+  padding: 20px 20px 18px;
+  margin-top: 18px;
+  overflow: hidden;
+  animation: rs-fade-up 500ms cubic-bezier(0.2, 0.7, 0.2, 1) 140ms both;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.rs-insight-glow {
+  position: absolute;
+  top: -60px;
+  left: -40px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.16) 0%, transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.rs-insight-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.rs-insight-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F5A623 0%, #D4860A 100%);
+  color: #1a1108;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(245, 166, 35, 0.35);
 }
 
 .rs-insight-label {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   color: var(--accent);
-  letter-spacing: 0.1em;
-  font-weight: 600;
-  margin-bottom: 8px;
+  letter-spacing: 0.14em;
+  font-weight: 700;
 }
 
 .rs-insight-text {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.55;
+  position: relative;
+}
+
+/* --- Content list --- */
+
+.rs-content-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 32px;
+  margin-bottom: 12px;
 }
 
 .rs-content-label {
   font-size: 11px;
   text-transform: uppercase;
   color: var(--muted);
-  letter-spacing: 0.08em;
-  font-weight: 600;
-  margin-top: 24px;
-  margin-bottom: 12px;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+.rs-content-count {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.7;
 }
 
 .rs-content-list {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  animation: rs-fade-up 500ms cubic-bezier(0.2, 0.7, 0.2, 1) 200ms both;
 }
 
 .rs-content-row {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
+  position: relative;
+  background: linear-gradient(180deg, rgba(28, 24, 20, 0.6) 0%, rgba(23, 19, 15, 0.6) 100%);
+  border-radius: 14px;
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
   padding: 14px 16px;
-  margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
+  cursor: default;
+}
+
+.rs-content-row:hover {
+  transform: translateX(2px);
+  border-color: rgba(245, 166, 35, 0.28);
+  background: linear-gradient(180deg, rgba(38, 30, 22, 0.7) 0%, rgba(28, 22, 16, 0.7) 100%);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 .rs-content-thumb {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: 10px;
   flex-shrink: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
+  border: 1px solid rgba(255, 240, 220, 0.06);
 }
 
 .rs-thumb-post {
-  background: rgba(245, 166, 35, 0.2);
-  color: var(--accent);
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.22) 0%, rgba(212, 134, 10, 0.12) 100%);
+  color: #FFC97A;
+  border-color: rgba(245, 166, 35, 0.3);
 }
 
 .rs-thumb-image {
-  background: rgba(232, 132, 90, 0.2);
-  color: var(--accent-secondary);
+  background: linear-gradient(135deg, rgba(232, 132, 90, 0.22) 0%, rgba(200, 90, 60, 0.12) 100%);
+  color: #F1A585;
+  border-color: rgba(232, 132, 90, 0.3);
 }
 
 .rs-thumb-video {
-  background: rgba(200, 169, 110, 0.2);
-  color: #C8A96E;
+  background: linear-gradient(135deg, rgba(200, 169, 110, 0.22) 0%, rgba(160, 130, 80, 0.12) 100%);
+  color: #DBC085;
+  border-color: rgba(200, 169, 110, 0.3);
 }
 
 .rs-thumb-audio {
-  background: rgba(138, 127, 114, 0.2);
-  color: var(--text-secondary);
+  background: linear-gradient(135deg, rgba(159, 122, 197, 0.22) 0%, rgba(120, 90, 160, 0.12) 100%);
+  color: #C2A6E0;
+  border-color: rgba(159, 122, 197, 0.3);
 }
 
 .rs-content-mid {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .rs-content-platform {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.005em;
 }
 
-.rs-content-status {
+.rs-content-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rs-content-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
-  margin-top: 2px;
-  font-weight: 500;
+  font-weight: 600;
+  padding: 3px 9px 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  letter-spacing: 0.02em;
 }
 
 .rs-status-published {
-  color: #C8A96E;
+  background: rgba(200, 169, 110, 0.14);
+  color: #DBC085;
+  border-color: rgba(200, 169, 110, 0.28);
 }
 
 .rs-status-draft {
-  color: var(--muted);
+  background: rgba(138, 127, 114, 0.14);
+  color: var(--text-secondary);
+  border-color: rgba(138, 127, 114, 0.28);
+}
+
+.rs-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  opacity: 0.9;
 }
 
 .rs-content-time {
   font-size: 11px;
   color: var(--muted);
-  margin-top: 2px;
 }
 
 .rs-content-reach-wrap {
   text-align: right;
   flex-shrink: 0;
+  min-width: 56px;
 }
 
 .rs-content-reach {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .rs-content-reach-label {
   font-size: 10px;
   color: var(--muted);
   margin-top: 2px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* --- Entrance --- */
+
+@keyframes rs-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Small-viewport safety --- */
+
+@media (max-width: 640px) {
+  .rs-summary-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rs-stat-card-primary {
+    grid-column: 1 / -1;
+  }
+  .rs-heading {
+    font-size: 28px;
+  }
 }

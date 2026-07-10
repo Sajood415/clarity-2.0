@@ -68,8 +68,30 @@ const VIEW_ICONS = {
       <line x1="12" y1="20" x2="12" y2="10"/>
       <line x1="18" y1="20" x2="18" y2="4"/>
     </svg>
+  `,
+  insights: `
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="6" y1="20" x2="6" y2="14"/>
+      <line x1="12" y1="20" x2="12" y2="10"/>
+      <line x1="18" y1="20" x2="18" y2="4"/>
+    </svg>
   `
 };
+
+// Small utility icons used by the dashboard sidebar.
+const SB_CHEVRON_DOWN_SVG = `
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+`;
+const SB_GRID_ICON_SVG = `
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="3" y="3" width="7" height="7" rx="1"/>
+    <rect x="14" y="3" width="7" height="7" rx="1"/>
+    <rect x="3" y="14" width="7" height="7" rx="1"/>
+    <rect x="14" y="14" width="7" height="7" rx="1"/>
+  </svg>
+`;
 
 const CREATE_TYPE_ICONS = {
   post: `
@@ -145,3 +167,5 @@ window.RESULTS_LOCK_ICON = RESULTS_LOCK_ICON;
 window.SB_PLUS_ICON_SVG = SB_PLUS_ICON_SVG;
 window.SB_LOGOUT_ICON_SVG = SB_LOGOUT_ICON_SVG;
 window.SB_TRASH_ICON_SVG = SB_TRASH_ICON_SVG;
+window.SB_CHEVRON_DOWN_SVG = SB_CHEVRON_DOWN_SVG;
+window.SB_GRID_ICON_SVG = SB_GRID_ICON_SVG;

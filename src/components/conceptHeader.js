@@ -1,160 +1,90 @@
 // ---------------------------------------------
-// Clarity 2.0 — Concept header (two modes)
+// Clarity 2.0 — Top Bar (dashboard shell)
 // ---------------------------------------------
 //
-// The header is a bridge between the two pages a concept has:
+// Slim 48px bar that sits above the main content area. Two-part
+// breadcrumb on the left \u2014 concept name (muted) then the current page
+// label (bold) \u2014 nothing on the right for now (theme toggle deferred).
 //
-//   Chat page     — a focused conversation with Clara.
-//   Workspace     — a focused dashboard with Overview / Today / Create /
-//                   Results tabs.
-//
-// Chat mode header (single row, 44px):
-//   [avatar] [name]  ...................  [Workspace \u2192]
-//   The "Workspace" button only appears once Clara has finished
-//   onboarding (there is nothing to open before then).
-//
-// Workspace mode header (two rows, 80px):
-//   [\u2190 Chat]  [avatar] [name]  ..............  [meta]
-//   -----------------------------------------------------
-//   Overview   Today   Create   Results
-//
-// When Clara finishes onboarding, `window._justUnlockedConcept` is set to
-// true by chat.js. On the next render we consume that flag and animate
-// the Workspace button in with a subtle color-flush so the user notices
-// their workspace has just been built.
+// This file was previously the Chat/Workspace concept-header component
+// with a Workspace \u2192 button and a full workspace tab strip. Both went
+// away in the dashboard restructure: primary nav lives in the sidebar
+// now, and Chat is just a peer nav item. The filename is kept so the
+// existing `_renderConceptHeader` / `_bindConceptHeaderEvents` hooks
+// used by the router keep working without a rewire.
 
-const CH_WORKSPACE_TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'today',    label: 'Today'    },
-  { id: 'create',   label: 'Create'   },
-  { id: 'results',  label: 'Results'  }
-];
+// Human-readable label for every top-level `activeView`. Report views
+// use their concept's card title (Market / Customer / Competition /
+// Plan) so the breadcrumb reads sensibly when a report is open.
+const CH_VIEW_LABELS = {
+  'overview':          'Overview',
+  'today':             'Today',
+  'chat':              'Chat',
+  'create':            'Create',
+  'insights':          'Insights',
+  'concepts-list':     'Your concepts',
+  'market-report':     'Market report',
+  'customer-report':   'Customer report',
+  'competition-report':'Competition report',
+  'plan-report':       'Go-to-market plan'
+};
 
 function _renderConceptHeader() {
+  const view = appState.activeView || 'overview';
+  const pageLabel = CH_VIEW_LABELS[view] || _capitalize(view);
+
+  // Concepts-list is a "root" sub-page, not scoped to a single concept.
+  // Render just the page label, no concept prefix.
+  if (view === 'concepts-list') {
+    return `
+      <header class="ch-topbar" role="banner">
+        <div class="ch-topbar-inner">
+          <div class="ch-crumbs">
+            <span class="ch-crumb-page">${_escape(pageLabel)}</span>
+          </div>
+          <div class="ch-topbar-right"></div>
+        </div>
+      </header>
+    `;
+  }
+
   const c = getActiveConcept();
-  if (!c) return '';
+  if (!c) {
+    // Onboarding overlay is up on top of us; the shell renders without
+    // a concept badge until the first concept is committed.
+    return `
+      <header class="ch-topbar" role="banner">
+        <div class="ch-topbar-inner">
+          <div class="ch-crumbs">
+            <span class="ch-crumb-page">${_escape(pageLabel)}</span>
+          </div>
+          <div class="ch-topbar-right"></div>
+        </div>
+      </header>
+    `;
+  }
 
-  const inWorkspace = appState.activeView !== 'chat';
-  return inWorkspace ? _renderWorkspaceHeader(c) : _renderChatHeader(c);
-}
-
-function _renderChatHeader(c) {
   const b = c.business || {};
-  const name = (b.name && b.name.trim()) || 'New concept';
-  const color = c.color || '#F5A623';
-
-  const canOpenWorkspace = !!(c.chat && c.chat.onboardingComplete);
-  const justUnlocked = !!window._justUnlockedConcept;
-  if (justUnlocked) window._justUnlockedConcept = false;
-
-  const workspaceBtn = canOpenWorkspace
-    ? (
-        '<button type="button" class="ch-workspace-btn'
-        +   (justUnlocked ? ' ch-workspace-btn-unlocking' : '')
-        + '" id="chWorkspaceBtn">'
-        +   '<span class="ch-workspace-btn-label">Workspace</span>'
-        +   '<span class="ch-workspace-btn-arrow">\u2192</span>'
-        + '</button>'
-      )
-    : '';
+  const conceptName = (b.name && b.name.trim()) || 'New concept';
 
   return `
-    <div class="ch-header ch-header-chat" style="--concept-color:${color}">
-      <div class="ch-info-row">
-        <div class="ch-info">
-          <div class="ch-name">${_escape(name)}</div>
+    <header class="ch-topbar" role="banner">
+      <div class="ch-topbar-inner">
+        <div class="ch-crumbs">
+          <span class="ch-crumb-concept">${_escape(conceptName)}</span>
+          <span class="ch-crumb-sep" aria-hidden="true">/</span>
+          <span class="ch-crumb-page">${_escape(pageLabel)}</span>
         </div>
-        <div class="ch-spacer"></div>
-        ${workspaceBtn}
+        <div class="ch-topbar-right"></div>
       </div>
-    </div>
+    </header>
   `;
 }
 
-function _renderWorkspaceHeader(c) {
-  const b = c.business || {};
-  const name = (b.name && b.name.trim()) || 'New concept';
-  const color = c.color || '#F5A623';
-
-  const typeLabel = (b.type && b.type !== 'other') ? _capitalize(b.type) : '';
-  const reachLabel = b.reach === 'local' ? 'Local' : (b.reach === 'online' ? 'Online' : '');
-  const meta = typeLabel ? [typeLabel, reachLabel].filter(Boolean).join(' \u00b7 ') : '';
-
-  const currentView = appState.activeView;
-  const tabsHtml = CH_WORKSPACE_TABS.map(function (t) {
-    const isActive = t.id === currentView;
-    return (
-      '<button type="button" class="ch-tab' + (isActive ? ' ch-tab-active' : '') + '" data-view="' + t.id + '">'
-      +   _escape(t.label)
-      + '</button>'
-    );
-  }).join('');
-
-  return `
-    <div class="ch-header ch-header-workspace" style="--concept-color:${color}">
-      <div class="ch-info-row">
-        <button type="button" class="ch-back-btn" id="chBackBtn" aria-label="Back to chat">
-          <span class="ch-back-arrow">\u2190</span>
-          <span class="ch-back-label">Chat</span>
-        </button>
-        <div class="ch-info-divider"></div>
-        <div class="ch-info">
-          <div class="ch-name">${_escape(name)}</div>
-        </div>
-        <div class="ch-spacer"></div>
-        ${meta ? '<div class="ch-meta">' + _escape(meta) + '</div>' : ''}
-      </div>
-      <nav class="ch-tabs" aria-label="Workspace views">
-        ${tabsHtml}
-      </nav>
-    </div>
-  `;
-}
-
-function _bindConceptHeaderEvents() {
-  const workspaceBtn = document.getElementById('chWorkspaceBtn');
-  if (workspaceBtn) {
-    workspaceBtn.addEventListener('click', function () {
-      const c = getActiveConcept();
-      if (!c || !c.chat || !c.chat.onboardingComplete) return;
-      const target = c.lastWorkspaceView || 'overview';
-      setActiveView(target);
-      renderApp();
-    });
-  }
-
-  const backBtn = document.getElementById('chBackBtn');
-  if (backBtn) {
-    backBtn.addEventListener('click', function () {
-      setActiveView('chat');
-      renderApp();
-    });
-  }
-
-  document.querySelectorAll('.ch-tab').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const next = btn.getAttribute('data-view');
-      if (!next) return;
-      // Re-clicking the active tab is normally a no-op, but the Today
-      // tab has a sub-page (task detail). A re-click there should back
-      // the user out to the list, matching the intuition of "the tab
-      // brings me to the top of that section".
-      if (next === appState.activeView) {
-        if (next === 'today') {
-          const c = getActiveConcept();
-          if (c && c.today && c.today.viewingTaskId) {
-            c.today.viewingTaskId = null;
-            _saveState();
-            renderApp();
-          }
-        }
-        return;
-      }
-      setActiveView(next);
-      renderApp();
-    });
-  });
-}
+// No interactive controls in the top bar right now, but the router
+// still calls this after every render so we keep the export shape stable.
+function _bindConceptHeaderEvents() { /* intentionally empty */ }
 
 window._renderConceptHeader = _renderConceptHeader;
 window._bindConceptHeaderEvents = _bindConceptHeaderEvents;
+window.CH_VIEW_LABELS = CH_VIEW_LABELS;

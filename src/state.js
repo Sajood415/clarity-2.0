@@ -7,11 +7,14 @@
 //   appState = {
 //     mode:              'splash' | 'auth' | 'loading' | 'welcome' | 'home',
 //     activeConceptId:   string | null,
-//     activeView:        'chat' | 'today' | 'create' | 'results',
+//     activeView:        'overview' | 'today' | 'chat' | 'create' | 'insights'
+//                      | 'concepts-list' | '<name>-report',
 //     user:              { name, email } | null,
 //     auth:              { mode: 'signup' | 'login' },
 //     sidebarOpen:       boolean,
-//     concepts:          { [id]: Concept }
+//     concepts:          { [id]: Concept },
+//     conceptDropdownOpen: boolean,   // sidebar concept-picker toggle
+//     onboardingOverlayOpen: boolean  // full-screen onboarding scrim
 //   }
 //
 //   Concept = {
@@ -53,7 +56,9 @@ function _defaultState() {
   return {
     mode: 'splash',
     activeConceptId: null,
-    activeView: 'today',
+    // Overview is the default landing view now that the dashboard is the
+    // primary shell. Chat / today / create / insights are peer nav items.
+    activeView: 'overview',
     user: null,
     auth: { mode: 'signup' },
     sidebarOpen: false,
@@ -66,6 +71,10 @@ function _defaultState() {
     // confirmation is showing. Not persisted (see `_saveState` / the
     // normalizer, which force it back to false on load).
     confirmingLogout: false,
+    // Transient UI flags for the new dashboard shell. Neither is
+    // persisted; the normalizer force-resets them on load.
+    conceptDropdownOpen: false,
+    onboardingOverlayOpen: false,
     concepts: {}
   };
 }
@@ -81,7 +90,9 @@ function _defaultBusiness() {
   //   typeDescription  — free text set only when type === 'other'
   //   customer         — Q3 raw text (ideal customer + what they sell)
   //   channels         — Q4 multi-select array of channel labels
-  //   budget           — Q5 (currently skipped; Clara will ask later)
+  //   budget           — Q5 monthly-budget machine key:
+  //                      'zero' | 'low' | 'medium' | 'high' |
+  //                      'enterprise' | 'unknown'
   //   location         — Q6 free text
   // The pre-rebuild fields (name, type, product, goal, reach, challenge)
   // stay so downstream code (sidebar, create.js, task generator) and any
@@ -166,9 +177,9 @@ function _newConcept(opts) {
     color: (opts && opts.color) || _nextConceptColor(),
     business: business,
     // onboardingStep drives the structured 6-question flow in chat.js.
-    // States: 'opening' | 'q1' | 'q1_other' | 'q2' | 'q3' | 'q4' | 'q6'
-    //         | 'building' | 'done'. pendingChannels persists mid-flow
-    //         Q4 multi-select highlights across reloads.
+    // States: 'opening' | 'q1' | 'q1_other' | 'q2' | 'q3' | 'q4' | 'q5'
+    //         | 'q6' | 'building' | 'done'. pendingChannels persists
+    //         mid-flow Q4 multi-select highlights across reloads.
     chat: { messages: [], onboardingComplete: false, onboardingStep: 'opening', pendingChannels: [] },
     // Separate mini-conversation that lives inside the workspace's
     // floating "C" chatbot. Kept isolated from `chat.messages` so the
@@ -188,13 +199,14 @@ function _newConcept(opts) {
     // Filled at onboarding completion; drives the four full-screen
     // reports the user opens from Overview's insight cards.
     research: _defaultResearch(),
-    // Remembers which workspace tab (overview/today/create/results) the
-    // user last had open, so clicking "Workspace \u2192" from the chat page
-    // returns them there instead of always dumping them on Overview.
+    // Legacy: the last "primary" nav tab this concept had open. Was
+    // used by the retired "Workspace \u2192" button on the chat page.
+    // Kept on the record for backward compatibility (returning users
+    // with this field don't need a migration) but not read by the
+    // dashboard shell.
     lastWorkspaceView: 'overview',
-    // True once the little Clara greeter has popped in the bottom-right
-    // corner of the workspace for this concept. Ensures the greeting is
-    // strictly a first-time-in-workspace moment per concept.
+    // Legacy: was true once the retired floating "C" widget had popped
+    // for this concept. Kept as an inert field to avoid a migration.
     hasSeenWorkspaceIntro: false
   };
 }
@@ -269,12 +281,20 @@ function _migrateState(saved) {
     results: Object.assign(_defaultResults(), legacyResults)
   };
 
-  // Old 'onboarding' mode is really "home + Chat view of an incomplete concept"
+  // Old 'onboarding' mode is really "home + incomplete concept" \u2014 in
+  // the new dashboard shell this is Overview + onboarding overlay open.
   let mode = legacy.mode || 'splash';
   if (mode === 'onboarding') mode = 'home';
 
-  let activeView = legacy.tab || 'today';
-  if (!concept.chat.onboardingComplete) activeView = 'chat';
+  // Legacy state migrates onto the dashboard's default landing view.
+  // Chat is never a landing page in the new shell, so the old `tab`
+  // field is only honored when it points at a valid dashboard view;
+  // otherwise we send them to Overview and let the router flip the
+  // onboarding overlay on top if the concept isn't done yet.
+  const legacyTab = legacy.tab;
+  const validLandings = ['overview', 'today', 'create', 'insights'];
+  const activeView = validLandings.indexOf(legacyTab) !== -1 ? legacyTab : 'overview';
+  const overlayOpen = !concept.chat.onboardingComplete;
 
   return {
     mode: mode,
@@ -283,6 +303,7 @@ function _migrateState(saved) {
     user: legacy.user || null,
     auth: legacy.auth || { mode: 'signup' },
     sidebarOpen: !!legacy.sidebarOpen,
+    onboardingOverlayOpen: overlayOpen,
     concepts: { [conceptId]: concept }
   };
 }
@@ -290,14 +311,20 @@ function _migrateState(saved) {
 // Defensive: make sure all fields exist after migration or partial saves.
 function _normalizeState() {
   if (!appState.mode) appState.mode = 'splash';
-  if (!appState.activeView) appState.activeView = 'today';
+  if (!appState.activeView) appState.activeView = 'overview';
+  // Legacy 'results' key was renamed to 'insights' in the dashboard
+  // restructure. Any persisted concept that landed there gets remapped
+  // in place so returning users don't get a blank screen.
+  if (appState.activeView === 'results') appState.activeView = 'insights';
   if (!appState.auth || !appState.auth.mode) appState.auth = { mode: 'signup' };
   if (typeof appState.sidebarOpen !== 'boolean') appState.sidebarOpen = false;
   if (!appState.today || typeof appState.today !== 'object') appState.today = { view: 'list' };
   if (appState.today.view !== 'list' && appState.today.view !== 'kanban') appState.today.view = 'list';
-  // Confirmation UI is a transient in-session flag \u2014 never carry it
-  // across reloads, even if a stray copy landed in localStorage.
+  // Transient in-session flags. Always false on load, regardless of
+  // what stray value landed in localStorage.
   appState.confirmingLogout = false;
+  appState.conceptDropdownOpen = false;
+  appState.onboardingOverlayOpen = false;
   if (!appState.concepts || typeof appState.concepts !== 'object') appState.concepts = {};
 
   // Normalize each concept
@@ -359,6 +386,27 @@ function _normalizeState() {
     }
     c.widgetChat = Object.assign({ messages: [] }, c.widgetChat || {});
     if (!Array.isArray(c.widgetChat.messages)) c.widgetChat.messages = [];
+    // Dashboard restructure: the floating Clara widget is gone; its
+    // separate history now merges into the unified Chat nav view. Runs
+    // once per concept (guarded by widgetMerged) so a partially-saved
+    // widget conversation is preserved but never duplicated on reload.
+    if (!c.widgetMerged && c.widgetChat.messages.length > 0 && c.chat.onboardingComplete) {
+      // Sort merge by timestamp so widget messages slot in naturally
+      // alongside main-chat messages. Widget messages are the only ones
+      // that carry a `ts`; main-chat messages default to Date.now() at
+      // merge time so they order after existing widget history.
+      const now = Date.now();
+      const mainWithTs = c.chat.messages.map(function (m, idx) {
+        return Object.assign({}, m, { ts: (typeof m.ts === 'number' ? m.ts : now + idx) });
+      });
+      const widgetTagged = c.widgetChat.messages.map(function (m) {
+        return { role: m.role, text: m.text, ts: (typeof m.ts === 'number' ? m.ts : 0) };
+      });
+      c.chat.messages = mainWithTs.concat(widgetTagged).sort(function (a, b) {
+        return (a.ts || 0) - (b.ts || 0);
+      });
+    }
+    c.widgetMerged = true;
     c.today = Object.assign({ tasks: [], viewingTaskId: null }, c.today || {});
     if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
     // viewingTaskId is either a task id string or null. Anything else
@@ -394,7 +442,9 @@ function _normalizeState() {
       c.research = window._generateResearch(c.business);
     }
 
-    if (!c.lastWorkspaceView || ['overview', 'today', 'create', 'results'].indexOf(c.lastWorkspaceView) === -1) {
+    // Legacy 'results' collapses to 'insights' after the dashboard rename.
+    if (c.lastWorkspaceView === 'results') c.lastWorkspaceView = 'insights';
+    if (!c.lastWorkspaceView || ['overview', 'today', 'chat', 'create', 'insights'].indexOf(c.lastWorkspaceView) === -1) {
       c.lastWorkspaceView = 'overview';
     }
     if (typeof c.hasSeenWorkspaceIntro !== 'boolean') c.hasSeenWorkspaceIntro = false;
@@ -439,47 +489,57 @@ function getResults() {
   return c ? c.results : _defaultResults();
 }
 
-// Create a brand new concept and make it active. Returns the concept id.
-// Accepts an optional `name` (pre-set business name from the new-concept
-// dialog) and `focusChat` (default true) since a new concept always starts
-// in Chat so Clara can gather context.
+// Create a brand new concept and make it active. Returns the concept
+// id. The only supported option is `name` (pre-set business name for
+// the rare code paths that seed a value from outside Clara's flow \u2014
+// e.g. the retired new-concept modal). New concepts always land on
+// Overview with the onboarding overlay open so Clara can collect the
+// rest of the business context. Chat is not a landing view.
 function createConcept(opts) {
-  const focusChat = !opts || opts.focusChat !== false;
   const concept = _newConcept(opts);
   appState.concepts[concept.id] = concept;
   appState.activeConceptId = concept.id;
-  if (focusChat) appState.activeView = 'chat';
+  // Fresh concept \u2014 land on Overview and let the onboarding overlay
+  // (mounted by the router) drive Clara's questions on top. Overlay
+  // closes on completion and the user is already on Overview.
+  appState.activeView = 'overview';
+  appState.onboardingOverlayOpen = true;
+  appState.conceptDropdownOpen = false;
   _saveState();
   return concept.id;
 }
 
-// Switch the active concept. Clicking a concept in the sidebar always
-// opens its Chat page \u2014 that matches the Claude/GPT pattern users
-// already know, and keeps the workspace as something you deliberately
-// step into. From Chat, the user can hit "Workspace \u2192" to jump to
-// where they left off inside that concept.
+// Switch the active concept from the sidebar dropdown. Always lands on
+// Overview \u2014 that's the dashboard "home" for the concept. If the target
+// concept hasn't finished onboarding, the router mounts the overlay so
+// the user resumes with Clara without leaving the dashboard chrome.
 function switchConcept(conceptId) {
   if (!appState.concepts[conceptId]) return;
   appState.activeConceptId = conceptId;
-  appState.activeView = 'chat';
+  appState.activeView = 'overview';
+  appState.conceptDropdownOpen = false;
+  const c = getActiveConcept();
+  appState.onboardingOverlayOpen = !!(c && c.chat && !c.chat.onboardingComplete);
   _saveState();
 }
 
 function setActiveView(view) {
   const allowed = [
-    'chat', 'overview', 'today', 'create', 'results',
+    'overview', 'today', 'chat', 'create', 'insights',
+    // Full-screen sibling view (no concept top-bar row).
+    'concepts-list',
     // Strategic Planning reports. Each opens as a full-screen view
-    // (no concept-header tabs), routed by the report shell in
+    // (no top-bar page label), routed by the report shell in
     // router.js. Reached from the Overview insight cards.
     'market-report', 'customer-report', 'competition-report', 'plan-report'
   ];
   if (allowed.indexOf(view) === -1) return;
   appState.activeView = view;
-  // Remember the last workspace tab so pressing "Workspace \u2192" from chat
-  // lands back on it rather than always going to Overview. Reports are
-  // navigation "sub-pages" — they don't count as the last workspace tab.
+  // Remember the last primary tab for deep-link recovery. Reports and
+  // the concepts list are sub-pages, they don't count.
   const isReport = view.indexOf('-report') !== -1;
-  if (view !== 'chat' && !isReport) {
+  const isSubPage = view === 'concepts-list' || isReport;
+  if (!isSubPage) {
     const c = getActiveConcept();
     if (c) c.lastWorkspaceView = view;
   }

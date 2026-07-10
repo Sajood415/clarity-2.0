@@ -100,23 +100,28 @@ function _hasCompletedConcept() {
 function _enterHome() {
   appState.mode = 'home';
 
-  // Fresh signup — no concepts exist yet. Create an empty concept and
-  // drop the user straight into Chat, where Clara opens with the name
-  // question herself (GPT/Claude style — conversation, not a form).
-  // The sidebar row will show "New concept" until the user's first
-  // keystroke in the name field, then update live.
+  // The post-welcome landing is ALWAYS the sidebar dashboard with
+  // Overview selected. Chat is a nav item, never a landing page.
+  // The only variation is whether the onboarding overlay opens on
+  // top (new user or incomplete concept) or the dashboard is clean
+  // (returning user with a completed concept).
+  appState.activeView = 'overview';
+
+  // Fresh signup \u2014 no concepts exist yet. Spawn a placeholder concept;
+  // the router will detect "no completed concepts" and open the
+  // onboarding overlay full-screen. `createConcept` already flips
+  // onboardingOverlayOpen for us.
   if (!appState.activeConceptId || !getActiveConcept()) {
-    createConcept({ focusChat: true });
+    createConcept({});
     renderApp();
     return;
   }
 
-  // Returning user with concepts: if the active one is incomplete, force
-  // Chat view so they resume where Clara left off.
+  // Returning user with concepts: force Overview regardless of the
+  // last session's view. If the active concept is still mid-onboarding,
+  // open the overlay so they resume from where Clara left off.
   const active = getActiveConcept();
-  if (!active.chat.onboardingComplete) {
-    appState.activeView = 'chat';
-  }
+  appState.onboardingOverlayOpen = !active.chat.onboardingComplete;
 
   _saveState();
   renderApp();
