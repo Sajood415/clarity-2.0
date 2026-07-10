@@ -251,7 +251,7 @@
 /* --- Done-state overlay on the whole card --- */
 
 .td-card-done {
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .td-card-done:hover {

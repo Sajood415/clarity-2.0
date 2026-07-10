@@ -410,3 +410,8 @@ function _openTaskInCreate(task) {
 }
 
 window.renderToday = renderToday;
+// Exposed so Overview and the workspace widget can lazily seed a
+// concept's task list without depending on the user having opened
+// the Today tab first.
+window._seedTodayTasks = _seedTodayTasks;
+window._resolveTaskStatus = _resolveStatus;

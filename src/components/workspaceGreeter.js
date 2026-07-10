@@ -318,18 +318,38 @@ function _generateWidgetReply(userText, c) {
   const has = function (re) { return re.test(text); };
 
   // 1) Tasks / focus / priorities
+  //
+  // Read from the concept's persisted task list (with live statuses) so
+  // the widget mirrors whatever the user has already ticked off in the
+  // Today view. Seed lazily if the user has never opened Today.
   if (has(/\b(task|todo|to do|focus|priorit|what should i do|what to do|work on|do today)\b/)) {
-    const tasks = (typeof _todayTasks === 'function') ? _todayTasks() : [];
-    if (tasks.length) {
-      const lines = tasks.slice(0, 3).map(function (t, i) {
-        const desc = t.description.length > 90
-          ? t.description.slice(0, 90).trim() + '\u2026'
-          : t.description;
-        return (i + 1) + '. ' + t.type + ' \u2014 ' + desc;
-      });
-      return 'Today\u2019s three for ' + name + ':\n\n' + lines.join('\n') + '\n\nOpen the Today tab when you\u2019re ready to work through them.';
+    if (typeof _seedTodayTasks === 'function') _seedTodayTasks(c);
+    const tasks = (c.today && Array.isArray(c.today.tasks)) ? c.today.tasks : [];
+
+    if (!tasks.length) {
+      return 'Head to the Today tab \u2014 that\u2019s where I keep the three things I want you focused on.';
     }
-    return 'Head to the Today tab \u2014 that\u2019s where I keep the three things I want you focused on.';
+
+    const openTasks = tasks.filter(function (t) { return !t || t.status !== 'done'; });
+    const remaining = openTasks.length;
+    const doneCount = tasks.length - remaining;
+
+    if (remaining === 0) {
+      return 'You\u2019ve completed everything for today. Come back tomorrow and Clara will have new tasks ready.';
+    }
+
+    if (doneCount > 0) {
+      const noun = remaining === 1 ? 'task' : 'tasks';
+      return 'You have ' + remaining + ' ' + noun + ' left today. Want me to walk you through the next one?';
+    }
+
+    const lines = openTasks.slice(0, 3).map(function (t, i) {
+      const desc = t.description.length > 90
+        ? t.description.slice(0, 90).trim() + '\u2026'
+        : t.description;
+      return (i + 1) + '. ' + t.type + ' \u2014 ' + desc;
+    });
+    return 'Today\u2019s three for ' + name + ':\n\n' + lines.join('\n') + '\n\nOpen the Today tab when you\u2019re ready to work through them.';
   }
 
   // 2) Create / drafts / content

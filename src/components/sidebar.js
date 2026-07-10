@@ -59,6 +59,24 @@ function _buildSidebarHtml() {
   const firstInitial = (rawName ? rawName.trim().charAt(0) : 'C').toUpperCase() || 'C';
   const subLine = rawEmail || (rawName ? 'Free plan' : 'Not signed in');
 
+  // Trailing slot swaps between the logout icon button (idle) and an
+  // inline confirmation ("Yes, log out" / "Cancel") when the user has
+  // clicked to log out. Since a full data wipe is irreversible we don't
+  // want a single stray click to trigger it \u2014 the confirmation forces
+  // a deliberate second click.
+  const trailing = appState.confirmingLogout
+    ? (
+        '<div class="sb-logout-confirm" id="sbLogoutConfirm">'
+        +   '<button type="button" class="sb-logout-yes" id="sbLogoutYes">Yes, log out</button>'
+        +   '<button type="button" class="sb-logout-no" id="sbLogoutNo">Cancel</button>'
+        + '</div>'
+      )
+    : (
+        '<button type="button" class="sb-settings-btn" id="sbSettingsBtn" title="Log out" aria-label="Log out">'
+        +   SB_LOGOUT_ICON_SVG
+        + '</button>'
+      );
+
   const userFooter = `
     <div class="sb-bottom">
       <div class="sb-user-avatar">${_escape(firstInitial)}</div>
@@ -66,9 +84,7 @@ function _buildSidebarHtml() {
         <div class="sb-user-name">${_escape(displayName)}</div>
         <div class="sb-user-sub">${_escape(subLine)}</div>
       </div>
-      <button type="button" class="sb-settings-btn" id="sbSettingsBtn" title="Log out" aria-label="Log out">
-        ${SB_LOGOUT_ICON_SVG}
-      </button>
+      ${trailing}
     </div>
   `;
 
@@ -123,13 +139,36 @@ function _bindSidebarEvents() {
   const settings = document.getElementById('sbSettingsBtn');
   if (settings) {
     settings.addEventListener('click', function () {
-      if (typeof window.clarityReset === 'function') window.clarityReset();
+      _confirmLogout();
+    });
+  }
+
+  const yesBtn = document.getElementById('sbLogoutYes');
+  if (yesBtn) {
+    yesBtn.addEventListener('click', function () {
+      if (typeof window.clarityLogout === 'function') window.clarityLogout();
+      else if (typeof window.clarityReset === 'function') window.clarityReset();
+    });
+  }
+
+  const noBtn = document.getElementById('sbLogoutNo');
+  if (noBtn) {
+    noBtn.addEventListener('click', function () {
+      appState.confirmingLogout = false;
+      _syncSidebar();
     });
   }
 
   const newBtn = document.getElementById('sbNewConceptBtn');
   if (newBtn) {
     newBtn.addEventListener('click', function () {
+      // Block spawning a second concept while the current one is still
+      // being onboarded \u2014 otherwise the sidebar fills with half-set-up
+      // shells and the user has no obvious next step.
+      if (_hasIncompleteConcept()) {
+        _showSidebarToast('Finish setting up your current concept first.');
+        return;
+      }
       _openNewConceptModal();
     });
   }
@@ -178,6 +217,54 @@ function _deleteConcept(id) {
   renderApp();
 }
 
+// Flip the sidebar into "are you sure?" mode. Not persisted \u2014 mutating
+// `appState.confirmingLogout` without a `_saveState()` keeps the flag
+// out of localStorage, and `_normalizeState()` forces it back to false
+// on load anyway.
+function _confirmLogout() {
+  appState.confirmingLogout = !appState.confirmingLogout;
+  _syncSidebar();
+}
+
+function _hasIncompleteConcept() {
+  const ids = Object.keys(appState.concepts || {});
+  for (let i = 0; i < ids.length; i++) {
+    const c = appState.concepts[ids[i]];
+    if (c && c.chat && c.chat.onboardingComplete === false) return true;
+  }
+  return false;
+}
+
+// Inline toast pinned to the top of the sidebar rail. Deliberately
+// transient (2.5s) and self-dismissing \u2014 no state, no ceremony.
+// A second click while one is already visible replaces it so the
+// counter resets instead of stacking timers.
+function _showSidebarToast(msg) {
+  const host = document.getElementById('sbSidebar');
+  if (!host) return;
+
+  const existing = host.querySelector('.sb-toast');
+  if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+  const toast = document.createElement('div');
+  toast.className = 'sb-toast';
+  toast.textContent = msg;
+  host.appendChild(toast);
+
+  // Kick the entrance animation on the next frame so the class-add sticks.
+  requestAnimationFrame(function () {
+    toast.classList.add('sb-toast-visible');
+  });
+
+  setTimeout(function () {
+    toast.classList.remove('sb-toast-visible');
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 200);
+  }, 2500);
+}
+
 window._syncSidebar = _syncSidebar;
 window._buildSidebarHtml = _buildSidebarHtml;
 window._resolveConceptName = _resolveConceptName;
+window._confirmLogout = _confirmLogout;

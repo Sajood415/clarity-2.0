@@ -21,7 +21,19 @@ function renderOverview(container) {
   const name = (b.name && b.name.trim()) ? b.name.trim() : 'your business';
   const color = concept.color || '#F5A623';
 
-  const tasks = _todayTasks();
+  // Read tasks with their live status from the concept's persisted list
+  // rather than the raw generator, so a task marked Done in the Today
+  // view (or via the workspace widget) is reflected on the Overview too.
+  // Seed lazily if the user hasn't opened Today yet.
+  if (typeof _seedTodayTasks === 'function') _seedTodayTasks(concept);
+  const allTasks = (concept.today && Array.isArray(concept.today.tasks))
+    ? concept.today.tasks
+    : [];
+  const openTasks = allTasks.filter(function (t) {
+    return !t || t.status !== 'done';
+  });
+  const allDone = allTasks.length > 0 && openTasks.length === 0;
+
   const items = (concept.results && Array.isArray(concept.results.items))
     ? concept.results.items
     : [];
@@ -48,7 +60,7 @@ function renderOverview(container) {
       </div>
 
       <div class="ov-tiles">
-        ${_renderTodayTile(tasks)}
+        ${_renderTodayTile(openTasks, allDone)}
         ${_renderCreateTile(draftCount)}
         ${_renderResultsTile(publishedCount)}
       </div>
@@ -65,8 +77,21 @@ function renderOverview(container) {
   });
 }
 
-function _renderTodayTile(tasks) {
-  const preview = tasks.slice(0, 3).map(function (t) {
+function _renderTodayTile(openTasks, allDone) {
+  if (allDone) {
+    return `
+      <button type="button" class="ov-tile ov-tile-today" data-nav="today">
+        <div class="ov-tile-head">
+          <span class="ov-tile-label">TODAY</span>
+          <span class="ov-tile-arrow">\u2192</span>
+        </div>
+        <div class="ov-today-empty">All done for today. Clara will have new tasks tomorrow.</div>
+        <div class="ov-tile-cta">Review today \u2192</div>
+      </button>
+    `;
+  }
+
+  const preview = openTasks.slice(0, 3).map(function (t) {
     const desc = t.description.length > 80
       ? t.description.slice(0, 80).trim() + '\u2026'
       : t.description;
@@ -78,13 +103,18 @@ function _renderTodayTile(tasks) {
     );
   }).join('');
 
+  const remaining = openTasks.length;
+  const title = remaining === 1
+    ? '1 task left today.'
+    : remaining + ' tasks Clara wants you to focus on.';
+
   return `
     <button type="button" class="ov-tile ov-tile-today" data-nav="today">
       <div class="ov-tile-head">
         <span class="ov-tile-label">TODAY</span>
         <span class="ov-tile-arrow">\u2192</span>
       </div>
-      <div class="ov-tile-title">3 tasks Clara wants you to focus on.</div>
+      <div class="ov-tile-title">${_escape(title)}</div>
       <ul class="ov-task-list">${preview}</ul>
       <div class="ov-tile-cta">See today \u2192</div>
     </button>

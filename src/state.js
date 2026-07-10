@@ -62,6 +62,10 @@ function _defaultState() {
     // The actual task list (with statuses) lives per-concept on
     // `concept.today.tasks`.
     today: { view: 'list' },
+    // Transient sidebar flag \u2014 flips true while the "Log out"
+    // confirmation is showing. Not persisted (see `_saveState` / the
+    // normalizer, which force it back to false on load).
+    confirmingLogout: false,
     concepts: {}
   };
 }
@@ -73,15 +77,47 @@ function _replaceState(next) {
 }
 
 function _defaultBusiness() {
-  return { name: '', type: '', product: '', goal: '', reach: '', challenge: '' };
+  // Onboarding rebuild (6-question structured flow) adds:
+  //   typeDescription  — free text set only when type === 'other'
+  //   customer         — Q3 raw text (ideal customer + what they sell)
+  //   channels         — Q4 multi-select array of channel labels
+  //   budget           — Q5 (currently skipped; Clara will ask later)
+  //   location         — Q6 free text
+  // The pre-rebuild fields (name, type, product, goal, reach, challenge)
+  // stay so downstream code (sidebar, create.js, task generator) and any
+  // legacy concepts on disk keep working.
+  return {
+    name: '',
+    type: '',
+    typeDescription: '',
+    product: '',
+    goal: '',
+    customer: '',
+    channels: [],
+    budget: '',
+    location: '',
+    reach: '',
+    challenge: ''
+  };
 }
 
 function _defaultCreate() {
+  // New Create wizard shape (4 steps, no free text, Clara drives).
+  // The three "selected*" fields are the only things that need to
+  // persist across steps; `variations` is a cache regenerated each
+  // time the user re-enters step 3.
   return {
-    step: null, type: null, platform: null, angle: null,
-    variations: [], selected: null, fromTask: null,
-    generating: false, draftSaved: false,
-    userRequest: '', askSubmitted: false
+    step: 1,
+    selectedSuggestion: null,
+    selectedPlatform: null,
+    selectedVariation: null,
+    // Step 2 lets the user edit Clara's angle as a "brief". If untouched
+    // it stays empty and the textarea shows the raw suggestion angle;
+    // any edit here shadows it.
+    customBrief: '',
+    variations: [],
+    fromTask: null,
+    generating: false
   };
 }
 
@@ -106,7 +142,11 @@ function _newConcept(opts) {
     createdAt: Date.now(),
     color: (opts && opts.color) || _nextConceptColor(),
     business: business,
-    chat: { messages: [], onboardingComplete: false },
+    // onboardingStep drives the structured 6-question flow in chat.js.
+    // States: 'opening' | 'q1' | 'q1_other' | 'q2' | 'q3' | 'q4' | 'q6'
+    //         | 'building' | 'done'. pendingChannels persists mid-flow
+    //         Q4 multi-select highlights across reloads.
+    chat: { messages: [], onboardingComplete: false, onboardingStep: 'opening', pendingChannels: [] },
     // Separate mini-conversation that lives inside the workspace's
     // floating "C" chatbot. Kept isolated from `chat.messages` so the
     // main Chat page stays focused on onboarding + deep conversations
@@ -191,7 +231,9 @@ function _migrateState(saved) {
     business: Object.assign(_defaultBusiness(), legacyBusiness),
     chat: {
       messages: Array.isArray(legacyClara.messages) ? legacyClara.messages : [],
-      onboardingComplete: !!legacyClara.onboardingComplete
+      onboardingComplete: !!legacyClara.onboardingComplete,
+      onboardingStep: legacyClara.onboardingComplete ? 'done' : 'opening',
+      pendingChannels: []
     },
     create: Object.assign(_defaultCreate(), legacyCreate),
     results: Object.assign(_defaultResults(), legacyResults)
@@ -223,6 +265,9 @@ function _normalizeState() {
   if (typeof appState.sidebarOpen !== 'boolean') appState.sidebarOpen = false;
   if (!appState.today || typeof appState.today !== 'object') appState.today = { view: 'list' };
   if (appState.today.view !== 'list' && appState.today.view !== 'kanban') appState.today.view = 'list';
+  // Confirmation UI is a transient in-session flag \u2014 never carry it
+  // across reloads, even if a stray copy landed in localStorage.
+  appState.confirmingLogout = false;
   if (!appState.concepts || typeof appState.concepts !== 'object') appState.concepts = {};
 
   // Normalize each concept
@@ -234,13 +279,64 @@ function _normalizeState() {
     if (!c.createdAt) c.createdAt = Date.now();
     if (!c.color) c.color = CONCEPT_COLORS[i % CONCEPT_COLORS.length];
     c.business = Object.assign(_defaultBusiness(), c.business || {});
-    c.chat = Object.assign({ messages: [], onboardingComplete: false }, c.chat || {});
+    if (!Array.isArray(c.business.channels)) c.business.channels = [];
+
+    // Approved-label migrations (Zay/stakeholder sign-off pass).
+    // business.goal stores the raw Q2 label so downstream code (task
+    // generator, Create pre-fills) can key off it directly. If a
+    // concept was saved with a pre-approval label, rewrite it in place
+    // so its task branching doesn't silently fall through to defaults.
+    if (typeof window.CL_Q2_LEGACY_GOAL_MAP === 'object' && c.business.goal) {
+      const remappedGoal = window.CL_Q2_LEGACY_GOAL_MAP[c.business.goal];
+      if (remappedGoal) c.business.goal = remappedGoal;
+    }
+    // Same story for Q4 channels: any 'In-person' / 'Word of mouth' /
+    // 'Not marketing yet' entries get remapped to the approved wording
+    // (used by both the CL_Q4_LOCAL_CHANNELS reach inference and by
+    // the amber-bubble echo when the user re-enters the flow).
+    if (typeof window.CL_Q4_LEGACY_CHANNEL_MAP === 'object' && Array.isArray(c.business.channels)) {
+      c.business.channels = c.business.channels.map(function (ch) {
+        return window.CL_Q4_LEGACY_CHANNEL_MAP[ch] || ch;
+      });
+    }
+    c.chat = Object.assign(
+      { messages: [], onboardingComplete: false, onboardingStep: 'opening', pendingChannels: [] },
+      c.chat || {}
+    );
     if (!Array.isArray(c.chat.messages)) c.chat.messages = [];
+    if (!Array.isArray(c.chat.pendingChannels)) c.chat.pendingChannels = [];
+    // Same approved-label migration for in-flight Q4 selections so a
+    // user who reloads mid-flow doesn't lose highlights or trip the
+    // escape-option "exclusive" logic on a stale value.
+    if (typeof window.CL_Q4_LEGACY_CHANNEL_MAP === 'object') {
+      c.chat.pendingChannels = c.chat.pendingChannels.map(function (ch) {
+        return window.CL_Q4_LEGACY_CHANNEL_MAP[ch] || ch;
+      });
+    }
+    // Legacy concepts saved before the structured flow have no
+    // onboardingStep. Infer it from the completion flag so returning
+    // users don't get thrown back into Q1.
+    if (typeof c.chat.onboardingStep !== 'string') {
+      c.chat.onboardingStep = c.chat.onboardingComplete ? 'done' : 'opening';
+    }
     c.widgetChat = Object.assign({ messages: [] }, c.widgetChat || {});
     if (!Array.isArray(c.widgetChat.messages)) c.widgetChat.messages = [];
     c.today = Object.assign({ tasks: [] }, c.today || {});
     if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
     c.create = Object.assign(_defaultCreate(), c.create || {});
+    // Old create shape used string steps ('ask', 'publish') and free-text
+    // fields (askSubmitted, userRequest, angle). If we see anything but a
+    // numeric 1\u20134 step, reset the wizard so the new UI starts clean
+    // instead of trying to render half-broken legacy state.
+    if (c.create.step !== 1 && c.create.step !== 2 && c.create.step !== 3 && c.create.step !== 4) {
+      c.create = _defaultCreate();
+    }
+    if (!Array.isArray(c.create.variations)) c.create.variations = [];
+    // Sweep any lingering fields from the pre-wizard flow so localStorage
+    // stays clean and stringified state is predictable.
+    ['askSubmitted', 'userRequest', 'type', 'platform', 'angle', 'selected', 'draftSaved'].forEach(function (k) {
+      if (k in c.create) delete c.create[k];
+    });
     c.results = Object.assign(_defaultResults(), c.results || {});
     if (!Array.isArray(c.results.items)) c.results.items = [];
     if (!c.lastWorkspaceView || ['overview', 'today', 'create', 'results'].indexOf(c.lastWorkspaceView) === -1) {

@@ -252,6 +252,20 @@
   min-width: 0;
 }
 
+/* Shown in the Today tile when every task is marked done. Sits where
+   the task list would normally live so the tile keeps its footprint. */
+.ov-today-empty {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+  padding: 12px 4px 4px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Results tile — empty state feels quieter */
 
 .ov-tile-results-empty {

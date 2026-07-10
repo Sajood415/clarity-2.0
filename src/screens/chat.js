@@ -1,21 +1,34 @@
 // ---------------------------------------------
-// Clarity 2.0 — Chat View
+// Clarity 2.0 — Chat View (structured onboarding)
 // ---------------------------------------------
 //
-// Clara's conversation for the active concept. It has two visual states:
+// Clara now runs a 6-question onboarding as a step machine. State lives
+// on the concept as `chat.onboardingStep` so refreshes / navigation away
+// resume on the right step. The full flow:
 //
-//   1. EMPTY (concept.chat.messages.length === 0)
-//      → centered hero question ("Tell me about your business.")
-//        + input in the middle + starter chips below
+//   opening  → CLARA_OPENING + ["Let's go", "Sure"]         (single-select)
+//   q1       → CL_Q1_QUESTION + CL_OPTIONS_Q1               (single-select)
+//   q1_other → CL_Q1_OTHER_QUESTION + text input            (free text)
+//   q2       → CL_Q2_QUESTION + CL_OPTIONS_Q2               (single-select)
+//   q3       → CL_Q3_QUESTION + text input                  (free text)
+//   q4       → CL_Q4_QUESTION + CL_OPTIONS_Q4 + Done        (multi-select)
+//   q6       → CL_Q6_QUESTION + text input                  (free text)
+//   building → thinking indicator (3s)                      (transient)
+//   done     → free chat, no options                        (terminal)
 //
-//   2. POPULATED
-//      → scrollable chat log
-//        + input bar pinned to the bottom of the view
+// Q5 (budget) is intentionally skipped for now — Clara will ask it later
+// when she's actually recommending paid options.
 //
-// Sending the first message triggers a FLIP animation from the centered
-// input to the docked input. Clara's 3-question onboarding runs entirely
-// here; the moment she's done, we flip `chat.onboardingComplete = true`
-// and switch the active view to `today`.
+// Rendering:
+//   • Options render as .cl-options-row appended inside the chat log,
+//     right after Clara's most recent question. Tapping an option turns
+//     into a user bubble and dispatches the answer.
+//   • Text-step input is the existing .cl-input-container in the docked
+//     input bar — hidden during option steps so the tap targets are the
+//     only affordance.
+//   • The chat has no separate "initial hero" state anymore; the log
+//     is always populated (Clara's opening is auto-appended after 600ms
+//     for a brand-new concept).
 
 const CL_GROUP_BASE_STYLE = 'max-width:640px;margin:0 auto 28px;width:100%;padding:0 20px;';
 const CL_GROUP_CLARA_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;flex-direction:row;align-items:flex-start;gap:12px;';
@@ -61,108 +74,48 @@ const CL_USER_TEXT_STYLE = [
 
 const CL_BOUNCE_DOT_STYLE = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(245,240,232,0.3);margin:0 3px;animation:cl-bounce 0.8s ease-in-out infinite;';
 
-// The Chat view is called by the router with the home content container.
+// ---------------------------------------------
+// Entry
+// ---------------------------------------------
+
 function renderChat(container) {
   const chat = getChat();
-  if (!chat.messages || chat.messages.length === 0) {
-    _renderInitialState(container);
-  } else {
-    _renderChatState(container, { animateLast: false });
-    _resumeConversation();
-  }
-}
 
-function _renderInitialState(container) {
-  const business = getBusiness();
-  const preName = (business.name && business.name.trim()) ? business.name.trim() : '';
-  const heroTitle = preName
-    ? 'Tell me about ' + _escape(preName) + '.'
-    : 'Tell me about your business.';
-  const heroSub = preName
-    ? 'What does it do, and what are you trying to achieve?'
-    : 'What are you trying to achieve right now?';
-
-  const outerStyle = [
-    'min-height:calc(100vh - 44px)', 'padding:0',
-    'display:flex', 'flex-direction:column',
-    'align-items:center', 'justify-content:center',
-    'background:radial-gradient(ellipse at 50% 35%, #261c08 0%, #0F0D0B 60%)',
-    'position:relative', 'overflow:hidden'
-  ].join(';') + ';';
-
-  const blob1Style = 'position:absolute;width:600px;height:600px;border-radius:50%;background:rgba(245,166,35,0.07);filter:blur(140px);top:-150px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:0;';
-  const blob2Style = 'position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(232,132,90,0.05);filter:blur(100px);bottom:50px;right:5%;pointer-events:none;z-index:0;';
-  const blob3Style = 'position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(245,166,35,0.04);filter:blur(80px);bottom:100px;left:5%;pointer-events:none;z-index:0;';
-
-  const contentStyle = 'position:relative;z-index:1;max-width:660px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;align-items:center;width:100%;';
-
-  const questionBlockStyle = 'width:100%;max-width:600px;margin:0 auto 40px;display:flex;flex-direction:column;align-items:center;text-align:center;opacity:0;animation:cl-init-fade-in 500ms cubic-bezier(0.2,0.7,0.2,1) 150ms forwards;';
-
-  const avatarStyle = [
-    'width:32px', 'height:32px', 'border-radius:50%',
-    'background:linear-gradient(135deg, #F5A623 0%, #D4860A 100%)',
-    'display:flex', 'align-items:center', 'justify-content:center',
-    'flex-shrink:0',
-    'color:#000', 'font-size:13px', 'font-weight:700', 'line-height:1',
-    'box-shadow:0 2px 12px rgba(245,166,35,0.3)',
-    'margin-bottom:16px'
-  ].join(';') + ';';
-
-  const questionStyle = 'font-size:32px;font-weight:700;color:#F5F0E8;letter-spacing:-0.02em;line-height:1.2;text-align:center;';
-  const followupStyle = 'font-size:20px;font-weight:400;color:rgba(245,240,232,0.5);line-height:1.4;margin-top:8px;text-align:center;';
-
-  const inputBarStyle = 'width:100%;padding:0;margin:0;display:flex;justify-content:center;';
-
-  const chipsRowStyle = 'margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:600px;width:100%;margin-left:auto;margin-right:auto;';
-  const chipStyle = 'background:rgba(255,240,220,0.04);border:1px solid rgba(255,240,220,0.08);border-radius:24px;padding:10px 20px;font-size:13px;color:rgba(245,240,232,0.5);cursor:pointer;transition:all 200ms ease;font-family:inherit;';
-
-  container.innerHTML = `
-    <div class="cl-onboarding cl-initial-state" id="clOnboarding" style="${outerStyle}">
-      <div style="${blob1Style}"></div>
-      <div style="${blob2Style}"></div>
-      <div style="${blob3Style}"></div>
-      <div style="${contentStyle}">
-        <div class="cl-greeting" style="${questionBlockStyle}">
-          <div class="cl-init-avatar" style="${avatarStyle}">C</div>
-          <div style="${questionStyle}">${heroTitle}</div>
-          <div style="${followupStyle}">${heroSub}</div>
-        </div>
-        <div class="cl-input-bar" id="clInputBar" style="${inputBarStyle}">
-          ${_renderInputContainerHtml()}
-        </div>
-        <div class="cl-chips-row" style="${chipsRowStyle}">
-          ${CL_STARTER_CHIPS.map(function (c) {
-            return '<button type="button" class="cl-chip cl-init-chip" style="' + chipStyle + '">' + _escape(c) + '</button>';
-          }).join('')}
-        </div>
-      </div>
-    </div>
-  `;
-
-  const initialContainer = container.querySelector('.cl-initial-state .cl-input-container');
-  if (initialContainer) {
-    initialContainer.style.maxWidth = '600px';
-    initialContainer.style.width = '100%';
-    initialContainer.style.margin = '0 auto';
-    initialContainer.style.background = 'rgba(28,24,20,0.95)';
-    initialContainer.style.border = '1px solid rgba(255,240,220,0.12)';
-    initialContainer.style.borderRadius = '20px';
-    initialContainer.style.boxShadow = '0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,166,35,0.06)';
-    initialContainer.style.padding = '16px 16px 16px 20px';
-    initialContainer.style.display = 'flex';
-    initialContainer.style.alignItems = 'flex-end';
-    initialContainer.style.gap = '12px';
-    initialContainer.style.backdropFilter = 'blur(20px)';
-    initialContainer.style.webkitBackdropFilter = 'blur(20px)';
+  // Backfill for any concept that predates the step machine.
+  if (!chat.onboardingStep) {
+    chat.onboardingStep = chat.onboardingComplete ? 'done' : 'opening';
   }
 
-  _bindInputEvents();
-  _bindStarterChips();
+  _renderChatShell(container);
+  _paintExistingMessages();
+
+  // Brand-new concept: bootstrap Clara's opening after a 600ms beat so
+  // the entry feels like a real greeting instead of a cold form.
+  if (chat.messages.length === 0 && chat.onboardingStep === 'opening') {
+    _renderInputBarForStep('opening');
+    setTimeout(function () {
+      if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
+      _claraSay(CLARA_OPENING);
+      _renderStepUI();
+    }, 600);
+    return;
+  }
+
+  // Recovering mid-flow after a reload: 'building' isn't safe to resume
+  // (the 3s timer is gone), so fall back to 'done' + finalize.
+  if (chat.onboardingStep === 'building') {
+    _completeOnboardingNow();
+    return;
+  }
+
+  _renderStepUI();
 }
 
-function _renderChatState(container, opts) {
-  const animateLast = !!(opts && opts.animateLast);
+// ---------------------------------------------
+// Layout / painting
+// ---------------------------------------------
 
+function _renderChatShell(container) {
   const rootStyle = [
     'min-height:calc(100vh - 44px)',
     'display:flex',
@@ -170,27 +123,270 @@ function _renderChatState(container, opts) {
     'background:radial-gradient(ellipse at 50% 0%, #1e1508 0%, #0F0D0B 50%)'
   ].join(';') + ';';
 
-  const disclaimerStyle = 'max-width:640px;margin:10px auto 0;text-align:center;font-size:11px;color:rgba(245,240,232,0.18);line-height:1.4;';
-
   container.innerHTML = `
     <div class="cl-onboarding cl-chat-state" id="clOnboarding" style="${rootStyle}">
       <main class="cl-chat-area" id="clChatArea"></main>
-      <div class="cl-input-bar" id="clInputBar">
-        ${_renderInputContainerHtml()}
-        <div class="cl-disclaimer" style="${disclaimerStyle}">Clara may make mistakes. Always verify important decisions.</div>
-      </div>
+      <div class="cl-input-bar" id="clInputBar"></div>
     </div>
   `;
+}
 
+function _paintExistingMessages() {
   const chatArea = document.getElementById('clChatArea');
+  if (!chatArea) return;
   const messages = getChat().messages || [];
-  messages.forEach(function (m, i) {
-    const isLast = i === messages.length - 1;
-    chatArea.appendChild(_buildMessageEl(m.role, m.text, animateLast && isLast));
+  messages.forEach(function (m) {
+    chatArea.appendChild(_buildMessageEl(m.role, m.text, false));
+  });
+  _scrollChatToBottom();
+}
+
+function _renderStepUI() {
+  const step = getChat().onboardingStep;
+  _renderOptionsForStep(step);
+  _renderInputBarForStep(step);
+  _scrollChatToBottom();
+}
+
+// ---------------------------------------------
+// Option rows (single / multi select)
+// ---------------------------------------------
+
+function _clearOptionsRow() {
+  const el = document.getElementById('clOptionsRow');
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function _renderOptionsForStep(step) {
+  _clearOptionsRow();
+  const chatArea = document.getElementById('clChatArea');
+  if (!chatArea) return;
+
+  if (step === 'opening') {
+    _appendOptionsRow('single', CL_OPTIONS_OPENING);
+  } else if (step === 'q1') {
+    _appendOptionsRow('single', CL_OPTIONS_Q1);
+  } else if (step === 'q2') {
+    _appendOptionsRow('single', CL_OPTIONS_Q2);
+  } else if (step === 'q4') {
+    _appendOptionsRow('multi', CL_OPTIONS_Q4);
+  }
+}
+
+function _appendOptionsRow(kind, labels) {
+  const chatArea = document.getElementById('clChatArea');
+  if (!chatArea) return;
+
+  const row = document.createElement('div');
+  row.className = 'cl-options-row';
+  row.id = 'clOptionsRow';
+  row.setAttribute('data-kind', kind);
+
+  labels.forEach(function (label) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = kind === 'multi' ? 'cl-option-btn cl-option-btn-multi' : 'cl-option-btn';
+    btn.setAttribute('data-label', label);
+    btn.textContent = label;
+    btn.addEventListener('click', function () {
+      _onOptionTap(kind, label);
+    });
+    row.appendChild(btn);
   });
 
+  // Multi-select needs an inline "Done →" commit button. Wrapped so it
+  // always drops to its own line below the options via flex-basis 100%.
+  if (kind === 'multi') {
+    const wrap = document.createElement('div');
+    wrap.className = 'cl-options-done-wrap';
+    wrap.id = 'clOptionsDoneWrap';
+    wrap.style.display = 'none';
+
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.className = 'cl-options-done-btn';
+    done.id = 'clOptionsDone';
+    done.textContent = 'Done →';
+    done.addEventListener('click', _onMultiDone);
+    wrap.appendChild(done);
+    row.appendChild(wrap);
+  }
+
+  chatArea.appendChild(row);
+
+  // Restore any in-flight multi-select highlights (e.g. after reload).
+  if (kind === 'multi') {
+    _refreshMultiHighlights();
+    _updateMultiDone();
+  }
+}
+
+function _onOptionTap(kind, label) {
+  if (kind === 'single') {
+    _commitSingleAnswer(label);
+    return;
+  }
+  // Multi (Q4) — toggle in pendingChannels; "Not marketing yet" is an
+  // exclusive escape option.
+  const chat = getChat();
+  const pending = (chat.pendingChannels || []).slice();
+  const isEscape = label === CL_Q4_ESCAPE;
+  const escapeIdx = pending.indexOf(CL_Q4_ESCAPE);
+  const idx = pending.indexOf(label);
+
+  if (isEscape) {
+    chat.pendingChannels = idx === -1 ? [label] : [];
+  } else {
+    if (idx !== -1) {
+      pending.splice(idx, 1);
+    } else {
+      if (escapeIdx !== -1) pending.splice(escapeIdx, 1);
+      pending.push(label);
+    }
+    chat.pendingChannels = pending;
+  }
+  _saveState();
+  _refreshMultiHighlights();
+  _updateMultiDone();
+}
+
+function _refreshMultiHighlights() {
+  const row = document.getElementById('clOptionsRow');
+  if (!row) return;
+  const pending = getChat().pendingChannels || [];
+  Array.prototype.slice.call(row.querySelectorAll('.cl-option-btn')).forEach(function (b) {
+    const lbl = b.getAttribute('data-label');
+    if (pending.indexOf(lbl) !== -1) b.classList.add('cl-option-btn-selected');
+    else b.classList.remove('cl-option-btn-selected');
+  });
+}
+
+function _updateMultiDone() {
+  const wrap = document.getElementById('clOptionsDoneWrap');
+  if (!wrap) return;
+  const pending = getChat().pendingChannels || [];
+  wrap.style.display = pending.length > 0 ? 'block' : 'none';
+}
+
+function _onMultiDone() {
+  const chat = getChat();
+  if (chat.onboardingStep !== 'q4') return;
+  const pending = (chat.pendingChannels || []).slice();
+  if (pending.length === 0) return;
+
+  const isEscapeOnly = pending.length === 1 && pending[0] === CL_Q4_ESCAPE;
+  const channels = isEscapeOnly ? [] : pending.slice();
+
+  const business = getBusiness();
+  business.channels = channels;
+  business.reach = _inferReach(channels);
+  chat.pendingChannels = [];
+
+  _clearOptionsRow();
+  // The user's selection is echoed as a single amber bubble so the log
+  // reads like a real message-and-reply exchange.
+  const displayText = pending.join(', ');
+  chat.messages.push({ role: 'user', text: displayText });
+  _saveState();
+  _appendMessage('user', displayText);
+
+  _advanceStep('q6');
+  _claraQueue([_q4Ack(channels), CL_Q6_QUESTION], _renderStepUI);
+}
+
+// ---------------------------------------------
+// Single-select answer dispatch
+// ---------------------------------------------
+
+function _commitSingleAnswer(label) {
+  _clearOptionsRow();
+  const chat = getChat();
+  chat.messages.push({ role: 'user', text: label });
+  _saveState();
+  _appendMessage('user', label);
+
+  const step = chat.onboardingStep;
+  if (step === 'opening') {
+    // Both "Let's go" and "Sure" go to Q1.
+    _advanceStep('q1');
+    _claraQueue([CL_Q1_QUESTION], _renderStepUI);
+    return;
+  }
+
+  if (step === 'q1') {
+    const typeKey = CL_Q1_TYPE_MAP[label] || 'other';
+    getBusiness().type = typeKey;
+    _saveState();
+    if (typeKey === 'other') {
+      _advanceStep('q1_other');
+      _claraQueue([CL_Q1_OTHER_QUESTION], _renderStepUI);
+    } else {
+      _advanceStep('q2');
+      _claraQueue([CL_Q1_ACK[typeKey], CL_Q2_QUESTION], _renderStepUI);
+    }
+    return;
+  }
+
+  if (step === 'q2') {
+    getBusiness().goal = label;
+    _saveState();
+    _advanceStep('q3');
+    const ack = CL_Q2_ACK[label] || "Got it.";
+    _claraQueue([ack, CL_Q3_QUESTION], _renderStepUI);
+    return;
+  }
+}
+
+// ---------------------------------------------
+// Input bar (text steps + hidden during option steps)
+// ---------------------------------------------
+
+function _isTextStep(step) {
+  return step === 'q1_other' || step === 'q3' || step === 'q6' || step === 'done';
+}
+
+function _placeholderForStep(step) {
+  if (step === 'q1_other') return 'Tell Clara a bit about what you do...';
+  if (step === 'q3') return CL_Q3_PLACEHOLDER;
+  if (step === 'q6') return CL_Q6_PLACEHOLDER;
+  return 'Message Clara...';
+}
+
+function _renderInputBarForStep(step) {
+  const bar = document.getElementById('clInputBar');
+  if (!bar) return;
+
+  if (step === 'building') {
+    bar.innerHTML = `
+      <div class="cl-thinking">
+        <span class="cl-thinking-dots">
+          <span class="cl-dot"></span>
+          <span class="cl-dot"></span>
+          <span class="cl-dot"></span>
+        </span>
+        <div class="cl-thinking-label">Clara is building your plan...</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!_isTextStep(step)) {
+    // Options step — no textarea. Keep the bar element so `_flashInputError`
+    // etc. always have somewhere to attach hints if we ever need them.
+    bar.innerHTML = '';
+    return;
+  }
+
+  const disclaimerStyle = 'max-width:640px;margin:10px auto 0;text-align:center;font-size:11px;color:rgba(245,240,232,0.18);line-height:1.4;';
+  bar.innerHTML = `
+    ${_renderInputContainerHtml()}
+    <div class="cl-disclaimer" style="${disclaimerStyle}">Clara may make mistakes. Always verify important decisions.</div>
+  `;
+
+  const input = document.getElementById('clInput');
+  if (input) input.placeholder = _placeholderForStep(step);
+
   _bindInputEvents();
-  _scrollChatToBottom();
 }
 
 function _renderInputContainerHtml() {
@@ -245,17 +441,151 @@ function _bindInputEvents() {
   });
 }
 
-function _bindStarterChips() {
-  document.querySelectorAll('.cl-chip').forEach(function (chip) {
-    chip.addEventListener('click', function () {
-      const input = document.getElementById('clInput');
-      if (!input) return;
-      input.value = chip.textContent || '';
-      input.focus();
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-  });
+// ---------------------------------------------
+// Text step handler
+// ---------------------------------------------
+
+// Per-step minimum content length. "UK" is fine for location; "Local
+// families who want fresh sourdough" is a much lower bar for Q3.
+const CL_TEXT_MIN = { q1_other: 3, q3: 8, q6: 2 };
+
+function _handleSend() {
+  const input = document.getElementById('clInput');
+  const btn = document.getElementById('clSendBtn');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+
+  const chat = getChat();
+  const step = chat.onboardingStep;
+
+  const minLen = CL_TEXT_MIN[step];
+  if (typeof minLen === 'number' && text.length < minLen) {
+    _flashInputError('Give Clara a bit more to work with.');
+    return;
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  if (btn) btn.disabled = true;
+
+  chat.messages.push({ role: 'user', text: text });
+  _saveState();
+  _appendMessage('user', text);
+
+  if (step === 'q1_other') {
+    getBusiness().typeDescription = text;
+    _saveState();
+    _advanceStep('q2');
+    _claraQueue([CL_Q1_OTHER_ACK, CL_Q2_QUESTION], _renderStepUI);
+    return;
+  }
+
+  if (step === 'q3') {
+    const business = getBusiness();
+    business.customer = text;
+    business.product = _extractProduct(text);
+    _saveState();
+    _advanceStep('q4');
+    // Q3 → Q4 uses the spec's two-beat ack: warm nod, tiny pause, then
+    // the "one more" bridge and the actual next question.
+    _claraQueue([CL_Q3_ACK_1, CL_Q3_ACK_2, CL_Q4_QUESTION], _renderStepUI);
+    return;
+  }
+
+  if (step === 'q6') {
+    getBusiness().location = text;
+    _saveState();
+    _advanceStep('building');
+    _claraQueue([CL_Q6_ACK], _startBuildingPlan);
+    return;
+  }
+
+  // Any other step (post-onboarding 'done'): message is captured, but
+  // Clara has no follow-up logic yet — matches pre-rebuild behavior.
 }
+
+// ---------------------------------------------
+// Product extraction (Q3 side-effect)
+// ---------------------------------------------
+
+function _extractProduct(text) {
+  // Look for a phrase right after any of: sell(s|ing), offer(s|ing),
+  // make(s|ing), provide(s|ing), specialis[ez]e in. First hit wins, then
+  // trim to 6 words. This is deliberately shallow — Clara's task copy
+  // reads better with a short noun phrase than a full clause.
+  const m = String(text || '').match(
+    /(?:\bsell(?:s|ing)?\b|\boffer(?:s|ing)?\b|\bmake(?:s|ing)?\b|\bprovide(?:s|ing)?\b|\bspecialis[ez]e\s+in\b)\s+([^.,;!?\n]+)/i
+  );
+  if (!m) return '';
+  return m[1]
+    .trim()
+    .split(/\s+/)
+    .slice(0, 6)
+    .join(' ');
+}
+
+// ---------------------------------------------
+// Clara message queueing
+// ---------------------------------------------
+
+// Sequential Clara messages with thinking-dot beats between each so the
+// chat feels like a person composing, not a form dropping copy. Runs
+// each message with an animated dot, then the message with fade-up, then
+// a 350ms breather before the next. Bails out cleanly if the user
+// navigates away between beats.
+function _claraQueue(messages, done) {
+  let i = 0;
+  function step() {
+    if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
+    if (i >= messages.length) {
+      if (typeof done === 'function') done();
+      return;
+    }
+    _showThinkingBubble();
+    setTimeout(function () {
+      if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
+      _removeThinkingBubble();
+      _claraSay(messages[i]);
+      i++;
+      setTimeout(step, 350);
+    }, 700);
+  }
+  step();
+}
+
+function _advanceStep(next) {
+  const chat = getChat();
+  chat.onboardingStep = next;
+  _saveState();
+}
+
+// ---------------------------------------------
+// Final "building your plan" transition
+// ---------------------------------------------
+
+function _startBuildingPlan() {
+  _renderInputBarForStep('building');
+  setTimeout(_completeOnboardingNow, 3000);
+}
+
+function _completeOnboardingNow() {
+  const chat = getChat();
+  chat.onboardingComplete = true;
+  chat.onboardingStep = 'done';
+  appState.activeView = 'chat';
+  window._justUnlockedConcept = true;
+  chat.messages.push({
+    role: 'clara',
+    text: 'Your workspace is ready. Open it from the top-right when you want to see today\u2019s tasks and start creating.'
+  });
+  _saveState();
+  renderApp();
+}
+
+// ---------------------------------------------
+// Message primitives (append / scroll / thinking)
+// ---------------------------------------------
 
 function _buildMessageEl(role, text, animate) {
   const group = document.createElement('div');
@@ -318,7 +648,13 @@ function _showThinkingBubble() {
   const chat = document.getElementById('clChatArea');
   if (!chat) return;
   if (document.getElementById('clThinkingBubble')) return;
-  chat.appendChild(_buildThinkingBubbleEl());
+  // If options are currently visible, insert the thinking bubble BEFORE
+  // them so the visual order is: last user reply → Clara thinking →
+  // (next options will replace the thinking bubble anyway).
+  const options = document.getElementById('clOptionsRow');
+  const bubble = _buildThinkingBubbleEl();
+  if (options) chat.insertBefore(bubble, options);
+  else chat.appendChild(bubble);
   _scrollChatToBottom();
 }
 
@@ -332,14 +668,10 @@ function _scrollChatToBottom() {
   if (area) area.scrollTop = area.scrollHeight;
 }
 
-// Flash the input red + shake and show a transient hint. Non-blocking:
-// caller just returns after invoking. Used to reject too-short onboarding
-// answers without a modal.
 function _flashInputError(hint) {
   const container = document.querySelector('.cl-input-container');
   if (!container) return;
   container.classList.remove('cl-input-error');
-  // Force reflow so re-adding the class replays the animation.
   void container.offsetWidth;
   container.classList.add('cl-input-error');
 
@@ -368,7 +700,13 @@ function _flashInputError(hint) {
 function _appendMessage(role, text) {
   const chat = document.getElementById('clChatArea');
   if (!chat) return;
-  chat.appendChild(_buildMessageEl(role, text, true));
+  // Insert new messages BEFORE the options row so the log stays in
+  // chronological order (user reply above, options remain anchored to
+  // the most recent Clara question below).
+  const options = document.getElementById('clOptionsRow');
+  const el = _buildMessageEl(role, text, true);
+  if (options) chat.insertBefore(el, options);
+  else chat.appendChild(el);
   _scrollChatToBottom();
 }
 
@@ -377,175 +715,6 @@ function _claraSay(text) {
   chat.messages.push({ role: 'clara', text: text });
   _saveState();
   _appendMessage('clara', text);
-}
-
-function _handleSend() {
-  const input = document.getElementById('clInput');
-  const btn = document.getElementById('clSendBtn');
-  if (!input) return;
-  const text = input.value.trim();
-  if (!text) return;
-
-  const chat = getChat();
-
-  // Onboarding needs real answers. Reject one- and two-character noise
-  // ("k", "ok", ".") so Clara doesn't burn a question on a shrug.
-  if (!chat.onboardingComplete && text.length < 3) {
-    _flashInputError('Give Clara a bit more to work with.');
-    return;
-  }
-
-  input.value = '';
-  input.style.height = 'auto';
-  if (btn) btn.disabled = true;
-
-  const wasInitial = (chat.messages || []).length === 0;
-  chat.messages.push({ role: 'user', text: text });
-
-  const userMsgCount = chat.messages.filter(function (m) { return m.role === 'user'; }).length;
-  const business = getBusiness();
-
-  if (userMsgCount === 1) {
-    const ctx = _extractBusinessContext(text);
-    // Only take an extracted name if we don't already have one from the
-    // "New concept" modal. Keeps user-provided names authoritative.
-    if (!business.name || !business.name.trim()) business.name = ctx.name;
-    business.type = ctx.type;
-    business.product = ctx.product;
-    business.goal = ctx.goal;
-  } else if (userMsgCount === 2) {
-    business.reach = _detectReach(text);
-  } else if (userMsgCount === 3) {
-    business.challenge = _detectChallenge(text);
-  }
-
-  _saveState();
-
-  if (wasInitial) {
-    _transitionToChatState();
-    return;
-  }
-
-  _appendMessage('user', text);
-  _resumeConversation();
-}
-
-function _transitionToChatState() {
-  const container = document.getElementById('clOnboarding');
-  const homeContent = document.getElementById('homeContent');
-  if (!container || !homeContent) {
-    _renderChatState(homeContent || document.getElementById('app'), { animateLast: true });
-    _resumeConversation();
-    return;
-  }
-
-  const greeting = container.querySelector('.cl-greeting');
-  const chips = container.querySelector('.cl-chips-row');
-  const oldInput = container.querySelector('.cl-input-container');
-  const oldRect = oldInput ? oldInput.getBoundingClientRect() : null;
-
-  if (greeting) greeting.classList.add('cl-fade-out');
-  if (chips) chips.classList.add('cl-fade-out');
-
-  setTimeout(function () {
-    if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
-    _renderChatState(document.getElementById('homeContent'), { animateLast: true });
-
-    const newInput = document.querySelector('.cl-input-container');
-    if (newInput && oldRect) {
-      const newRect = newInput.getBoundingClientRect();
-      const deltaY = oldRect.top - newRect.top;
-      if (Math.abs(deltaY) > 1) {
-        newInput.style.transform = 'translateY(' + deltaY + 'px)';
-        newInput.style.transition = 'none';
-        void newInput.offsetHeight;
-        newInput.style.transition = 'transform 250ms ease';
-        newInput.style.transform = 'translateY(0)';
-        setTimeout(function () {
-          newInput.style.transition = '';
-          newInput.style.transform = '';
-        }, 280);
-      }
-    }
-
-    _resumeConversation();
-  }, 200);
-}
-
-function _resumeConversation() {
-  if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
-  const chat = getChat();
-  if (chat.onboardingComplete) return; // already done — user is just browsing chat
-
-  const messages = chat.messages || [];
-  const userMsgCount = messages.filter(function (m) { return m.role === 'user'; }).length;
-  const claraMsgCount = messages.filter(function (m) { return m.role === 'clara'; }).length;
-
-  if (userMsgCount === 1 && claraMsgCount === 0) {
-    _showThinkingBubble();
-    setTimeout(function () {
-      if (appState.activeView !== 'chat') return;
-      _removeThinkingBubble();
-      _claraSay(CLARA_SECOND);
-    }, 800);
-  } else if (userMsgCount === 2 && claraMsgCount === 1) {
-    _showThinkingBubble();
-    setTimeout(function () {
-      if (appState.activeView !== 'chat') return;
-      _removeThinkingBubble();
-      _claraSay(_claraChallengeQuestion(getBusiness().type));
-    }, 800);
-  } else if (userMsgCount === 3 && claraMsgCount === 2) {
-    _showThinkingBubble();
-    setTimeout(function () {
-      if (appState.activeView !== 'chat') return;
-      _removeThinkingBubble();
-      _claraSay(CLARA_FINAL);
-      // Give the "give me a moment" line a beat to read, then flip the
-      // input bar into the thinking state so there's no dead space.
-      setTimeout(function () {
-        if (appState.activeView !== 'chat') return;
-        _startThinking();
-      }, 400);
-    }, 800);
-  } else if (userMsgCount === 3 && claraMsgCount === 3 && !chat.onboardingComplete) {
-    _startThinking();
-  }
-}
-
-function _startThinking() {
-  const bar = document.getElementById('clInputBar');
-  if (!bar) return;
-  bar.innerHTML = `
-    <div class="cl-thinking">
-      <span class="cl-thinking-dots">
-        <span class="cl-dot"></span>
-        <span class="cl-dot"></span>
-        <span class="cl-dot"></span>
-      </span>
-      <div class="cl-thinking-label">Clara is building your plan...</div>
-    </div>
-  `;
-
-  setTimeout(function () {
-    const chat = getChat();
-    chat.onboardingComplete = true;
-    // Stay in the chat. The chat page is where the conversation lives —
-    // the workspace is a separate page you deliberately open. What we
-    // DO on this render is materialize the "Workspace \u2192" button in
-    // the top-right with a color-flush animation so the user notices
-    // their workspace has just been built.
-    appState.activeView = 'chat';
-    window._justUnlockedConcept = true;
-    // Push the "workspace ready" nudge into the log so the chat has a
-    // clear closing beat and points the user to the new button.
-    chat.messages.push({
-      role: 'clara',
-      text: 'Your workspace is ready. Open it from the top-right when you want to see today\u2019s tasks and start creating.'
-    });
-    _saveState();
-    renderApp();
-  }, 3000);
 }
 
 window.renderChat = renderChat;

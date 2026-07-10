@@ -1,167 +1,220 @@
 /* ==========================================
-   Create view
+   Create view — 4-step Clara-driven wizard
+   Reuses cr- classnames from the previous flow where the visual
+   role maps cleanly (platform chips, variation cards, publish
+   buttons). Introduces new .cr-sug-*, .cr-brief-*, .cr-publish-badge,
+   and .cr-draft-toast for the pieces that didn't exist before.
    ========================================== */
 
 .cr-wrap {
-  padding: 32px 24px 64px 24px;
-  max-width: 720px;
+  padding: 32px 24px 64px;
+  max-width: 640px;
   margin: 0 auto;
 }
 
-.cr-from-pill {
-  display: inline-block;
-  background: rgba(245, 166, 35, 0.12);
-  color: var(--accent);
-  border: 1px solid var(--border-accent);
-  border-radius: 20px;
-  padding: 4px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  margin-bottom: 12px;
-}
+/* --- Headings & subheadings (steps 1–3) --- */
 
-.cr-task-preview {
-  font-size: 17px;
-  font-weight: 500;
-  color: var(--text);
-  line-height: 1.4;
-  margin-bottom: 28px;
-}
-
-.cr-ask-heading {
-  font-size: 24px;
+.cr-heading {
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
   line-height: 1.2;
-  margin-bottom: 8px;
+  margin: 0 0 6px;
 }
 
-.cr-ask-sub {
+.cr-heading-sm {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0 0 6px;
+}
+
+.cr-subheading {
   font-size: 14px;
   color: var(--muted);
-  margin-bottom: 20px;
   line-height: 1.5;
+  margin: 0 0 24px;
 }
 
-.cr-ask-wrap {
+.cr-heading-sm + .cr-subheading {
+  margin-bottom: 20px;
+}
+
+/* --- Back link ("← Back", "← Start over") --- */
+
+.cr-back-link {
+  display: inline-block;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  margin-bottom: 16px;
+  letter-spacing: -0.005em;
+  transition: color 150ms ease;
+}
+
+.cr-back-link:hover {
+  color: var(--text);
+}
+
+.cr-back-link-center {
+  display: block;
+  margin: 20px auto 0;
+  text-align: center;
+  width: 100%;
+}
+
+/* ==========================================
+   Step 1 — Suggestion cards
+   ========================================== */
+
+.cr-suggestions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-.cr-ask-input {
+.cr-sug-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.5;
-  min-height: 90px;
-  width: 100%;
-  resize: none;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  border-radius: 14px;
+  padding: 18px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
 }
 
-.cr-ask-input::placeholder {
-  color: rgba(245, 240, 232, 0.2);
-}
-
-.cr-ask-input:focus {
+.cr-sug-card:hover,
+.cr-sug-card-active {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
+  background: rgba(245, 166, 35, 0.04);
 }
 
-.cr-ask-btn {
+.cr-sug-from-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  padding: 2px 10px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  letter-spacing: 0.005em;
+}
+
+.cr-sug-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cr-sug-type-chip {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.1);
+  border-radius: 6px;
+  padding: 3px 8px;
+  line-height: 1.4;
+}
+
+.cr-sug-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #000;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cr-sug-angle {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+  margin-top: 10px;
+}
+
+.cr-sug-why {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 150ms ease;
+}
+
+.cr-sug-why:hover {
+  opacity: 0.75;
+}
+
+.cr-sug-reason {
+  display: none;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid rgba(245, 166, 35, 0.25);
+}
+
+.cr-sug-reason-open {
+  display: block;
+}
+
+/* --- Continue / Generate / Publish primary action --- */
+
+.cr-continue-btn {
   width: 100%;
   height: 48px;
   background: var(--accent);
   color: #000;
+  border: none;
   border-radius: var(--radius);
+  font-family: inherit;
   font-size: 15px;
   font-weight: 700;
-  border: none;
   cursor: pointer;
   box-shadow: var(--shadow-accent);
-  transition: background 150ms ease;
+  transition: background 150ms ease, opacity 150ms ease;
+  margin-top: 8px;
 }
 
-.cr-ask-btn:hover {
+.cr-continue-btn:hover:not(:disabled) {
   background: var(--accent-dark);
 }
 
-.cr-section-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  text-transform: uppercase;
-  margin-bottom: 12px;
+.cr-continue-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
 }
 
-.cr-section-label-spaced {
-  margin-top: 28px;
-}
-
-.cr-type-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.cr-type-tile {
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  padding: 18px 12px;
-  text-align: center;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-
-.cr-type-tile-active {
-  border-color: var(--accent);
-  background: rgba(245, 166, 35, 0.06);
-  box-shadow: var(--shadow), 0 0 0 3px rgba(245, 166, 35, 0.12);
-}
-
-.cr-type-icon {
-  color: var(--text);
-  width: 24px;
-  height: 24px;
-  display: block;
-}
-
-.cr-type-tile-active .cr-type-icon {
-  color: var(--accent);
-}
-
-.cr-type-title {
-  font-size: 14px;
-  color: var(--text);
-  font-weight: 500;
-}
-
-.cr-type-sub {
-  font-size: 12px;
-  color: var(--muted);
-}
+/* ==========================================
+   Step 2 — Platform confirm + brief preview
+   ========================================== */
 
 .cr-platform-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 24px;
 }
 
 .cr-platform-chip {
@@ -169,11 +222,17 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 8px 16px;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.cr-platform-chip:hover:not(.cr-platform-chip-active) {
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 
 .cr-platform-chip-active {
@@ -182,157 +241,263 @@
   color: var(--accent);
 }
 
-.cr-angle-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 16px;
-  margin-top: -4px;
-  line-height: 1.5;
-}
-
-.cr-angle-cards {
+.cr-brief-head {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
-.cr-angle-card {
-  background: var(--surface);
-  border-radius: var(--radius);
+.cr-brief-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.cr-brief-hint {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted);
+  letter-spacing: 0.005em;
+}
+
+.cr-brief-input {
+  display: block;
+  width: 100%;
+  min-height: 80px;
+  padding: 14px;
+  background: var(--surface-2);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  padding: 16px;
-  cursor: pointer;
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  margin-bottom: 20px;
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
-.cr-angle-card-active {
+.cr-brief-input:focus {
   border-color: var(--accent);
-  background: rgba(245, 166, 35, 0.05);
-  box-shadow: var(--shadow), 0 0 0 3px rgba(245, 166, 35, 0.12);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.1);
 }
 
-.cr-angle-text {
-  font-size: 14px;
-  color: var(--text);
-  line-height: 1.5;
-  margin-bottom: 6px;
+.cr-brief-input:disabled {
+  opacity: 0.65;
+  cursor: default;
 }
 
-.cr-angle-label {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.cr-generate-btn {
-  width: 100%;
-  height: 52px;
-  background: var(--accent);
-  color: #000;
-  border-radius: var(--radius);
-  font-size: 15px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  margin-top: 20px;
-  box-shadow: var(--shadow-accent);
-  transition: background 150ms ease;
-}
-
-.cr-generate-btn:hover {
-  background: var(--accent-dark);
-}
+/* ==========================================
+   Generation loading state (Step 2 \u2192 Step 3)
+   Amber dots on the shared cl-bounce keyframes so the rhythm
+   matches the welcome + onboarding "thinking" moments.
+   ========================================== */
 
 .cr-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 32px;
+  justify-content: center;
+  padding: 20px 16px 4px;
+  margin-top: 8px;
 }
+
+.cr-loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cr-loading-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.85;
+  animation: cl-bounce 0.9s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(245, 166, 35, 0.35);
+}
+
+.cr-loading-dot:nth-child(2) { animation-delay: 0.15s; }
+.cr-loading-dot:nth-child(3) { animation-delay: 0.3s; }
 
 .cr-loading-label {
   font-size: 13px;
   color: var(--muted);
-  margin-top: 12px;
+  margin-top: 16px;
+  letter-spacing: 0.005em;
 }
 
-.cr-variations-heading {
-  font-size: 18px;
-  color: var(--text);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  margin-bottom: 16px;
-  margin-top: 28px;
-}
+/* ==========================================
+   Step 3 — Variation cards
+   ========================================== */
 
 .cr-variations {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-bottom: 20px;
 }
 
 .cr-variation-card {
   background: var(--surface);
-  border-radius: var(--radius);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  padding: 16px;
+  border-radius: 14px;
+  padding: 18px;
   cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+  transition: border-color 150ms ease, background 150ms ease;
 }
 
-.cr-variation-card:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-md);
+.cr-variation-card:hover,
+.cr-variation-card-active {
+  border-color: var(--accent);
+  background: rgba(245, 166, 35, 0.04);
 }
 
 .cr-variation-label {
   font-size: 10px;
-  text-transform: uppercase;
-  color: var(--muted);
-  letter-spacing: 0.1em;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 8px;
 }
 
 .cr-variation-text {
   font-size: 14px;
   color: var(--text);
   line-height: 1.6;
+}
+
+/* Format-specific inner blocks (EMAIL + VIDEO).
+   Labels stay small + muted so the readable content dominates. */
+
+.cr-variation-email,
+.cr-variation-video {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cr-variation-sublabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
   margin-top: 8px;
 }
 
-.cr-variation-select {
-  font-size: 13px;
-  color: var(--accent);
-  font-weight: 500;
-  margin-top: 12px;
-  display: block;
+.cr-variation-sublabel-sm {
+  font-size: 11px;
+  margin-top: 0;
 }
+
+.cr-variation-email > .cr-variation-sublabel:first-child,
+.cr-variation-video > .cr-variation-sublabel:first-child {
+  margin-top: 0;
+}
+
+.cr-variation-subject {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.cr-variation-body,
+.cr-variation-line {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ==========================================
+   Step 4 — Publish
+   ========================================== */
 
 .cr-publish-preview {
-  background: rgba(232, 132, 90, 0.04);
-  border: 1px solid rgba(232, 132, 90, 0.4);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-top: 8px;
+  background: var(--surface-2);
+  border-radius: 14px;
+  border-left: 3px solid var(--accent);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.cr-publish-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.cr-publish-text {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Publish preview reuses the variation body renderer so email and
+   video keep their labeled structure at the READY TO PUBLISH stage. */
+.cr-publish-body .cr-variation-text {
+  font-size: 15px;
+}
+
+.cr-publish-body .cr-variation-subject,
+.cr-publish-body .cr-variation-body,
+.cr-publish-body .cr-variation-line {
+  font-size: 14px;
+}
+
+.cr-publish-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.cr-publish-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+.cr-publish-badge-label {
+  line-height: 1;
 }
 
 .cr-publish-options {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 20px;
 }
 
 .cr-publish-btn {
   width: 100%;
-  height: 52px;
+  height: 48px;
   background: var(--accent);
   color: #000;
+  border: none;
   border-radius: var(--radius);
+  font-family: inherit;
   font-size: 15px;
   font-weight: 700;
-  border: none;
   cursor: pointer;
   box-shadow: var(--shadow-accent);
   transition: background 150ms ease;
@@ -344,11 +509,12 @@
 
 .cr-publish-draft {
   width: 100%;
-  height: 48px;
+  height: 44px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   color: var(--text);
   border-radius: var(--radius);
+  font-family: inherit;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -359,26 +525,49 @@
   background: var(--surface-2);
 }
 
-.cr-publish-reset {
-  width: 100%;
-  height: 40px;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  font-size: 14px;
-  cursor: pointer;
-  transition: color 150ms ease;
-}
+/* ==========================================
+   Draft-saved toast (bottom-center, transient)
+   ========================================== */
 
-.cr-publish-reset:hover {
+.cr-draft-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface-2);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  border-radius: 10px;
+  padding: 10px 18px;
   color: var(--text);
+  font-size: 13px;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 200ms ease, transform 200ms ease;
+  pointer-events: none;
 }
 
-.cr-draft-saved {
-  text-align: center;
-  font-size: 14px;
-  color: var(--muted);
-  padding: 24px 16px;
-  margin-top: 20px;
-  animation: cl-fade-up 300ms ease both;
+.cr-draft-toast-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ==========================================
+   Mobile
+   ========================================== */
+
+@media (max-width: 767px) {
+  .cr-wrap {
+    padding: 24px 16px 56px;
+  }
+  .cr-heading {
+    font-size: 20px;
+  }
+  .cr-heading-sm {
+    font-size: 18px;
+  }
+  .cr-sug-card,
+  .cr-variation-card {
+    padding: 16px;
+  }
 }
