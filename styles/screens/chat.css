@@ -24,7 +24,7 @@
      these buttons", not a floating panel. Bottom margin matches the new
      message-group spacing so the log rhythm stays consistent. */
   margin: 4px auto 18px;
-  max-width: 640px;
+  max-width: 760px;
   width: 100%;
   padding: 0 20px 0 60px;
   animation: cl-fade-up 300ms ease both;
@@ -201,7 +201,7 @@ body.sb-open .cl-chat-state .cl-input-bar {
 }
 
 .cl-input-container {
-  max-width: 640px;
+  max-width: 760px;
   margin: 0 auto;
   width: 100%;
   background: rgba(28, 24, 20, 0.95);
@@ -318,7 +318,7 @@ body.sb-open .cl-chat-state .cl-input-bar {
 }
 
 .cl-disclaimer {
-  max-width: 640px;
+  max-width: 760px;
   margin: 10px auto 0;
   text-align: center;
   font-size: 11px;
@@ -333,7 +333,7 @@ body.sb-open .cl-chat-state .cl-input-bar {
   flex-direction: column;
   align-items: center;
   padding: 20px 16px;
-  max-width: 640px;
+  max-width: 760px;
   margin: 0 auto;
   width: 100%;
 }
@@ -361,7 +361,7 @@ body.sb-open .cl-chat-state .cl-input-bar {
 }
 
 .cl-input-hint {
-  max-width: 640px;
+  max-width: 760px;
   margin: 8px auto 0;
   text-align: center;
   font-size: 12px;

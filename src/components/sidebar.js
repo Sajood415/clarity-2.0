@@ -169,7 +169,11 @@ function _bindSidebarEvents() {
         _showSidebarToast('Finish setting up your current concept first.');
         return;
       }
-      _openNewConceptModal();
+      // Create an empty concept and jump straight to Chat. Clara opens
+      // by asking for the business name; the sidebar row updates live
+      // as the user types (see chat.js opening-step input handler).
+      createConcept({ focusChat: true });
+      renderApp();
     });
   }
 

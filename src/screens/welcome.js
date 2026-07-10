@@ -100,14 +100,14 @@ function _hasCompletedConcept() {
 function _enterHome() {
   appState.mode = 'home';
 
-  // Fresh signup — no concepts exist yet. Render the home shell (sidebar
-  // + empty content) and open the mandatory "New concept" modal so the
-  // user names their business upfront. This prevents the extractor from
-  // silently turning "how do I get more sales?" into a concept name.
+  // Fresh signup — no concepts exist yet. Create an empty concept and
+  // drop the user straight into Chat, where Clara opens with the name
+  // question herself (GPT/Claude style — conversation, not a form).
+  // The sidebar row will show "New concept" until the user's first
+  // keystroke in the name field, then update live.
   if (!appState.activeConceptId || !getActiveConcept()) {
-    _saveState();
+    createConcept({ focusChat: true });
     renderApp();
-    _openNewConceptModal({ mandatory: true, firstTime: true });
     return;
   }
 

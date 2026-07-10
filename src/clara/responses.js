@@ -16,9 +16,26 @@
 //   CL_Q6_QUESTION, CL_Q6_PLACEHOLDER, CL_Q6_ACK
 
 // --- Opening ---
+//
+// Clara now asks for the business name as her very first question,
+// conversation-style. No upfront modal, no "Ready? / Let's go" buttons
+// \u2014 the sidebar row updates live as the user types (see chat.js
+// opening-step input handler) so the concept is named the moment the
+// user commits, exactly like ChatGPT/Claude auto-titling.
 
-const CLARA_OPENING = "Hey, I'm Clara. I'm going to ask you a few quick questions so I can start working for your business. Ready?";
-const CL_OPTIONS_OPENING = ["Let's go", "Sure"];
+const CLARA_OPENING = "Hey, I'm Clara. Before we get started \u2014 what are you calling this business?";
+const CL_NAME_PLACEHOLDER = "e.g. Ahmed's Bakery";
+// Warm one-line ack that echoes the name back. Kept generic on purpose
+// (no adjectives) so it reads sincere for a bakery, a SaaS, or anything
+// in between. Followed immediately by Q1 in the queue.
+function _claraNameAck(name) {
+  const safe = (name || '').trim();
+  if (!safe) return "Got it.";
+  return "Love it \u2014 " + safe + ". Let's build something great together.";
+}
+// Legacy: kept exported so any lingering reference doesn't crash. The
+// state machine no longer renders these as an options row.
+const CL_OPTIONS_OPENING = [];
 
 // --- Q1: business type ---
 
@@ -218,6 +235,8 @@ function _claraValidationQuestion() {
 
 window.CLARA_OPENING = CLARA_OPENING;
 window.CL_OPTIONS_OPENING = CL_OPTIONS_OPENING;
+window.CL_NAME_PLACEHOLDER = CL_NAME_PLACEHOLDER;
+window._claraNameAck = _claraNameAck;
 
 window.CL_Q1_QUESTION = CL_Q1_QUESTION;
 window.CL_OPTIONS_Q1 = CL_OPTIONS_Q1;

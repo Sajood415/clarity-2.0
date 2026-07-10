@@ -37,7 +37,7 @@
 // in _buildMessageEl. This is what makes a burst like "Got it. / A couple
 // more quick ones. / Where are you marketing?" read as one thought
 // instead of three separate replies.
-const CL_GROUP_BASE_STYLE = 'max-width:640px;margin:0 auto 18px;width:100%;padding:0 20px;';
+const CL_GROUP_BASE_STYLE = 'max-width:760px;margin:0 auto 18px;width:100%;padding:0 20px;';
 const CL_GROUP_CLARA_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;flex-direction:row;align-items:flex-start;gap:12px;';
 const CL_GROUP_USER_STYLE = CL_GROUP_BASE_STYLE + 'display:flex;justify-content:flex-end;';
 
@@ -189,9 +189,7 @@ function _renderOptionsForStep(step) {
   const chatArea = document.getElementById('clChatArea');
   if (!chatArea) return;
 
-  if (step === 'opening') {
-    _appendOptionsRow('single', CL_OPTIONS_OPENING);
-  } else if (step === 'q1') {
+  if (step === 'q1') {
     _appendOptionsRow('single', CL_OPTIONS_Q1);
   } else if (step === 'q2') {
     _appendOptionsRow('single', CL_OPTIONS_Q2);
@@ -335,13 +333,6 @@ function _commitSingleAnswer(label) {
   _appendMessage('user', label);
 
   const step = chat.onboardingStep;
-  if (step === 'opening') {
-    // Both "Let's go" and "Sure" go to Q1.
-    _advanceStep('q1');
-    _claraQueue([CL_Q1_QUESTION], _renderStepUI);
-    return;
-  }
-
   if (step === 'q1') {
     const typeKey = CL_Q1_TYPE_MAP[label] || 'other';
     getBusiness().type = typeKey;
@@ -387,7 +378,8 @@ function _commitSingleAnswer(label) {
 // ---------------------------------------------
 
 function _isTextStep(step) {
-  return step === 'q1_other'
+  return step === 'opening'
+      || step === 'q1_other'
       || step === 'q3'
       || step === 'q6'
       || step === 'validate_fix'
@@ -395,6 +387,7 @@ function _isTextStep(step) {
 }
 
 function _placeholderForStep(step) {
+  if (step === 'opening') return CL_NAME_PLACEHOLDER;
   if (step === 'q1_other') return 'Tell Clara a bit about what you do...';
   if (step === 'q3') return CL_Q3_PLACEHOLDER;
   if (step === 'q6') return CL_Q6_PLACEHOLDER;
@@ -479,6 +472,15 @@ function _bindInputEvents() {
   input.addEventListener('input', function () {
     autoGrow();
     refreshDisabled();
+    // Live-rename side effect during the opening step: as the user
+    // types the business name, update the active concept row in the
+    // sidebar in real time (ChatGPT/Claude-style auto-titling). We
+    // deliberately don't _saveState() per keystroke \u2014 the persist
+    // happens on send. Below the 2-char fallback threshold the row
+    // stays "New concept" so it doesn't flash on single letters.
+    if (getChat().onboardingStep === 'opening') {
+      _liveRenameActiveConcept(input.value);
+    }
   });
 
   btn.addEventListener('click', _handleSend);
@@ -491,13 +493,32 @@ function _bindInputEvents() {
   });
 }
 
+// Update the active concept's business.name in memory + patch the
+// sidebar row's visible name in place. Cheaper than re-rendering the
+// whole sidebar on every keystroke, and matches how the sidebar's
+// _resolveConceptName picks a display name (falls back to "New concept"
+// while under 2 chars).
+function _liveRenameActiveConcept(raw) {
+  const business = getBusiness();
+  if (!business) return;
+  business.name = raw;
+  const trimmed = (raw || '').trim();
+  const display = trimmed.length >= 2 ? trimmed : 'New concept';
+  const id = appState.activeConceptId;
+  if (!id) return;
+  const row = document.querySelector('[data-concept="' + id + '"]');
+  if (!row) return;
+  const label = row.querySelector('.sb-concept-name');
+  if (label) label.textContent = display;
+}
+
 // ---------------------------------------------
 // Text step handler
 // ---------------------------------------------
 
 // Per-step minimum content length. "UK" is fine for location; "Local
 // families who want fresh sourdough" is a much lower bar for Q3.
-const CL_TEXT_MIN = { q1_other: 3, q3: 8, q6: 2, validate_fix: 6 };
+const CL_TEXT_MIN = { opening: 2, q1_other: 3, q3: 8, q6: 2, validate_fix: 6 };
 
 function _handleSend() {
   const input = document.getElementById('clInput');
@@ -522,6 +543,19 @@ function _handleSend() {
   chat.messages.push({ role: 'user', text: text });
   _saveState();
   _appendMessage('user', text);
+
+  if (step === 'opening') {
+    // First real answer — the business name. Commit it, sync the
+    // sidebar row so the concept is officially named, then hand off
+    // to the ack + Q1 in Clara's usual queued cadence.
+    const business = getBusiness();
+    business.name = text;
+    _saveState();
+    if (typeof _syncSidebar === 'function') _syncSidebar();
+    _advanceStep('q1');
+    _claraQueue([_claraNameAck(text), CL_Q1_QUESTION], _renderStepUI);
+    return;
+  }
 
   if (step === 'q1_other') {
     getBusiness().typeDescription = text;
