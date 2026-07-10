@@ -93,6 +93,17 @@ const SB_GRID_ICON_SVG = `
   </svg>
 `;
 
+// Sidebar collapse toggle icon \u2014 a vertical bar on the right with a
+// chevron pointing left (toward the sidebar edge) so the default state
+// reads as "click to collapse". The button rotates 180deg via CSS in
+// the collapsed state to flip the chevron to point right ("expand").
+const SB_COLLAPSE_ICON_SVG = `
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="17" y1="4" x2="17" y2="20"/>
+    <polyline points="10 8 6 12 10 16"/>
+  </svg>
+`;
+
 const CREATE_TYPE_ICONS = {
   post: `
     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -169,3 +180,4 @@ window.SB_LOGOUT_ICON_SVG = SB_LOGOUT_ICON_SVG;
 window.SB_TRASH_ICON_SVG = SB_TRASH_ICON_SVG;
 window.SB_CHEVRON_DOWN_SVG = SB_CHEVRON_DOWN_SVG;
 window.SB_GRID_ICON_SVG = SB_GRID_ICON_SVG;
+window.SB_COLLAPSE_ICON_SVG = SB_COLLAPSE_ICON_SVG;

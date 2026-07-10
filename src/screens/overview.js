@@ -93,14 +93,14 @@ function _renderTodayTile(openTasks, allDone) {
     `;
   }
 
+  // No JS truncation \u2014 CSS -webkit-line-clamp handles wrapping so we
+  // never end up cutting a sentence mid-word with an ugly ellipsis.
   const preview = openTasks.slice(0, 3).map(function (t) {
-    const desc = t.description.length > 80
-      ? t.description.slice(0, 80).trim() + '\u2026'
-      : t.description;
+    const typeKey = String(t.type || '').toLowerCase();
     return (
-      '<li class="ov-task">'
-      +   '<span class="ov-task-tag ov-task-tag-' + t.type.toLowerCase() + '">' + _escape(t.type) + '</span>'
-      +   '<span class="ov-task-desc">' + _escape(desc) + '</span>'
+      '<li class="ov-task ov-task-' + typeKey + '">'
+      +   '<span class="ov-task-type">' + _escape(t.type) + '</span>'
+      +   '<span class="ov-task-desc">' + _escape(t.description) + '</span>'
       + '</li>'
     );
   }).join('');

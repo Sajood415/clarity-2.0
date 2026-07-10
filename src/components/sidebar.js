@@ -53,6 +53,11 @@ function _syncSidebar() {
   // is mounted" and (transient) dropdown-open state.
   document.body.classList.toggle('sb-workspace', false);
 
+  // Keep body class in sync with the persisted collapsed flag so the
+  // content-area inset stays honest regardless of whether the sidebar
+  // was mounted before this render.
+  document.body.classList.toggle('sb-collapsed', !!appState.sidebarCollapsed);
+
   if (shouldShow && !existing) {
     document.body.classList.add('sb-open');
     _mountSidebar();
@@ -60,6 +65,7 @@ function _syncSidebar() {
     existing.remove();
     document.body.classList.remove('sb-open');
   } else if (shouldShow && existing) {
+    _updateCollapsedClass(existing);
     existing.innerHTML = _buildSidebarHtml();
     _bindSidebarEvents();
   }
@@ -70,43 +76,90 @@ function _mountSidebar() {
   const el = document.createElement('aside');
   el.id = 'sbSidebar';
   el.className = 'sb-sidebar sb-sidebar-open';
+  _updateCollapsedClass(el);
   el.innerHTML = _buildSidebarHtml();
   document.body.appendChild(el);
   _bindSidebarEvents();
   _bindGlobalDropdownDismiss();
 }
 
+function _updateCollapsedClass(el) {
+  if (!el) return;
+  el.classList.toggle('sb-sidebar-collapsed', !!appState.sidebarCollapsed);
+}
+
 function _buildSidebarHtml() {
+  const collapsed = !!appState.sidebarCollapsed;
   const active = getActiveConcept();
-  const dropdownOpen = !!appState.conceptDropdownOpen;
+  // The concept picker dropdown is meaningless in the icon rail. If the
+  // rail is toggled while it was open, treat it as closed for markup so
+  // we don't leave a dangling dropdown floating off-canvas.
+  const dropdownOpen = !collapsed && !!appState.conceptDropdownOpen;
   const activeName = active
     ? _resolveConceptName(active)
     : 'No concept';
 
-  const conceptSection = `
-    <div class="sb-concept-picker ${dropdownOpen ? 'sb-concept-picker-open' : ''}">
-      <button type="button" class="sb-concept-trigger" id="sbConceptTrigger" aria-haspopup="listbox" aria-expanded="${dropdownOpen}">
-        <span class="sb-concept-trigger-name">${_escape(activeName)}</span>
-        <span class="sb-concept-trigger-chev" aria-hidden="true">${SB_CHEVRON_DOWN_SVG}</span>
-      </button>
-      ${dropdownOpen ? _renderConceptDropdown(active) : ''}
+  const collapseTitle = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  const collapseIcon = (typeof SB_COLLAPSE_ICON_SVG !== 'undefined') ? SB_COLLAPSE_ICON_SVG : '';
+  const topBar = `
+    <div class="sb-top">
+      <div class="sb-brand">${collapsed ? 'C' : 'Clarity'}</div>
+      <button
+        type="button"
+        class="sb-collapse-btn"
+        id="sbCollapseBtn"
+        title="${collapseTitle}"
+        aria-label="${collapseTitle}"
+        aria-pressed="${collapsed ? 'true' : 'false'}"
+      >${collapseIcon}</button>
     </div>
   `;
 
-  const navHtml = _renderNavItems();
-  const userFooter = _renderUserFooter();
+  const conceptSection = collapsed
+    ? _renderConceptRail(active)
+    : `
+      <div class="sb-concept-picker ${dropdownOpen ? 'sb-concept-picker-open' : ''}">
+        <button type="button" class="sb-concept-trigger" id="sbConceptTrigger" aria-haspopup="listbox" aria-expanded="${dropdownOpen}">
+          <span class="sb-concept-trigger-name">${_escape(activeName)}</span>
+          <span class="sb-concept-trigger-chev" aria-hidden="true">${SB_CHEVRON_DOWN_SVG}</span>
+        </button>
+        ${dropdownOpen ? _renderConceptDropdown(active) : ''}
+      </div>
+    `;
+
+  const navHtml = _renderNavItems(collapsed);
+  const userFooter = _renderUserFooter(collapsed);
 
   return `
-    <div class="sb-top">
-      <div class="sb-brand">Clarity</div>
-    </div>
+    ${topBar}
     ${conceptSection}
     <div class="sb-nav-section">
-      <div class="sb-nav-label">NAVIGATION</div>
       <nav class="sb-nav" aria-label="Primary">${navHtml}</nav>
     </div>
     <div class="sb-spacer"></div>
     ${userFooter}
+  `;
+}
+
+// Compact concept chip used when the sidebar is collapsed. Clicking it
+// expands the sidebar so the user can see the full picker.
+function _renderConceptRail(active) {
+  const color = (active && active.color) ? active.color : 'var(--accent)';
+  const name = active ? _resolveConceptName(active) : 'No concept';
+  const initial = (name || 'C').trim().charAt(0).toUpperCase() || 'C';
+  return `
+    <div class="sb-concept-rail">
+      <button
+        type="button"
+        class="sb-concept-chip"
+        id="sbConceptChip"
+        title="${_escape(name)}"
+        aria-label="${_escape(name)}"
+        style="--concept-color:${color}"
+      >
+        <span class="sb-concept-chip-letter">${_escape(initial)}</span>
+      </button>
+    </div>
   `;
 }
 
@@ -147,13 +200,16 @@ function _renderConceptDropdown(active) {
   `;
 }
 
-function _renderNavItems() {
+function _renderNavItems(collapsed) {
   const activeView = appState.activeView || 'overview';
   return SB_NAV_ITEMS.map(function (item) {
     const isActive = activeView === item.key;
     const icon = (VIEW_ICONS && VIEW_ICONS[item.icon]) || '';
+    // Native title attribute is our tooltip in collapsed mode so users
+    // can still identify a rail icon without a label.
+    const titleAttr = collapsed ? (' title="' + _escape(item.label) + '" aria-label="' + _escape(item.label) + '"') : '';
     return (
-      '<button type="button" class="sb-nav-item' + (isActive ? ' sb-nav-item-active' : '') + '" data-nav="' + item.key + '">'
+      '<button type="button" class="sb-nav-item' + (isActive ? ' sb-nav-item-active' : '') + '" data-nav="' + item.key + '"' + titleAttr + '>'
       +   '<span class="sb-nav-icon" aria-hidden="true">' + icon + '</span>'
       +   '<span class="sb-nav-label-text">' + _escape(item.label) + '</span>'
       + '</button>'
@@ -161,14 +217,19 @@ function _renderNavItems() {
   }).join('');
 }
 
-function _renderUserFooter() {
+function _renderUserFooter(collapsed) {
   const rawName = (appState.user && appState.user.name) ? String(appState.user.name) : '';
   const rawEmail = (appState.user && appState.user.email) ? String(appState.user.email) : '';
   const displayName = rawName || 'Guest';
   const firstInitial = (rawName ? rawName.trim().charAt(0) : 'C').toUpperCase() || 'C';
   const subLine = rawEmail || (rawName ? 'Free plan' : 'Not signed in');
 
-  const trailing = appState.confirmingLogout
+  // In collapsed mode we never surface the destructive confirm chip
+  // (there's no room). Fall back to the icon button which uses the
+  // same logout confirmation flow when clicked.
+  const confirming = !collapsed && appState.confirmingLogout;
+
+  const trailing = confirming
     ? (
         '<div class="sb-logout-confirm" id="sbLogoutConfirm">'
         +   '<button type="button" class="sb-logout-yes" id="sbLogoutYes">Yes, log out</button>'
@@ -181,9 +242,11 @@ function _renderUserFooter() {
         + '</button>'
       );
 
+  const avatarTitle = collapsed ? (' title="' + _escape(displayName) + '"') : '';
+
   return `
     <div class="sb-bottom">
-      <div class="sb-user-avatar">${_escape(firstInitial)}</div>
+      <div class="sb-user-avatar"${avatarTitle}>${_escape(firstInitial)}</div>
       <div class="sb-user-info">
         <div class="sb-user-name">${_escape(displayName)}</div>
         <div class="sb-user-sub">${_escape(subLine)}</div>
@@ -205,6 +268,32 @@ function _resolveConceptName(concept) {
 // ---------------------------------------------
 
 function _bindSidebarEvents() {
+  // --- Collapse toggle ---
+  const collapseBtn = document.getElementById('sbCollapseBtn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      appState.sidebarCollapsed = !appState.sidebarCollapsed;
+      // Closing/opening the rail should never leave a stale dropdown on
+      // screen; the picker markup only exists in the expanded layout.
+      if (appState.sidebarCollapsed) appState.conceptDropdownOpen = false;
+      _saveState();
+      _syncSidebar();
+    });
+  }
+
+  // --- Concept chip (collapsed rail) \u2014 expand and open picker ---
+  const conceptChip = document.getElementById('sbConceptChip');
+  if (conceptChip) {
+    conceptChip.addEventListener('click', function (e) {
+      e.stopPropagation();
+      appState.sidebarCollapsed = false;
+      appState.conceptDropdownOpen = true;
+      _saveState();
+      _syncSidebar();
+    });
+  }
+
   // --- Concept picker trigger ---
   const trigger = document.getElementById('sbConceptTrigger');
   if (trigger) {

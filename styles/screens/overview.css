@@ -208,48 +208,62 @@
   opacity: 1;
 }
 
-/* Today tile — task list preview */
+/* Today tile \u2014 task list preview.
+
+   Each row is a two-column CSS grid so every type label and every
+   description share a strict vertical rhythm. The type is a colored
+   eyebrow (no pill background) and the description clamps to two
+   lines, avoiding the ugly mid-word truncation the JS char-slice used
+   to produce. Rows are separated by hair-thin dividers so the block
+   reads as a stack, not a soup of chips.
+*/
 
 .ov-task-list {
   list-style: none;
   padding: 0;
-  margin: 0 0 10px;
+  margin: 0 0 4px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   flex: 1;
 }
 
 .ov-task {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  column-gap: 12px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 240, 220, 0.05);
   font-size: 12.5px;
-  color: rgba(245, 240, 232, 0.6);
-  line-height: 1.45;
-}
-
-.ov-task-tag {
-  flex-shrink: 0;
-  padding: 2px 7px;
-  border-radius: 5px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: rgba(245, 240, 232, 0.75);
-  background: rgba(255, 240, 220, 0.06);
-  border: 1px solid rgba(255, 240, 220, 0.08);
-  margin-top: 1px;
   line-height: 1.5;
 }
 
-.ov-task-tag-post     { color: #F5A623; background: rgba(245, 166, 35, 0.08); border-color: rgba(245, 166, 35, 0.18); }
-.ov-task-tag-outreach { color: #5AAAB0; background: rgba(90, 170, 176, 0.08); border-color: rgba(90, 170, 176, 0.2); }
-.ov-task-tag-offer    { color: #C8A96E; background: rgba(200, 169, 110, 0.08); border-color: rgba(200, 169, 110, 0.2); }
+.ov-task:first-child { border-top: none; padding-top: 4px; }
+.ov-task:last-child  { padding-bottom: 4px; }
+
+.ov-task-type {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(245, 240, 232, 0.55);
+  line-height: 1.5;
+  align-self: center;
+}
+
+.ov-task-post    .ov-task-type { color: #F5A623; }
+.ov-task-outreach .ov-task-type { color: #5AAAB0; }
+.ov-task-offer   .ov-task-type { color: #C8A96E; }
 
 .ov-task-desc {
-  flex: 1;
+  color: rgba(245, 240, 232, 0.72);
   min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Shown in the Today tile when every task is marked done. Sits where

@@ -12,6 +12,7 @@
 //     user:              { name, email } | null,
 //     auth:              { mode: 'signup' | 'login' },
 //     sidebarOpen:       boolean,
+//     sidebarCollapsed:  boolean,       // persisted: rail mode (icons only) vs full
 //     concepts:          { [id]: Concept },
 //     conceptDropdownOpen: boolean,   // sidebar concept-picker toggle
 //     onboardingOverlayOpen: boolean  // full-screen onboarding scrim
@@ -62,6 +63,9 @@ function _defaultState() {
     user: null,
     auth: { mode: 'signup' },
     sidebarOpen: false,
+    // Persists the "icons-only rail" preference across sessions. False
+    // means full-width 240px; true means 64px with icons and tooltips.
+    sidebarCollapsed: false,
     // Global UI preference for the Today tab \u2014 'list' or 'kanban'.
     // Sticky across concepts so the user's view choice follows them.
     // The actual task list (with statuses) lives per-concept on
@@ -318,6 +322,7 @@ function _normalizeState() {
   if (appState.activeView === 'results') appState.activeView = 'insights';
   if (!appState.auth || !appState.auth.mode) appState.auth = { mode: 'signup' };
   if (typeof appState.sidebarOpen !== 'boolean') appState.sidebarOpen = false;
+  if (typeof appState.sidebarCollapsed !== 'boolean') appState.sidebarCollapsed = false;
   if (!appState.today || typeof appState.today !== 'object') appState.today = { view: 'list' };
   if (appState.today.view !== 'list' && appState.today.view !== 'kanban') appState.today.view = 'list';
   // Transient in-session flags. Always false on load, regardless of

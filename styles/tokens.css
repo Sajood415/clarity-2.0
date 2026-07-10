@@ -22,6 +22,14 @@
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-accent: 0 4px 20px rgba(245, 166, 35, 0.2);
   --sidebar-w: 240px;
+  --sidebar-w-collapsed: 64px;
+  /* Effective sidebar width for the content-area inset. Body flips
+     between the two via the .sb-collapsed class. */
+  --sidebar-current-w: var(--sidebar-w);
+}
+
+body.sb-collapsed {
+  --sidebar-current-w: var(--sidebar-w-collapsed);
 }
 
 *,
@@ -52,7 +60,7 @@ button {
 }
 
 body.sb-open #app {
-  padding-left: var(--sidebar-w);
+  padding-left: var(--sidebar-current-w);
 }
 
 @media (max-width: 767px) {

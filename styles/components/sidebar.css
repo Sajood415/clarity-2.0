@@ -20,7 +20,12 @@
   flex-direction: column;
   z-index: 50;
   transform: translateX(0);
+  transition: width 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  overflow: hidden;
 }
+
+/* Smoothly reflow the main content area alongside the rail. */
+#app { transition: padding-left 220ms cubic-bezier(0.2, 0.7, 0.2, 1); }
 
 /* Legacy class kept for the mount transition, but no slide anymore. */
 .sb-sidebar-open { transform: translateX(0); }
@@ -36,6 +41,8 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   padding: 20px 16px 12px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -44,7 +51,42 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.015em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* --- Collapse toggle --- */
+
+.sb-collapse-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(245, 240, 232, 0.4);
+  transition: background 150ms ease, color 150ms ease, transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.sb-collapse-btn:hover {
+  background: rgba(255, 240, 220, 0.05);
+  color: rgba(245, 240, 232, 0.9);
+}
+
+.sb-collapse-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Chevron flips when the rail is collapsed so it points outward
+   (indicating "expand"). */
+.sb-sidebar-collapsed .sb-collapse-btn { transform: rotate(180deg); }
 
 /* --- Concept picker --- */
 
@@ -233,17 +275,8 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 /* --- Nav section --- */
 
 .sb-nav-section {
-  padding: 4px 8px 8px;
+  padding: 12px 8px 8px;
   flex-shrink: 0;
-}
-
-.sb-nav-label {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 16px 8px 8px;
 }
 
 .sb-nav {
@@ -425,4 +458,118 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 .sb-toast-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* =========================================================
+   Collapsed rail (icons only, --sidebar-w-collapsed wide)
+   ========================================================= */
+
+.sb-sidebar-collapsed { width: var(--sidebar-w-collapsed); }
+
+/* Center every row so lone icons/glyphs sit on the vertical axis. */
+.sb-sidebar-collapsed .sb-top {
+  padding: 20px 8px 12px;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sb-sidebar-collapsed .sb-brand {
+  font-size: 15px;
+  text-align: center;
+  width: 100%;
+}
+
+/* Concept rail (collapsed alternative to the picker). */
+.sb-concept-rail {
+  padding: 0 8px 4px;
+  display: flex;
+  justify-content: center;
+}
+
+.sb-concept-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(255, 240, 220, 0.04);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.sb-concept-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--concept-color, var(--accent));
+  opacity: 0.14;
+}
+
+.sb-concept-chip:hover {
+  background: rgba(255, 240, 220, 0.07);
+  border-color: rgba(245, 166, 35, 0.28);
+}
+
+.sb-concept-chip-letter {
+  position: relative;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+/* Nav section \u2014 kill the "NAVIGATION" label and center icons. */
+.sb-sidebar-collapsed .sb-nav-section {
+  padding: 8px 8px;
+}
+
+.sb-sidebar-collapsed .sb-nav-item {
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  gap: 0;
+}
+
+.sb-sidebar-collapsed .sb-nav-label-text {
+  display: none;
+}
+
+.sb-sidebar-collapsed .sb-nav-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Footer: swap to a centered stack \u2014 avatar over logout icon. */
+.sb-sidebar-collapsed .sb-bottom {
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 8px;
+}
+
+.sb-sidebar-collapsed .sb-user-info {
+  display: none;
+}
+
+.sb-sidebar-collapsed .sb-settings-btn {
+  width: 34px;
+  height: 34px;
+}
+
+/* No inline confirm chip in collapsed mode \u2014 markup already opts out. */
+.sb-sidebar-collapsed .sb-logout-confirm { display: none; }
+
+/* Toast anchors below the top area \u2014 keep it out of the icon column. */
+.sb-sidebar-collapsed .sb-toast {
+  left: 4px;
+  right: 4px;
+  font-size: 11px;
+  padding: 6px 8px;
 }
