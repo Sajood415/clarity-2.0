@@ -201,7 +201,14 @@ function _renderConceptDropdown(active) {
 }
 
 function _renderNavItems(collapsed) {
-  const activeView = appState.activeView || 'overview';
+  const rawView = appState.activeView || 'overview';
+  // Sub-pages roll up to their parent nav item for highlight purposes
+  // so the sidebar doesn't visually "lose" the active section when the
+  // user drills into a detail view. Tasks is accessed from Today's
+  // "Manage all tasks" link, so it inherits Today's highlight.
+  let activeView = rawView;
+  if (activeView === 'insights-detail') activeView = 'insights';
+  else if (activeView === 'tasks')      activeView = 'today';
   return SB_NAV_ITEMS.map(function (item) {
     const isActive = activeView === item.key;
     const icon = (VIEW_ICONS && VIEW_ICONS[item.icon]) || '';

@@ -140,9 +140,20 @@ function _renderActiveView(container) {
   switch (view) {
     case 'overview':         renderOverview(container); break;
     case 'today':            renderToday(container); break;
+    case 'tasks':
+      if (typeof renderTasks === 'function') renderTasks(container);
+      else renderOverview(container);
+      break;
     case 'chat':             renderChat(container); break;
     case 'create':           renderCreate(container); break;
     case 'insights':         renderInsights(container); break;
+    case 'insights-detail':
+      // Sub-page of Insights. Falls back to the list if the pinned id
+      // is missing or the item no longer exists (defensive \u2014 the
+      // normalizer already handles the empty-id case).
+      if (typeof renderInsightsDetail === 'function') renderInsightsDetail(container);
+      else renderInsights(container);
+      break;
     case 'concepts-list':    renderConceptsList(container); break;
     case 'market-report':
     case 'customer-report':

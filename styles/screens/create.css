@@ -10,6 +10,157 @@
   padding: 32px 24px 64px;
   max-width: 640px;
   margin: 0 auto;
+  animation: cr-fade-up 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Step 3 widens the container so 3 variation cards fit side-by-side
+   without squeezing the visual mockups. Everything else keeps the
+   tight 640px focus column so form flows stay focused. */
+.cr-wrap-wide {
+  max-width: 1080px;
+}
+
+@keyframes cr-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================
+   Progress indicator (top of every step)
+   ========================================== */
+
+.cr-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.cr-progress-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+.cr-progress-count {
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10.5px;
+}
+
+.cr-progress-sep {
+  color: rgba(245, 240, 232, 0.25);
+}
+
+.cr-progress-label {
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  font-size: 12px;
+}
+
+.cr-progress-dots {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.cr-prog-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 240, 220, 0.1);
+  transition: background 220ms ease, transform 220ms ease;
+}
+
+.cr-prog-dot-done   { background: rgba(245, 166, 35, 0.55); }
+.cr-prog-dot-active {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.55);
+  transform: scale(1.15);
+}
+
+.cr-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 240, 220, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.cr-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, rgba(212, 134, 10, 0.75) 100%);
+  border-radius: 2px;
+  transition: width 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.35);
+}
+
+/* ==========================================
+   Task-source banner (only when arriving from Today)
+   ========================================== */
+
+.cr-task-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid rgba(245, 166, 35, 0.22);
+  background:
+    linear-gradient(180deg, rgba(245, 166, 35, 0.05) 0%, transparent 100%),
+    var(--surface);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.cr-task-banner-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cr-task-banner-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.cr-task-banner-desc {
+  font-size: 12.5px;
+  color: rgba(245, 240, 232, 0.75);
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cr-task-banner-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+.cr-task-banner-close:hover {
+  color: var(--text);
+  background: rgba(255, 240, 220, 0.06);
+  border-color: rgba(255, 240, 220, 0.12);
 }
 
 /* --- Headings & subheadings (steps 1–3) --- */
@@ -318,6 +469,23 @@
   cursor: default;
 }
 
+/* Live character counter that sits below the brief textarea. Turns
+   amber once the soft limit is crossed so the user knows to trim. */
+.cr-brief-count {
+  display: block;
+  margin: -12px 0 20px;
+  font-size: 11px;
+  color: rgba(245, 240, 232, 0.35);
+  letter-spacing: 0.02em;
+  text-align: right;
+  transition: color 150ms ease;
+}
+
+.cr-brief-count-warn {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 /* ==========================================
    Generation loading state (Step 2 \u2192 Step 3)
    Amber dots on the shared cl-bounce keyframes so the rhythm
@@ -361,8 +529,66 @@
 }
 
 /* ==========================================
-   Step 3 — Variation cards
-   ========================================== */
+   Step 3 \u2014 Variation cards
+   ==========================================
+   Grid-first layout: 3 columns on the widened wrap so the user sees
+   every option at a glance. Falls back to a stacked column on narrow
+   viewports.
+*/
+
+.cr-step3-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.cr-step3-head .cr-heading-sm { margin-bottom: 4px; }
+.cr-step3-head .cr-subheading { margin-bottom: 0; }
+
+.cr-regen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 240, 220, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+  flex-shrink: 0;
+}
+
+.cr-regen-btn:hover {
+  background: rgba(245, 166, 35, 0.08);
+  border-color: rgba(245, 166, 35, 0.3);
+  color: var(--accent);
+}
+
+.cr-regen-btn:active { transform: translateY(1px); }
+
+.cr-regen-btn:hover .cr-regen-icon svg {
+  animation: cr-spin 700ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cr-regen-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+}
+
+@keyframes cr-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 
 .cr-variations {
   display: flex;
@@ -371,29 +597,147 @@
   margin-bottom: 20px;
 }
 
+/* 3-column grid on the wide wrap. Alignment: items-start so cards of
+   different heights (thread vs post) don't stretch to match. */
+.cr-variations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
 .cr-variation-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 18px;
   cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease;
+  transition: border-color 150ms ease, background 150ms ease, transform 180ms ease, box-shadow 180ms ease;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.cr-variation-card:hover,
+.cr-variation-card:hover {
+  border-color: rgba(245, 166, 35, 0.3);
+  background: rgba(245, 166, 35, 0.03);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
 .cr-variation-card-active {
   border-color: var(--accent);
-  background: rgba(245, 166, 35, 0.04);
+  background: rgba(245, 166, 35, 0.06);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12), 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
-.cr-variation-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  margin-bottom: 8px;
+.cr-variation-card-active::after {
+  content: '\u2713';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1a1108;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(245, 166, 35, 0.4);
+  z-index: 3;
 }
+
+/* Head row inside each card \u2014 angle label + sub + copy button. */
+.cr-variation-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.cr-variation-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cr-variation-angle {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.cr-variation-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  letter-spacing: 0.005em;
+  line-height: 1.35;
+}
+
+/* When a card is active, keep its own \u2713 in the top-right and shift
+   the copy button slightly so the two never overlap. */
+.cr-variation-card-active .cr-copy-btn { margin-right: 28px; }
+
+.cr-copy-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(255, 240, 220, 0.04);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 120ms ease;
+  flex-shrink: 0;
+}
+
+.cr-copy-btn:hover {
+  background: rgba(245, 166, 35, 0.08);
+  border-color: rgba(245, 166, 35, 0.3);
+  color: var(--accent);
+}
+
+.cr-copy-btn:active { transform: scale(0.94); }
+
+/* Success ack after clipboard write. */
+.cr-copy-btn-ok {
+  background: rgba(245, 166, 35, 0.18);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cr-copy-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+/* Inline (labeled) variant used on Step 4's publish preview header. */
+.cr-copy-btn-inline {
+  width: auto;
+  height: 30px;
+  padding: 0 12px;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cr-copy-btn-inline > * { line-height: 1; }
 
 /* Fallback plain-text (unknown format) */
 .cr-visual-text,
@@ -865,13 +1209,20 @@
   margin-bottom: 16px;
 }
 
+.cr-publish-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
 .cr-publish-label {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--accent);
-  margin-bottom: 10px;
 }
 
 .cr-publish-text {
@@ -899,17 +1250,28 @@
   font-size: 16px;
 }
 
+/* Container that holds the platform badge + confidence chip side by
+   side. Stacks on narrow viewports. */
+.cr-publish-meta {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
 .cr-publish-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px 6px 10px;
+  padding: 8px 14px 8px 12px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 20px;
   font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 24px;
+  align-self: flex-start;
+  flex-shrink: 0;
 }
 
 .cr-publish-badge-icon {
@@ -922,6 +1284,88 @@
 .cr-publish-badge-label {
   line-height: 1;
 }
+
+/* ==========================================
+   Confidence chip (Step 4)
+   ==========================================
+   Three variants: high (green-ish), solid (amber), experiment (muted
+   purple). Sits next to the platform badge and gives Clara a chance
+   to editorialise before the user commits.
+*/
+
+.cr-confidence {
+  flex: 1;
+  min-width: 240px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cr-confidence-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cr-confidence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.55);
+  flex-shrink: 0;
+}
+
+.cr-confidence-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.cr-confidence-copy {
+  font-size: 12.5px;
+  color: rgba(245, 240, 232, 0.7);
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+.cr-confidence-high {
+  background:
+    linear-gradient(180deg, rgba(102, 187, 106, 0.08) 0%, transparent 100%),
+    var(--surface);
+  border-color: rgba(102, 187, 106, 0.32);
+}
+.cr-confidence-high .cr-confidence-dot {
+  background: #7ED07A;
+  box-shadow: 0 0 8px rgba(126, 208, 122, 0.6);
+}
+.cr-confidence-high .cr-confidence-label { color: #A5E5A2; }
+
+.cr-confidence-solid {
+  background:
+    linear-gradient(180deg, rgba(245, 166, 35, 0.08) 0%, transparent 100%),
+    var(--surface);
+  border-color: rgba(245, 166, 35, 0.32);
+}
+.cr-confidence-solid .cr-confidence-label { color: var(--accent); }
+
+.cr-confidence-experiment {
+  background:
+    linear-gradient(180deg, rgba(159, 122, 197, 0.08) 0%, transparent 100%),
+    var(--surface);
+  border-color: rgba(159, 122, 197, 0.32);
+}
+.cr-confidence-experiment .cr-confidence-dot {
+  background: #B79BE5;
+  box-shadow: 0 0 8px rgba(183, 155, 229, 0.55);
+}
+.cr-confidence-experiment .cr-confidence-label { color: #C6B0EA; }
 
 .cr-publish-options {
   display: flex;
@@ -994,8 +1438,129 @@
 }
 
 /* ==========================================
-   Mobile
-   ========================================== */
+   Publishing success overlay (Step 4 \u2192 Insights)
+   ==========================================
+   Full-viewport scrim with a blurred backdrop, three pulsing amber
+   dots that swap for a check mark half-way through. Lives ~1.3s
+   before the router redirects to Insights.
+*/
+
+.cr-publishing {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 8, 6, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.cr-publishing-show { opacity: 1; }
+
+.cr-publishing-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 40px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+  min-width: 300px;
+  text-align: center;
+  transform: translateY(10px) scale(0.97);
+  transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.cr-publishing-show .cr-publishing-card {
+  transform: translateY(0) scale(1);
+}
+
+.cr-publishing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.cr-publishing-dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(245, 166, 35, 0.55);
+  animation: cl-bounce 0.9s ease-in-out infinite;
+}
+.cr-publishing-dot:nth-child(2) { animation-delay: 0.15s; }
+.cr-publishing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+.cr-publishing-check {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1a1108;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 24px rgba(245, 166, 35, 0.5);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 260ms cubic-bezier(0.2, 0.7, 0.2, 1), transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.cr-publishing-done .cr-publishing-dots {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.cr-publishing-done .cr-publishing-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.cr-publishing-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.cr-publishing-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 260px;
+}
+
+/* ==========================================
+   Responsive breakpoints
+   ==========================================
+   Progression:
+   - >=1024px: full wide wrap on step 3, 3-col variations
+   - 900-1023: keep 3 cols but slightly tighter gutters
+   - 700-899:  drop step 3 to 2 columns
+   - <700:     single column everywhere, all form paddings shrink
+*/
+
+@media (max-width: 1023px) {
+  .cr-wrap-wide { max-width: 900px; }
+  .cr-variations-grid { gap: 12px; }
+}
+
+@media (max-width: 899px) {
+  .cr-variations-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
 @media (max-width: 767px) {
   .cr-wrap {
@@ -1010,21 +1575,31 @@
   .cr-format-card,
   .cr-variation-card {
     padding: 16px;
-    min-height: 118px;
+  }
+  .cr-format-card { min-height: 118px; }
+  .cr-step3-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .cr-regen-btn { align-self: flex-start; }
+  .cr-publish-meta { flex-direction: column; }
+  .cr-confidence { min-width: 0; }
+}
+
+@media (max-width: 599px) {
+  .cr-variations-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 480px) {
-  /* On phones the 2-column grid gets cramped — the 12.5px description
-     starts wrapping awkwardly. Stack into a single column instead. */
   .cr-format-grid {
     grid-template-columns: 1fr;
   }
   .cr-format-card {
     min-height: 96px;
   }
-  /* Full-width square image on phones would still be readable but
-     drops a size to keep the picker scannable. */
   .cr-visual-image-icon {
     width: 36px;
     height: 36px;
@@ -1040,4 +1615,5 @@
   .cr-visual-post-text {
     padding-left: 0;
   }
+  .cr-progress-dots { display: none; }
 }

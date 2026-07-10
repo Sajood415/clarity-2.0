@@ -8,7 +8,8 @@
 //     mode:              'splash' | 'auth' | 'loading' | 'welcome' | 'home',
 //     activeConceptId:   string | null,
 //     activeView:        'overview' | 'today' | 'chat' | 'create' | 'insights'
-//                      | 'concepts-list' | '<name>-report',
+//                      | 'insights-detail' | 'concepts-list' | '<name>-report',
+//     insightsDetailId:  string | null,   // active item on the insights-detail sub-page
 //     user:              { name, email } | null,
 //     auth:              { mode: 'signup' | 'login' },
 //     sidebarOpen:       boolean,
@@ -79,6 +80,10 @@ function _defaultState() {
     // persisted; the normalizer force-resets them on load.
     conceptDropdownOpen: false,
     onboardingOverlayOpen: false,
+    // Which content item the Insights detail sub-page is currently
+    // showing. Persisted so a reload on the detail view can restore
+    // context. Cleared when the user navigates back to /insights.
+    insightsDetailId: null,
     concepts: {}
   };
 }
@@ -141,12 +146,151 @@ function _defaultCreate() {
     // so _crInit can pre-select sensible defaults for contentType,
     // subFormat, and platform. Cleared on Publish / Start over.
     fromTask: null,
-    generating: false
+    generating: false,
+    // Bumped every time the user hits "Regenerate" on Step 3. Each
+    // format's variation pool has 6 entries; the count picks a 3-item
+    // window into that pool so the same format can produce distinct
+    // trios without needing an LLM. Persisted so a reload doesn't
+    // silently reset the variations the user is looking at.
+    regenerationCount: 0,
+    // Transient: true while the Publish success animation is playing
+    // before we redirect to Insights. Normalized back to false on load
+    // so a stale flag never freezes the UI mid-flow.
+    publishing: false
   };
 }
 
 function _defaultResults() {
   return { items: [] };
+}
+
+// Default task board. Every concept starts with this one and it can't
+// be deleted; the "My Tasks" name and amber accent are preserved
+// across migrations so users always see a home for tasks that don't
+// belong to a custom board.
+function _defaultTaskBoard() {
+  return { id: 'default', name: 'My Tasks', color: '#F5A623', isDefault: true };
+}
+
+// The Tasks feature (dashboard nav item) lives per-concept and is
+// completely independent of the Today kanban. Shape:
+//   boards      \u2014 [{ id, name, color, isDefault }]. First entry is always
+//                 the default board (id: 'default') so existing task ids
+//                 don't need to know which board they hang off.
+//   items       \u2014 [{ id, title, description, status, priority, type,
+//                 source, boardId, dueDate, createdAt, updatedAt,
+//                 claraNotes, activity }]. `status` is one of the four
+//                 kanban columns ('todo' | 'inprogress' | 'done' |
+//                 'blocked'); `priority` is 'p0' | 'p1' | 'p2';
+//                 `type` is a business function label; `source` is
+//                 'clara' or 'manual'. `activity` is an append-only
+//                 log of {ts, kind, from, to, note} events keyed off
+//                 the same fields the detail panel edits.
+//   activeBoard \u2014 currently-visible boardId. Falls back to 'default'.
+//   view        \u2014 'board' | 'list' | 'calendar'. Sticky per concept so
+//                 switching concepts doesn't reset the user's preference.
+//   filters     \u2014 { status: [], priority: [], type: [], source: [] };
+//                 arrays of active values. Empty array = filter off for
+//                 that dimension. Empty across the board = show all.
+//   searchQuery \u2014 live text; matches title + description.
+//   detailId    \u2014 the task id whose right-side detail panel is open.
+//   addModalOpen  \u2014 transient; controls the "+ Add task" modal.
+//   newBoardOpen  \u2014 transient; controls the inline new-board form.
+//   calendarMonth \u2014 { year, month } the calendar view is anchored to.
+//                    Zero-indexed month like `Date.getMonth()`.
+//   calendarSelectedDate \u2014 'YYYY-MM-DD' of the day whose task list is
+//                    open below the grid, or null if none.
+function _defaultTasks() {
+  return {
+    boards: [_defaultTaskBoard()],
+    items: [],
+    activeBoard: 'default',
+    view: 'board',
+    filters: { status: [], priority: [], type: [], source: [] },
+    searchQuery: '',
+    detailId: null,
+    addModalOpen: false,
+    newBoardOpen: false,
+    calendarMonth: null,
+    calendarSelectedDate: null
+  };
+}
+
+// Six-preset palette the "new board" color picker offers. Kept as a
+// module-level constant so the picker + validator agree on the set of
+// legal colors. Any hex value is accepted at persistence time (a user
+// might edit the JSON), but the picker only offers these six.
+const TASK_BOARD_COLORS = ['#F5A623', '#5AAAB0', '#E8845A', '#9F7AC5', '#7A9FC5', '#7ED07A'];
+
+// Machine-key task type. Every card carries one so filtering by type
+// works across Clara-authored and manual tasks. `_taskTypeFromClara`
+// below maps GTM task categories (POST / OUTREACH / OFFER) into these.
+const TASK_TYPES = ['marketing', 'sales', 'operations', 'product', 'content', 'other'];
+const TASK_STATUSES = ['todo', 'inprogress', 'done', 'blocked'];
+const TASK_PRIORITIES = ['p0', 'p1', 'p2'];
+const TASK_SOURCES = ['clara', 'manual'];
+const TASK_VIEWS = ['board', 'list', 'calendar'];
+
+function _newTaskId() {
+  return 'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+function _newBoardId() {
+  return 'bd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+// Maps a Clara GTM task (from src/clara/tasks.js) into a Tasks-panel
+// item. The GTM task shape is { id, type ('POST'|'OUTREACH'|'OFFER'),
+// description, time, reason }. We fold `reason` into `claraNotes` so
+// the detail panel can surface it as Clara's rationale.
+function _taskFromClara(gtmTask, index) {
+  const kind = String(gtmTask.type || '').toUpperCase();
+  let taskType = 'marketing';
+  if (kind === 'OUTREACH') taskType = 'sales';
+  else if (kind === 'OFFER') taskType = 'sales';
+  else if (kind === 'POST')  taskType = 'content';
+  const title = String(gtmTask.description || 'Task').trim();
+  const now = Date.now();
+  return {
+    id: _newTaskId(),
+    title: title.length > 90 ? title.slice(0, 87).replace(/\s+\S*$/, '') + '\u2026' : title,
+    description: title.length > 90 ? title : '',
+    status: 'todo',
+    priority: index === 0 ? 'p1' : 'p2',
+    type: taskType,
+    source: 'clara',
+    boardId: 'default',
+    dueDate: '',
+    createdAt: now,
+    updatedAt: now,
+    claraNotes: gtmTask.reason ? String(gtmTask.reason) : '',
+    activity: [{ ts: now, kind: 'created', note: 'Clara suggested this task' }]
+  };
+}
+
+// One-shot backfill: seed the Tasks list for a completed-onboarding
+// concept that has never had Tasks populated. Called from the
+// normalizer so any legacy concept picks up its Clara tasks the first
+// time we see it. Returns true if any items were added.
+function _seedClaraTasksIfMissing(concept) {
+  if (!concept || !concept.tasks) return false;
+  if (concept.tasks.items.length > 0) return false;
+  if (!concept.chat || !concept.chat.onboardingComplete) return false;
+  if (typeof window._todayTasks !== 'function') return false;
+
+  // The GTM generator reads from getBusiness(), which resolves via the
+  // active concept. Temporarily park the active id on this concept so
+  // the seed reflects THIS concept's business context.
+  const savedActive = appState.activeConceptId;
+  appState.activeConceptId = concept.id;
+  let gtm = [];
+  try { gtm = window._todayTasks() || []; } catch (_) { gtm = []; }
+  appState.activeConceptId = savedActive;
+
+  const items = gtm.map(function (t, i) { return _taskFromClara(t, i); });
+  if (items.length === 0) return false;
+  concept.tasks.items = items;
+  return true;
 }
 
 // Strategic-planning research payload. Populated at onboarding-complete
@@ -197,6 +341,11 @@ function _newConcept(opts) {
     // mode. Cleared by the detail page's Back button, by the concept
     // header's Today tab click, and any time the id no longer resolves.
     today: { tasks: [], viewingTaskId: null },
+    // Full task-management workspace (Jira-style boards, filters,
+    // views). Populated with Clara's GTM suggestions when the concept
+    // finishes onboarding; manual tasks are added at any time via the
+    // Tasks screen. See `_defaultTasks()` for the full shape contract.
+    tasks: _defaultTasks(),
     create: _defaultCreate(),
     results: _defaultResults(),
     // Strategic Planning research (Market, Customer, Competition, GTM).
@@ -330,6 +479,14 @@ function _normalizeState() {
   appState.confirmingLogout = false;
   appState.conceptDropdownOpen = false;
   appState.onboardingOverlayOpen = false;
+  if (typeof appState.insightsDetailId !== 'string' || !appState.insightsDetailId) {
+    appState.insightsDetailId = null;
+  }
+  // If we landed on the detail sub-page but no id is set, fall back to
+  // the parent list so we don't render an empty detail shell.
+  if (appState.activeView === 'insights-detail' && !appState.insightsDetailId) {
+    appState.activeView = 'insights';
+  }
   if (!appState.concepts || typeof appState.concepts !== 'object') appState.concepts = {};
 
   // Normalize each concept
@@ -418,6 +575,84 @@ function _normalizeState() {
     // (undefined, number, corrupted value) resets to null so the Today
     // list opens by default on load.
     if (typeof c.today.viewingTaskId !== 'string') c.today.viewingTaskId = null;
+
+    // Task management workspace normalization. Legacy concepts (no
+    // `tasks` block at all) get a fresh default and, if they've already
+    // finished onboarding, an immediate Clara-task seed so their board
+    // isn't empty on first visit.
+    c.tasks = Object.assign(_defaultTasks(), c.tasks || {});
+    if (!Array.isArray(c.tasks.boards) || c.tasks.boards.length === 0) {
+      c.tasks.boards = [_defaultTaskBoard()];
+    } else {
+      // Guarantee the default board is present at index 0 with its
+      // reserved id, name, and amber color \u2014 no matter what a stale
+      // save may have looked like.
+      const hasDefault = c.tasks.boards.some(function (b) { return b && b.isDefault; });
+      if (!hasDefault) c.tasks.boards.unshift(_defaultTaskBoard());
+      c.tasks.boards = c.tasks.boards.map(function (b) {
+        if (!b || typeof b !== 'object') return _defaultTaskBoard();
+        return {
+          id: b.id || _newBoardId(),
+          name: (typeof b.name === 'string' && b.name.trim()) ? b.name.trim() : 'Board',
+          color: (typeof b.color === 'string' && /^#[0-9A-Fa-f]{3,8}$/.test(b.color)) ? b.color : '#F5A623',
+          isDefault: !!b.isDefault
+        };
+      });
+    }
+    if (!Array.isArray(c.tasks.items)) c.tasks.items = [];
+    const boardIds = c.tasks.boards.map(function (b) { return b.id; });
+    c.tasks.items = c.tasks.items
+      .filter(function (t) { return t && typeof t === 'object'; })
+      .map(function (t) {
+        const status   = TASK_STATUSES.indexOf(t.status) !== -1 ? t.status : 'todo';
+        const priority = TASK_PRIORITIES.indexOf(t.priority) !== -1 ? t.priority : 'p2';
+        const type     = TASK_TYPES.indexOf(t.type) !== -1 ? t.type : 'other';
+        const source   = TASK_SOURCES.indexOf(t.source) !== -1 ? t.source : 'manual';
+        // If a task's board was deleted, fall it back to the default
+        // so it's never orphaned to nowhere.
+        const boardId  = boardIds.indexOf(t.boardId) !== -1 ? t.boardId : 'default';
+        const now = Date.now();
+        return {
+          id: t.id || _newTaskId(),
+          title: typeof t.title === 'string' ? t.title : '',
+          description: typeof t.description === 'string' ? t.description : '',
+          status: status,
+          priority: priority,
+          type: type,
+          source: source,
+          boardId: boardId,
+          dueDate: typeof t.dueDate === 'string' ? t.dueDate : '',
+          createdAt: typeof t.createdAt === 'number' ? t.createdAt : now,
+          updatedAt: typeof t.updatedAt === 'number' ? t.updatedAt : now,
+          claraNotes: typeof t.claraNotes === 'string' ? t.claraNotes : '',
+          activity: Array.isArray(t.activity) ? t.activity.filter(function (a) { return a && typeof a === 'object'; }) : []
+        };
+      });
+    if (boardIds.indexOf(c.tasks.activeBoard) === -1) c.tasks.activeBoard = 'default';
+    if (TASK_VIEWS.indexOf(c.tasks.view) === -1) c.tasks.view = 'board';
+    if (!c.tasks.filters || typeof c.tasks.filters !== 'object') {
+      c.tasks.filters = { status: [], priority: [], type: [], source: [] };
+    }
+    ['status', 'priority', 'type', 'source'].forEach(function (k) {
+      if (!Array.isArray(c.tasks.filters[k])) c.tasks.filters[k] = [];
+    });
+    if (typeof c.tasks.searchQuery !== 'string') c.tasks.searchQuery = '';
+    if (typeof c.tasks.detailId !== 'string') c.tasks.detailId = null;
+    // Transient UI flags always reset on load.
+    c.tasks.addModalOpen = false;
+    c.tasks.newBoardOpen = false;
+    // If the pinned calendar month is corrupted, drop it \u2014 the
+    // calendar view will lazily re-seed to "today" on first render.
+    if (!c.tasks.calendarMonth
+        || typeof c.tasks.calendarMonth.year !== 'number'
+        || typeof c.tasks.calendarMonth.month !== 'number') {
+      c.tasks.calendarMonth = null;
+    }
+    if (typeof c.tasks.calendarSelectedDate !== 'string') c.tasks.calendarSelectedDate = null;
+
+    // One-shot seed for legacy concepts (onboarding done, tasks empty).
+    _seedClaraTasksIfMissing(c);
+
     c.create = Object.assign(_defaultCreate(), c.create || {});
     // Old create shape used string steps ('ask', 'publish') and free-text
     // fields (askSubmitted, userRequest, angle). If we see anything but a
@@ -427,6 +662,12 @@ function _normalizeState() {
       c.create = _defaultCreate();
     }
     if (!Array.isArray(c.create.variations)) c.create.variations = [];
+    if (typeof c.create.regenerationCount !== 'number' || c.create.regenerationCount < 0) {
+      c.create.regenerationCount = 0;
+    }
+    // Transient flags always false on load.
+    c.create.publishing = false;
+    c.create.generating = false;
     // Sweep any lingering fields from the pre-wizard flow so localStorage
     // stays clean and stringified state is predictable.
     ['askSubmitted', 'userRequest', 'type', 'platform', 'angle', 'selected', 'draftSaved', 'selectedSuggestion'].forEach(function (k) {
@@ -494,6 +735,16 @@ function getResults() {
   return c ? c.results : _defaultResults();
 }
 
+// Task workspace accessor. Returns the raw tasks block on the active
+// concept so callers can mutate it in place (mirrors getBusiness /
+// getCreate). When there's no active concept we hand back a fresh
+// default so screens don't crash mid-render \u2014 mutations here won't
+// persist, which is the intended behaviour pre-onboarding.
+function getTasks() {
+  const c = getActiveConcept();
+  return c ? c.tasks : _defaultTasks();
+}
+
 // Create a brand new concept and make it active. Returns the concept
 // id. The only supported option is `name` (pre-set business name for
 // the rare code paths that seed a value from outside Clara's flow \u2014
@@ -530,7 +781,12 @@ function switchConcept(conceptId) {
 
 function setActiveView(view) {
   const allowed = [
-    'overview', 'today', 'chat', 'create', 'insights',
+    'overview', 'today', 'tasks', 'chat', 'create', 'insights',
+    // Sub-page of Insights \u2014 rich analytics for a single content item.
+    // Reached from an Insights card click. The active id lives on
+    // appState.insightsDetailId; the sidebar Insights nav item stays
+    // highlighted while we're here.
+    'insights-detail',
     // Full-screen sibling view (no concept top-bar row).
     'concepts-list',
     // Strategic Planning reports. Each opens as a full-screen view
@@ -540,10 +796,16 @@ function setActiveView(view) {
   ];
   if (allowed.indexOf(view) === -1) return;
   appState.activeView = view;
+  // Leaving the detail sub-page always clears the pinned item so the
+  // next time we navigate to /insights-detail we know a fresh id was
+  // set intentionally.
+  if (view !== 'insights-detail' && appState.insightsDetailId) {
+    appState.insightsDetailId = null;
+  }
   // Remember the last primary tab for deep-link recovery. Reports and
   // the concepts list are sub-pages, they don't count.
   const isReport = view.indexOf('-report') !== -1;
-  const isSubPage = view === 'concepts-list' || isReport;
+  const isSubPage = view === 'concepts-list' || view === 'insights-detail' || isReport;
   if (!isSubPage) {
     const c = getActiveConcept();
     if (c) c.lastWorkspaceView = view;
@@ -575,8 +837,20 @@ window.getBusiness = getBusiness;
 window.getChat = getChat;
 window.getCreate = getCreate;
 window.getResults = getResults;
+window.getTasks = getTasks;
 window.createConcept = createConcept;
 window.switchConcept = switchConcept;
 window.setActiveView = setActiveView;
 window._isReportView = _isReportView;
 window._defaultResearch = _defaultResearch;
+window._defaultTaskBoard = _defaultTaskBoard;
+window._newTaskId = _newTaskId;
+window._newBoardId = _newBoardId;
+window._taskFromClara = _taskFromClara;
+window._seedClaraTasksIfMissing = _seedClaraTasksIfMissing;
+window.TASK_STATUSES = TASK_STATUSES;
+window.TASK_PRIORITIES = TASK_PRIORITIES;
+window.TASK_TYPES = TASK_TYPES;
+window.TASK_SOURCES = TASK_SOURCES;
+window.TASK_VIEWS = TASK_VIEWS;
+window.TASK_BOARD_COLORS = TASK_BOARD_COLORS;

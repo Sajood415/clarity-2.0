@@ -656,6 +656,13 @@ function _obCompleteFlow() {
     role: 'clara',
     text: "Your workspace is ready. I'll be here in the Chat tab whenever you want to talk."
   });
+  // Seed the Tasks board with Clara's GTM suggestions so the new user's
+  // first visit to Tasks isn't an empty state. Safe to call more than
+  // once \u2014 _seedClaraTasksIfMissing bails when items already exist.
+  if (typeof window._seedClaraTasksIfMissing === 'function') {
+    const active = getActiveConcept();
+    if (active) window._seedClaraTasksIfMissing(active);
+  }
   // Legacy flag consumed by the old concept header (harmless now).
   window._justUnlockedConcept = true;
 

@@ -307,6 +307,31 @@
   margin-top: 20px;
 }
 
+.td-manage-tasks {
+  display: block;
+  margin-top: 20px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 120ms ease, transform 120ms ease;
+  border-radius: 6px;
+  outline: none;
+}
+
+.td-manage-tasks:hover {
+  color: var(--accent-dark);
+  transform: translateX(2px);
+}
+
+.td-manage-tasks:focus-visible {
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
 /* ==========================================
    Kanban view
    ========================================== */

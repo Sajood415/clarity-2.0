@@ -722,6 +722,11 @@ function _completeOnboardingNow() {
     role: 'clara',
     text: "Your workspace is ready. I'll be here in the Chat tab whenever you want to talk through anything."
   });
+  // Seed the Tasks board with Clara's GTM suggestions (legacy flow).
+  if (typeof window._seedClaraTasksIfMissing === 'function') {
+    const active = getActiveConcept();
+    if (active) window._seedClaraTasksIfMissing(active);
+  }
   _saveState();
   renderApp();
 }

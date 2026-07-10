@@ -19,15 +19,36 @@
 const CH_VIEW_LABELS = {
   'overview':          'Overview',
   'today':             'Today',
+  'tasks':             'Tasks',
   'chat':              'Chat',
   'create':            'Create',
   'insights':          'Insights',
+  'insights-detail':   'Insights',
   'concepts-list':     'Your concepts',
   'market-report':     'Market report',
   'customer-report':   'Customer report',
   'competition-report':'Competition report',
   'plan-report':       'Go-to-market plan'
 };
+
+// Truncate a longer content body to something that fits in the top
+// bar as the terminal crumb on the Insights detail page. Kept short
+// so the breadcrumb never wraps the 48px topbar.
+function _chTruncate(str, max) {
+  const s = String(str || '').trim();
+  if (s.length <= max) return s;
+  return s.slice(0, max).replace(/\s+\S*$/, '').trim() + '\u2026';
+}
+
+function _chInsightsDetailTitle() {
+  const c = getActiveConcept();
+  const items = (c && c.results && Array.isArray(c.results.items)) ? c.results.items : [];
+  const id = appState.insightsDetailId;
+  const item = id ? items.find(function (i) { return i && i.id === id; }) : null;
+  if (!item) return 'Content';
+  const raw = (item.angle && item.angle.trim()) || item.variation || 'Content';
+  return _chTruncate(raw, 48);
+}
 
 function _renderConceptHeader() {
   const view = appState.activeView || 'overview';
@@ -67,6 +88,48 @@ function _renderConceptHeader() {
   const b = c.business || {};
   const conceptName = (b.name && b.name.trim()) || 'New concept';
 
+  // Insights detail sub-page gets a 3-part crumb where the middle
+  // segment (Insights) is clickable and takes the user back to the
+  // list view. Terminal segment is a preview of the item's angle.
+  if (view === 'insights-detail') {
+    const itemTitle = _chInsightsDetailTitle();
+    return `
+      <header class="ch-topbar" role="banner">
+        <div class="ch-topbar-inner">
+          <div class="ch-crumbs">
+            <span class="ch-crumb-concept">${_escape(conceptName)}</span>
+            <span class="ch-crumb-sep" aria-hidden="true">/</span>
+            <button type="button" class="ch-crumb-link" id="chCrumbInsights">Insights</button>
+            <span class="ch-crumb-sep" aria-hidden="true">/</span>
+            <span class="ch-crumb-page">${_escape(itemTitle)}</span>
+          </div>
+          <div class="ch-topbar-right"></div>
+        </div>
+      </header>
+    `;
+  }
+
+  // Tasks is a Today sub-page (reached via "Manage all tasks \u2192").
+  // Left of the topbar swaps the usual concept crumb for a "\u2190 Today"
+  // back link followed by the "Tasks" page label \u2014 clear parent + page.
+  if (view === 'tasks') {
+    return `
+      <header class="ch-topbar" role="banner">
+        <div class="ch-topbar-inner">
+          <div class="ch-crumbs">
+            <button type="button" class="ch-back-link" id="chBackToday" aria-label="Back to Today">
+              <span class="ch-back-arrow" aria-hidden="true">\u2190</span>
+              <span>Today</span>
+            </button>
+            <span class="ch-crumb-sep" aria-hidden="true">/</span>
+            <span class="ch-crumb-page">${_escape(pageLabel)}</span>
+          </div>
+          <div class="ch-topbar-right"></div>
+        </div>
+      </header>
+    `;
+  }
+
   return `
     <header class="ch-topbar" role="banner">
       <div class="ch-topbar-inner">
@@ -81,9 +144,24 @@ function _renderConceptHeader() {
   `;
 }
 
-// No interactive controls in the top bar right now, but the router
-// still calls this after every render so we keep the export shape stable.
-function _bindConceptHeaderEvents() { /* intentionally empty */ }
+// Wire the clickable crumb / back links in the topbar. Kept as native
+// buttons so they're keyboard-focusable without extra work.
+function _bindConceptHeaderEvents() {
+  const backCrumb = document.getElementById('chCrumbInsights');
+  if (backCrumb) {
+    backCrumb.addEventListener('click', function () {
+      setActiveView('insights');
+      renderApp();
+    });
+  }
+  const backToday = document.getElementById('chBackToday');
+  if (backToday) {
+    backToday.addEventListener('click', function () {
+      setActiveView('today');
+      renderApp();
+    });
+  }
+}
 
 window._renderConceptHeader = _renderConceptHeader;
 window._bindConceptHeaderEvents = _bindConceptHeaderEvents;

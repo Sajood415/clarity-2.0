@@ -34,6 +34,14 @@ const VIEW_ICONS = {
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
     </svg>
   `,
+  tasks: `
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="7" height="16" rx="1.5"/>
+      <rect x="14" y="4" width="7" height="10" rx="1.5"/>
+      <line x1="5.5" y1="8" x2="7.5" y2="8"/>
+      <line x1="16.5" y1="8" x2="18.5" y2="8"/>
+    </svg>
+  `,
   overview: `
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="3" width="8" height="8" rx="1.5"/>
@@ -168,6 +176,99 @@ const SB_TRASH_ICON_SVG = `
   </svg>
 `;
 
+// Icons used by the Tasks screen (boards, views, calendar controls).
+const TK_ICONS = {
+  boardView: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="5" height="16" rx="1"/>
+      <rect x="10" y="4" width="5" height="10" rx="1"/>
+      <rect x="17" y="4" width="4" height="13" rx="1"/>
+    </svg>
+  `,
+  listView: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="8" y1="6" x2="21" y2="6"/>
+      <line x1="8" y1="12" x2="21" y2="12"/>
+      <line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.5" y2="6"/>
+      <line x1="3" y1="12" x2="3.5" y2="12"/>
+      <line x1="3" y1="18" x2="3.5" y2="18"/>
+    </svg>
+  `,
+  calendarView: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="16" rx="2"/>
+      <line x1="16" y1="3" x2="16" y2="7"/>
+      <line x1="8" y1="3" x2="8" y2="7"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  `,
+  plus: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  `,
+  search: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"/>
+      <line x1="21" y1="21" x2="16.5" y2="16.5"/>
+    </svg>
+  `,
+  close: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="5" y1="5" x2="19" y2="19"/>
+      <line x1="19" y1="5" x2="5" y2="19"/>
+    </svg>
+  `,
+  chevronLeft: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  `,
+  chevronRight: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  `,
+  chevronUp: `
+    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="18 15 12 9 6 15"/>
+    </svg>
+  `,
+  chevronDown: `
+    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  `,
+  moreVertical: `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+      <circle cx="12" cy="5" r="1.6"/>
+      <circle cx="12" cy="12" r="1.6"/>
+      <circle cx="12" cy="19" r="1.6"/>
+    </svg>
+  `,
+  sparkle: `
+    <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l1.7 5.8L19.5 9 13.7 10.5 12 16 10.3 10.5 4.5 9l5.8-1.2z"/>
+      <circle cx="19" cy="18" r="1.2"/>
+      <circle cx="5" cy="18" r="0.9"/>
+    </svg>
+  `,
+  trash: `
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+    </svg>
+  `,
+  filter: `
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polygon points="22 3 2 3 10 12.5 10 21 14 19 14 12.5"/>
+    </svg>
+  `
+};
+
 window.AUTH_GOOGLE_ICON = AUTH_GOOGLE_ICON;
 window.AU_CHECK_ICON = AU_CHECK_ICON;
 window.CL_SEND_ARROW_SVG = CL_SEND_ARROW_SVG;
@@ -181,3 +282,4 @@ window.SB_TRASH_ICON_SVG = SB_TRASH_ICON_SVG;
 window.SB_CHEVRON_DOWN_SVG = SB_CHEVRON_DOWN_SVG;
 window.SB_GRID_ICON_SVG = SB_GRID_ICON_SVG;
 window.SB_COLLAPSE_ICON_SVG = SB_COLLAPSE_ICON_SVG;
+window.TK_ICONS = TK_ICONS;

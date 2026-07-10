@@ -111,10 +111,12 @@ function renderToday(container) {
       </div>
       <div id="tdBody"></div>
       <div class="td-footer-note">Clara updates these every day based on what\u2019s working.</div>
+      <a class="td-manage-tasks" id="tdManageTasks" role="button" tabindex="0">Manage all tasks \u2192</a>
     </section>
   `;
 
   _bindTdViewToggle(container);
+  _bindTdManageTasks(container);
 
   const body = container.querySelector('#tdBody');
   if (isKanban) _renderTdKanban(body, c);
@@ -236,6 +238,26 @@ function _bindTdViewToggle(scope) {
       _setTodayView(next);
       renderToday(scope);
     });
+  });
+}
+
+// "Manage all tasks \u2192" is the only entry point to the full task
+// workspace (Tasks isn't in the sidebar nav). Clicking or Enter/Space
+// activation flips the active view to 'tasks'; the router mounts the
+// Tasks screen inside the existing dashboard shell.
+function _bindTdManageTasks(scope) {
+  const link = scope.querySelector('#tdManageTasks');
+  if (!link) return;
+  const go = function () {
+    setActiveView('tasks');
+    renderApp();
+  };
+  link.addEventListener('click', go);
+  link.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      go();
+    }
   });
 }
 
@@ -415,9 +437,9 @@ function _resolveStatus(s) {
 function _openTaskInCreate(task) {
   const create = getCreate();
   _resetCreate();
+  // Create's _crInit reads fromTask and pre-selects (contentType,
+  // subFormat, platform) via CR_TASK_DEFAULTS keyed off task.type.
   create.fromTask = task;
-  create.type = 'post';
-  create.platform = getBusiness().reach === 'local' ? 'instagram' : 'linkedin';
   appState.activeView = 'create';
   _saveState();
   renderApp();

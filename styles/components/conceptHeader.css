@@ -56,6 +56,78 @@
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+/* Clickable middle crumb used on the Insights detail sub-page.
+   Matches the muted concept crumb visually but with a subtle hover
+   tint so users know it's interactive. */
+.ch-crumb-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: color 150ms ease;
+  white-space: nowrap;
+}
+
+.ch-crumb-link:hover  { color: var(--accent); }
+.ch-crumb-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* "\u2190 Today" back link used when the user is on the Tasks page.
+   Sits at the far left of the crumbs row and reads as a clear return
+   affordance to the parent view. */
+.ch-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px 8px 4px 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  border-radius: 6px;
+  margin-left: -6px;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+  white-space: nowrap;
+}
+
+.ch-back-link:hover {
+  background: rgba(245, 166, 35, 0.08);
+  color: var(--accent);
+  transform: translateX(-1px);
+}
+
+.ch-back-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ch-back-arrow {
+  font-size: 14px;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 150ms ease;
+}
+
+.ch-back-link:hover .ch-back-arrow {
+  transform: translateX(-2px);
 }
 
 .ch-topbar-right {
