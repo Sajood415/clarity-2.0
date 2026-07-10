@@ -395,95 +395,462 @@
   margin-bottom: 8px;
 }
 
+/* Fallback plain-text (unknown format) */
+.cr-visual-text,
 .cr-variation-text {
   font-size: 14px;
   color: var(--text);
   line-height: 1.6;
 }
 
-/* Format-specific inner blocks. Labels stay small + muted so the
-   readable content dominates. All variants share the same column
-   layout — the difference is which sub-labels appear. */
+/* ==========================================
+   Format-specific visual mockups (Step 3 + Step 4 preview)
+   Each variation gets a real-looking preview of the content type so
+   the picker reads at a glance (photo frame, video player, waveform,
+   inbox row, etc.), and A/B/C carry per-variation tints.
+   ========================================== */
 
-.cr-variation-email,
-.cr-variation-video,
-.cr-variation-audio,
-.cr-variation-image,
-.cr-variation-newsletter {
+.cr-visual {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 12px;
 }
 
-/* Threads are numbered lines — small pill for the position + the line
-   text. Reads like an actual X/LinkedIn thread scaffold. */
+/* --- Shared social-post primitives (avatar + handle + timestamp) --- */
 
-.cr-variation-thread {
+.cr-visual-post-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.cr-visual-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+  color: #1a120a;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.cr-visual-avatar-sm {
+  width: 24px;
+  height: 24px;
+  font-size: 9px;
+}
+
+.cr-visual-handle {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cr-visual-time {
+  color: var(--muted);
+}
+
+/* ==========================================
+   Image variation — square photo frame + post strip
+   ========================================== */
+
+.cr-visual-image-frame {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #F5A623 0%, #C8792E 100%);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.cr-visual-image-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.16), transparent 55%);
+  pointer-events: none;
+}
+
+.cr-visual-image-icon {
+  position: relative;
+  color: rgba(255, 255, 255, 0.85);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+}
+
+.cr-visual-image-hint {
+  position: relative;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.45;
+  text-align: center;
+  max-width: 92%;
+  font-style: italic;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* A/B/C tint variants */
+.cr-visual-image[data-variation="A"] .cr-visual-image-frame { background: linear-gradient(135deg, #F5A623 0%, #C8792E 100%); }
+.cr-visual-image[data-variation="B"] .cr-visual-image-frame { background: linear-gradient(135deg, #5AAAB0 0%, #3C7D82 100%); }
+.cr-visual-image[data-variation="C"] .cr-visual-image-frame { background: linear-gradient(135deg, #C8A96E 0%, #8C7644 100%); }
+
+.cr-visual-post-strip {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.cr-variation-thread-line {
+.cr-visual-caption {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+/* ==========================================
+   Video variation — 16:9 player frame with hook overlay
+   ========================================== */
+
+.cr-visual-video-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1512 0%, #2a2320 60%, #3a2d1a 100%);
+}
+
+.cr-visual-video[data-variation="A"] .cr-visual-video-frame { background: linear-gradient(135deg, #1a0f0a 0%, #4a2610 100%); }
+.cr-visual-video[data-variation="B"] .cr-visual-video-frame { background: linear-gradient(135deg, #0a1f22 0%, #1a4c52 100%); }
+.cr-visual-video[data-variation="C"] .cr-visual-video-frame { background: linear-gradient(135deg, #1a1408 0%, #4a3a0a 100%); }
+
+.cr-visual-video-duration {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+.cr-visual-video-play {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  color: #fff;
+  padding-left: 3px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+.cr-visual-video-hook {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 26px 14px 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  z-index: 1;
+}
+
+/* ==========================================
+   Audio variation — inline player with waveform bars
+   ========================================== */
+
+.cr-visual-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #1a1512 0%, #251f18 100%);
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+}
+
+.cr-visual-audio[data-variation="A"] .cr-visual-audio-player { border-color: rgba(245, 166, 35, 0.28); }
+.cr-visual-audio[data-variation="B"] .cr-visual-audio-player { border-color: rgba(90, 170, 176, 0.28); }
+.cr-visual-audio[data-variation="C"] .cr-visual-audio-player { border-color: rgba(200, 169, 110, 0.28); }
+
+.cr-visual-audio-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1a120a;
+  padding-left: 2px;
+  flex-shrink: 0;
+}
+
+.cr-visual-audio[data-variation="B"] .cr-visual-audio-play { background: #5AAAB0; color: #052224; }
+.cr-visual-audio[data-variation="C"] .cr-visual-audio-play { background: #C8A96E; color: #1a1408; }
+
+.cr-visual-wave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  min-width: 0;
+}
+
+.cr-visual-wave-bar {
+  flex: 1;
+  min-width: 2px;
+  background: linear-gradient(to top, var(--accent) 0%, rgba(245, 166, 35, 0.35) 100%);
+  border-radius: 1px;
+  min-height: 4px;
+  align-self: center;
+}
+
+.cr-visual-audio[data-variation="B"] .cr-visual-wave-bar { background: linear-gradient(to top, #5AAAB0 0%, rgba(90, 170, 176, 0.35) 100%); }
+.cr-visual-audio[data-variation="C"] .cr-visual-wave-bar { background: linear-gradient(to top, #C8A96E 0%, rgba(200, 169, 110, 0.35) 100%); }
+
+.cr-visual-audio-time {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================
+   Script rows (used by video + audio)
+   Labeled pills (HOOK / MIDDLE / CTA) + line of copy per row.
+   ========================================== */
+
+.cr-visual-script {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cr-visual-script-row {
   display: flex;
   gap: 10px;
   align-items: baseline;
 }
 
-.cr-variation-thread-num {
+.cr-visual-script-key {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 11px;
+  min-width: 54px;
+  padding: 3px 8px;
+  border-radius: 4px;
   background: rgba(245, 166, 35, 0.1);
   color: var(--accent);
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.1em;
   flex-shrink: 0;
+  text-transform: uppercase;
+  line-height: 1.2;
 }
 
-.cr-variation-thread-text {
+.cr-visual-script-val {
   font-size: 13px;
   color: var(--text);
   line-height: 1.55;
+  flex: 1;
+  min-width: 0;
 }
 
-.cr-variation-sublabel {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  margin-top: 8px;
-}
+/* ==========================================
+   Post variation — social-post card
+   ========================================== */
 
-.cr-variation-sublabel-sm {
-  font-size: 11px;
-  margin-top: 0;
-}
-
-.cr-variation-email > .cr-variation-sublabel:first-child,
-.cr-variation-video > .cr-variation-sublabel:first-child,
-.cr-variation-audio > .cr-variation-sublabel:first-child {
-  margin-top: 0;
-}
-
-.cr-variation-subject {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.4;
-}
-
-.cr-variation-body,
-.cr-variation-line {
-  font-size: 13px;
+.cr-visual-post-text {
+  font-size: 14px;
   color: var(--text);
   line-height: 1.6;
+  padding-left: 36px; /* align under handle text (avatar + gap) */
+}
+
+/* ==========================================
+   Email variation — inbox-style header + body
+   ========================================== */
+
+.cr-visual-email {
+  gap: 0;
+}
+
+.cr-visual-email-head {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cr-visual-email-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 12.5px;
+}
+
+.cr-visual-email-key {
+  min-width: 52px;
+  color: var(--muted);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.cr-visual-email-val {
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 0;
+}
+
+.cr-visual-email-subject {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.cr-visual-email-body {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+/* ==========================================
+   Newsletter variation — branded header + body
+   ========================================== */
+
+.cr-visual-newsletter {
+  gap: 12px;
+}
+
+.cr-visual-newsletter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 4px;
+}
+
+.cr-visual-newsletter-brand {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.cr-visual-newsletter-date {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  font-style: italic;
+}
+
+.cr-visual-newsletter-headline {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.cr-visual-newsletter-body {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+/* ==========================================
+   Thread variation — stacked tweet-like items with connectors
+   ========================================== */
+
+.cr-visual-thread {
+  gap: 0;
+}
+
+.cr-visual-thread-item {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.cr-visual-thread-avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cr-visual-thread-connector {
+  flex: 1;
+  width: 2px;
+  background: var(--border-strong);
+  border-radius: 1px;
+  min-height: 12px;
+}
+
+.cr-visual-thread-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 6px;
+}
+
+.cr-visual-thread-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.cr-visual-thread-num {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cr-visual-thread-text {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.55;
 }
 
 /* ==========================================
@@ -514,16 +881,22 @@
   white-space: pre-wrap;
 }
 
-/* Publish preview reuses the variation body renderer so email and
-   video keep their labeled structure at the READY TO PUBLISH stage. */
-.cr-publish-body .cr-variation-text {
-  font-size: 15px;
+/* Publish preview reuses the variation body renderer so every format
+   keeps its mockup at the READY TO PUBLISH stage. Nudge the caption /
+   text / body sizes up a touch for the confirmation moment. */
+.cr-publish-body .cr-visual-text,
+.cr-publish-body .cr-visual-caption,
+.cr-publish-body .cr-visual-post-text,
+.cr-publish-body .cr-visual-email-body,
+.cr-publish-body .cr-visual-newsletter-body,
+.cr-publish-body .cr-visual-thread-text,
+.cr-publish-body .cr-visual-script-val {
+  font-size: 14.5px;
 }
 
-.cr-publish-body .cr-variation-subject,
-.cr-publish-body .cr-variation-body,
-.cr-publish-body .cr-variation-line {
-  font-size: 14px;
+.cr-publish-body .cr-visual-email-subject,
+.cr-publish-body .cr-visual-newsletter-headline {
+  font-size: 16px;
 }
 
 .cr-publish-badge {
@@ -649,5 +1022,22 @@
   }
   .cr-format-card {
     min-height: 96px;
+  }
+  /* Full-width square image on phones would still be readable but
+     drops a size to keep the picker scannable. */
+  .cr-visual-image-icon {
+    width: 36px;
+    height: 36px;
+  }
+  .cr-visual-video-play {
+    width: 46px;
+    height: 46px;
+  }
+  .cr-visual-script-key {
+    min-width: 46px;
+    font-size: 9px;
+  }
+  .cr-visual-post-text {
+    padding-left: 0;
   }
 }

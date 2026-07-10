@@ -422,72 +422,205 @@ function _crThreadVariations() {
 // ---------------------------------------------
 // Variation rendering (Step 3 cards + Step 4 preview)
 // ---------------------------------------------
+//
+// Each format gets a distinct visual mockup so the user can actually
+// see WHAT they're picking, not just READ about it:
+//   image      — square photo frame + social post strip below
+//   video      — 16:9 player frame with play button, duration, hook overlay
+//   audio      — inline audio-player row with waveform bars
+//   post       — social post card (avatar + handle + text)
+//   email      — inbox-style From/Subject header + body
+//   newsletter — branded header + headline + body
+//   thread     — vertical stack of tweet-style items with connectors
+//
+// Per-variation gradient/border tints (A/B/C) make the three options
+// visually distinct at a glance in the picker.
+
+function _crHandleFromBusinessName() {
+  const raw = _crBusinessName();
+  if (!raw || raw === 'your business') return 'yourbusiness';
+  const cleaned = raw.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return cleaned.slice(0, 20) || 'yourbusiness';
+}
+
+function _crAvatarInitials() {
+  const raw = _crBusinessName();
+  if (!raw || raw === 'your business') return 'YB';
+  const parts = raw.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+}
+
+// Deterministic 0..1 hash from a small string. Used to seed waveform
+// bar heights so each variation's wave looks unique but stable across
+// re-renders instead of jittering.
+function _crSeededBars(id, count) {
+  const seed = String(id || 'A').charCodeAt(0);
+  const bars = [];
+  for (let i = 0; i < count; i++) {
+    const h = 24 + ((seed * 13 + i * 37) % 60);
+    bars.push('<span class="cr-visual-wave-bar" style="height:' + h + '%"></span>');
+  }
+  return bars.join('');
+}
 
 function _crRenderVariationBody(v) {
   if (!v) return '';
-  if (v.format === 'image') {
+  if (v.format === 'image')      return _crRenderImagePreview(v);
+  if (v.format === 'video')      return _crRenderVideoPreview(v);
+  if (v.format === 'audio')      return _crRenderAudioPreview(v);
+  if (v.format === 'email')      return _crRenderEmailPreview(v);
+  if (v.format === 'newsletter') return _crRenderNewsletterPreview(v);
+  if (v.format === 'thread')     return _crRenderThreadPreview(v);
+  if (v.format === 'post')       return _crRenderPostPreview(v);
+  return '<div class="cr-visual cr-visual-text">' + _escape(v.text || '') + '</div>';
+}
+
+function _crRenderImagePreview(v) {
+  const handle = _crHandleFromBusinessName();
+  const initials = _crAvatarInitials();
+  return ''
+    + '<div class="cr-visual cr-visual-image" data-variation="' + _escape(v.id) + '">'
+    +   '<div class="cr-visual-image-frame" aria-hidden="true">'
+    +     '<svg class="cr-visual-image-icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
+    +       '<rect x="3" y="3" width="18" height="18" rx="2"/>'
+    +       '<circle cx="8.5" cy="8.5" r="1.5"/>'
+    +       '<polyline points="21 15 16 10 5 21"/>'
+    +     '</svg>'
+    +     '<div class="cr-visual-image-hint">' + _escape(v.visual || '') + '</div>'
+    +   '</div>'
+    +   '<div class="cr-visual-post-strip">'
+    +     '<div class="cr-visual-post-meta">'
+    +       '<span class="cr-visual-avatar" aria-hidden="true">' + _escape(initials) + '</span>'
+    +       '<span class="cr-visual-handle">@' + _escape(handle) + '</span>'
+    +       '<span class="cr-visual-time">\u00b7 now</span>'
+    +     '</div>'
+    +     '<div class="cr-visual-caption">' + _escape(v.caption || '') + '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+function _crRenderVideoPreview(v) {
+  return ''
+    + '<div class="cr-visual cr-visual-video" data-variation="' + _escape(v.id) + '">'
+    +   '<div class="cr-visual-video-frame" aria-hidden="true">'
+    +     '<span class="cr-visual-video-duration">0:15</span>'
+    +     '<span class="cr-visual-video-play">'
+    +       '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">'
+    +         '<polygon points="7 4 20 12 7 20 7 4"/>'
+    +       '</svg>'
+    +     '</span>'
+    +     '<div class="cr-visual-video-hook">' + _escape(v.hook || '') + '</div>'
+    +   '</div>'
+    +   '<div class="cr-visual-script">'
+    +     '<div class="cr-visual-script-row">'
+    +       '<span class="cr-visual-script-key">MIDDLE</span>'
+    +       '<span class="cr-visual-script-val">' + _escape(v.middle || '') + '</span>'
+    +     '</div>'
+    +     '<div class="cr-visual-script-row">'
+    +       '<span class="cr-visual-script-key">CTA</span>'
+    +       '<span class="cr-visual-script-val">' + _escape(v.cta || '') + '</span>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+function _crRenderAudioPreview(v) {
+  return ''
+    + '<div class="cr-visual cr-visual-audio" data-variation="' + _escape(v.id) + '">'
+    +   '<div class="cr-visual-audio-player" aria-hidden="true">'
+    +     '<span class="cr-visual-audio-play">'
+    +       '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">'
+    +         '<polygon points="7 4 20 12 7 20 7 4"/>'
+    +       '</svg>'
+    +     '</span>'
+    +     '<div class="cr-visual-wave">' + _crSeededBars(v.id, 32) + '</div>'
+    +     '<span class="cr-visual-audio-time">0:30</span>'
+    +   '</div>'
+    +   '<div class="cr-visual-script">'
+    +     '<div class="cr-visual-script-row">'
+    +       '<span class="cr-visual-script-key">HOOK</span>'
+    +       '<span class="cr-visual-script-val">' + _escape(v.hook || '') + '</span>'
+    +     '</div>'
+    +     '<div class="cr-visual-script-row">'
+    +       '<span class="cr-visual-script-key">SPOT</span>'
+    +       '<span class="cr-visual-script-val">' + _escape(v.spot || '') + '</span>'
+    +     '</div>'
+    +     '<div class="cr-visual-script-row">'
+    +       '<span class="cr-visual-script-key">CTA</span>'
+    +       '<span class="cr-visual-script-val">' + _escape(v.cta || '') + '</span>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+function _crRenderPostPreview(v) {
+  const handle = _crHandleFromBusinessName();
+  const initials = _crAvatarInitials();
+  return ''
+    + '<div class="cr-visual cr-visual-post" data-variation="' + _escape(v.id) + '">'
+    +   '<div class="cr-visual-post-meta">'
+    +     '<span class="cr-visual-avatar" aria-hidden="true">' + _escape(initials) + '</span>'
+    +     '<span class="cr-visual-handle">@' + _escape(handle) + '</span>'
+    +     '<span class="cr-visual-time">\u00b7 now</span>'
+    +   '</div>'
+    +   '<div class="cr-visual-post-text">' + _escape(v.text || '') + '</div>'
+    + '</div>';
+}
+
+function _crRenderEmailPreview(v) {
+  return ''
+    + '<div class="cr-visual cr-visual-email" data-variation="' + _escape(v.id) + '">'
+    +   '<div class="cr-visual-email-head">'
+    +     '<div class="cr-visual-email-row">'
+    +       '<span class="cr-visual-email-key">From</span>'
+    +       '<span class="cr-visual-email-val">' + _escape(_crBusinessName()) + '</span>'
+    +     '</div>'
+    +     '<div class="cr-visual-email-row">'
+    +       '<span class="cr-visual-email-key">Subject</span>'
+    +       '<span class="cr-visual-email-val cr-visual-email-subject">' + _escape(v.subject || '') + '</span>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="cr-visual-email-body">' + _escape(v.body || '') + '</div>'
+    + '</div>';
+}
+
+function _crRenderNewsletterPreview(v) {
+  const brand = _crBusinessName().toUpperCase();
+  return ''
+    + '<div class="cr-visual cr-visual-newsletter" data-variation="' + _escape(v.id) + '">'
+    +   '<div class="cr-visual-newsletter-head">'
+    +     '<span class="cr-visual-newsletter-brand">' + _escape(brand) + '</span>'
+    +     '<span class="cr-visual-newsletter-date">This week</span>'
+    +   '</div>'
+    +   '<div class="cr-visual-newsletter-headline">' + _escape(v.headline || '') + '</div>'
+    +   '<div class="cr-visual-newsletter-body">' + _escape(v.body || '') + '</div>'
+    + '</div>';
+}
+
+function _crRenderThreadPreview(v) {
+  const lines = Array.isArray(v.lines) ? v.lines : [];
+  const handle = _crHandleFromBusinessName();
+  const initials = _crAvatarInitials();
+  const total = lines.length;
+  const itemsHtml = lines.map(function (l, i) {
+    const isLast = i === total - 1;
     return ''
-      + '<div class="cr-variation-image">'
-      +   '<div class="cr-variation-sublabel cr-variation-sublabel-sm">CAPTION:</div>'
-      +   '<div class="cr-variation-body">' + _escape(v.caption || '') + '</div>'
-      +   '<div class="cr-variation-sublabel">VISUAL:</div>'
-      +   '<div class="cr-variation-line">' + _escape(v.visual || '') + '</div>'
+      + '<div class="cr-visual-thread-item' + (isLast ? ' cr-visual-thread-item-last' : '') + '">'
+      +   '<div class="cr-visual-thread-avatar-col">'
+      +     '<span class="cr-visual-avatar cr-visual-avatar-sm" aria-hidden="true">' + _escape(initials) + '</span>'
+      +     (isLast ? '' : '<span class="cr-visual-thread-connector" aria-hidden="true"></span>')
+      +   '</div>'
+      +   '<div class="cr-visual-thread-body">'
+      +     '<div class="cr-visual-thread-meta">'
+      +       '<span class="cr-visual-handle">@' + _escape(handle) + '</span>'
+      +       '<span class="cr-visual-thread-num">' + (i + 1) + '/' + total + '</span>'
+      +     '</div>'
+      +     '<div class="cr-visual-thread-text">' + _escape(l) + '</div>'
+      +   '</div>'
       + '</div>';
-  }
-  if (v.format === 'video') {
-    return ''
-      + '<div class="cr-variation-video">'
-      +   '<div class="cr-variation-sublabel">HOOK:</div>'
-      +   '<div class="cr-variation-line">' + _escape(v.hook || '') + '</div>'
-      +   '<div class="cr-variation-sublabel">MIDDLE:</div>'
-      +   '<div class="cr-variation-line">' + _escape(v.middle || '') + '</div>'
-      +   '<div class="cr-variation-sublabel">CTA:</div>'
-      +   '<div class="cr-variation-line">' + _escape(v.cta || '') + '</div>'
-      + '</div>';
-  }
-  if (v.format === 'audio') {
-    return ''
-      + '<div class="cr-variation-audio">'
-      +   '<div class="cr-variation-sublabel">HOOK:</div>'
-      +   '<div class="cr-variation-line">' + _escape(v.hook || '') + '</div>'
-      +   '<div class="cr-variation-sublabel">SPOT:</div>'
-      +   '<div class="cr-variation-line">' + _escape(v.spot || '') + '</div>'
-      +   '<div class="cr-variation-sublabel">CTA:</div>'
-      +   '<div class="cr-variation-line">' + _escape(v.cta || '') + '</div>'
-      + '</div>';
-  }
-  if (v.format === 'email') {
-    return ''
-      + '<div class="cr-variation-email">'
-      +   '<div class="cr-variation-sublabel cr-variation-sublabel-sm">SUBJECT:</div>'
-      +   '<div class="cr-variation-subject">' + _escape(v.subject || '') + '</div>'
-      +   '<div class="cr-variation-sublabel">BODY:</div>'
-      +   '<div class="cr-variation-body">' + _escape(v.body || '') + '</div>'
-      + '</div>';
-  }
-  if (v.format === 'newsletter') {
-    return ''
-      + '<div class="cr-variation-newsletter">'
-      +   '<div class="cr-variation-sublabel cr-variation-sublabel-sm">HEADLINE:</div>'
-      +   '<div class="cr-variation-subject">' + _escape(v.headline || '') + '</div>'
-      +   '<div class="cr-variation-sublabel">BODY:</div>'
-      +   '<div class="cr-variation-body">' + _escape(v.body || '') + '</div>'
-      + '</div>';
-  }
-  if (v.format === 'thread') {
-    const lines = Array.isArray(v.lines) ? v.lines : [];
-    return ''
-      + '<div class="cr-variation-thread">'
-      +   lines.map(function (l, i) {
-            return '<div class="cr-variation-thread-line">'
-              +      '<span class="cr-variation-thread-num">' + (i + 1) + '</span>'
-              +      '<span class="cr-variation-thread-text">' + _escape(l) + '</span>'
-              +    '</div>';
-          }).join('')
-      + '</div>';
-  }
-  // Default = plain post text
-  return '<div class="cr-variation-text">' + _escape(v.text || '') + '</div>';
+  }).join('');
+  return '<div class="cr-visual cr-visual-thread" data-variation="' + _escape(v.id) + '">' + itemsHtml + '</div>';
 }
 
 // Plain-text serializer for saving into results.items so the stored

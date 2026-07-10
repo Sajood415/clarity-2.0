@@ -178,6 +178,41 @@ const CL_Q6_PLACEHOLDER = "e.g. Lahore, Pakistan or London, UK";
 const CL_Q6_ACK = "Perfect. Give me a moment to put this all together.";
 
 // ---------------------------------------------
+// Post-onboarding customer validation
+// ---------------------------------------------
+//
+// Right after "Your workspace is ready", Clara reads back what she
+// understood as the main customer so the user can confirm or correct
+// it in one tap. This runs exactly once per concept and its terminal
+// state is `business.customerValidated = true`.
+
+const CL_VALIDATE_YES = "Yes, that's right";
+const CL_VALIDATE_FIX = "Actually let me fix that";
+const CL_OPTIONS_VALIDATE = [CL_VALIDATE_YES, CL_VALIDATE_FIX];
+
+const CL_VALIDATE_YES_ACK = "Perfect. I've built your workspace around that. Let's get started.";
+const CL_VALIDATE_FIX_QUESTION = "No problem. Tell me more about who you're actually building for.";
+const CL_VALIDATE_FIX_ACK = "Got it, I've updated your customer profile. Everything will be more accurate from here.";
+const CL_VALIDATE_FIX_PLACEHOLDER = "Describe your ideal customer\u2026";
+
+// Reads back the customer summary in Clara's voice. Prefers the raw Q3
+// answer (first sentence, capped at 80 chars) and falls back to a
+// goal-derived phrase if Q3 was skipped or is empty. Trailing punctuation
+// from the substring cut is trimmed so we don't end mid-comma.
+function _claraValidationQuestion() {
+  const b = getBusiness();
+  const raw = (b.customer || '').trim();
+  let subject;
+  if (raw) {
+    subject = raw.split('.')[0].trim().substring(0, 80).replace(/[,;\s]+$/, '');
+  } else {
+    const goal = (b.goal && b.goal.trim()) ? b.goal.trim().toLowerCase() : 'growing your business';
+    subject = 'someone who cares about ' + goal;
+  }
+  return 'Based on what you told me, I think your main customer is ' + subject + '. Does that sound right?';
+}
+
+// ---------------------------------------------
 // Exports
 // ---------------------------------------------
 
@@ -211,3 +246,12 @@ window._inferReach = _inferReach;
 window.CL_Q6_QUESTION = CL_Q6_QUESTION;
 window.CL_Q6_PLACEHOLDER = CL_Q6_PLACEHOLDER;
 window.CL_Q6_ACK = CL_Q6_ACK;
+
+window.CL_VALIDATE_YES = CL_VALIDATE_YES;
+window.CL_VALIDATE_FIX = CL_VALIDATE_FIX;
+window.CL_OPTIONS_VALIDATE = CL_OPTIONS_VALIDATE;
+window.CL_VALIDATE_YES_ACK = CL_VALIDATE_YES_ACK;
+window.CL_VALIDATE_FIX_QUESTION = CL_VALIDATE_FIX_QUESTION;
+window.CL_VALIDATE_FIX_ACK = CL_VALIDATE_FIX_ACK;
+window.CL_VALIDATE_FIX_PLACEHOLDER = CL_VALIDATE_FIX_PLACEHOLDER;
+window._claraValidationQuestion = _claraValidationQuestion;

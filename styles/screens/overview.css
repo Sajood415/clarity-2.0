@@ -272,6 +272,112 @@
   opacity: 0.85;
 }
 
+/* ==========================================
+   Research insights — 2x2 grid below the three tiles.
+   Each card carries its own accent (--card-accent) that drives both
+   the eyebrow text color and the 3px top-border. Weight and shadow
+   match the top three tiles so the whole page reads as one surface.
+   ========================================== */
+
+.ov-research-section {
+  position: relative;
+  z-index: 1;
+  margin-top: 36px;
+}
+
+/* Divider-style section label so the two card zones (top tiles vs
+   insight cards) read as distinct groups without visual clutter. */
+.ov-research-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ov-research-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.ov-research-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--card-accent, var(--accent));
+  border-radius: 14px;
+  padding: 20px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+/* Lift on hover to signal "this will do something eventually" — same
+   idle-to-hover rhythm as .ov-tile so the two zones feel matched. The
+   top-border colour is re-asserted so the shorthand doesn't lose it. */
+.ov-research-card:hover {
+  border-color: rgba(255, 240, 220, 0.14);
+  border-top-color: var(--card-accent, var(--accent));
+  background: var(--surface-2);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.ov-research-eye {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--card-accent, var(--accent));
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.ov-research-text {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+}
+
+/* Foot row — "Clara's read →". Not wired to anything yet, but the
+   affordance is there so a future tap target reads naturally. */
+.ov-research-foot {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ov-research-foot-label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.005em;
+}
+
+.ov-research-foot-arrow {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--accent);
+  cursor: pointer;
+  transition: transform 150ms ease;
+}
+
+.ov-research-card:hover .ov-research-foot-arrow {
+  transform: translateX(2px);
+}
+
 /* --- Responsive --- */
 
 @media (max-width: 767px) {
@@ -286,5 +392,8 @@
   }
   .ov-tile {
     min-height: auto;
+  }
+  .ov-research-grid {
+    grid-template-columns: 1fr;
   }
 }

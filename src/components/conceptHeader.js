@@ -134,7 +134,22 @@ function _bindConceptHeaderEvents() {
   document.querySelectorAll('.ch-tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
       const next = btn.getAttribute('data-view');
-      if (!next || next === appState.activeView) return;
+      if (!next) return;
+      // Re-clicking the active tab is normally a no-op, but the Today
+      // tab has a sub-page (task detail). A re-click there should back
+      // the user out to the list, matching the intuition of "the tab
+      // brings me to the top of that section".
+      if (next === appState.activeView) {
+        if (next === 'today') {
+          const c = getActiveConcept();
+          if (c && c.today && c.today.viewingTaskId) {
+            c.today.viewingTaskId = null;
+            _saveState();
+            renderApp();
+          }
+        }
+        return;
+      }
       setActiveView(next);
       renderApp();
     });

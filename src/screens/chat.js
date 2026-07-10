@@ -6,15 +6,17 @@
 // on the concept as `chat.onboardingStep` so refreshes / navigation away
 // resume on the right step. The full flow:
 //
-//   opening  → CLARA_OPENING + ["Let's go", "Sure"]         (single-select)
-//   q1       → CL_Q1_QUESTION + CL_OPTIONS_Q1               (single-select)
-//   q1_other → CL_Q1_OTHER_QUESTION + text input            (free text)
-//   q2       → CL_Q2_QUESTION + CL_OPTIONS_Q2               (single-select)
-//   q3       → CL_Q3_QUESTION + text input                  (free text)
-//   q4       → CL_Q4_QUESTION + CL_OPTIONS_Q4 + Done        (multi-select)
-//   q6       → CL_Q6_QUESTION + text input                  (free text)
-//   building → thinking indicator (3s)                      (transient)
-//   done     → free chat, no options                        (terminal)
+//   opening      → CLARA_OPENING + ["Let's go", "Sure"]         (single-select)
+//   q1           → CL_Q1_QUESTION + CL_OPTIONS_Q1               (single-select)
+//   q1_other     → CL_Q1_OTHER_QUESTION + text input            (free text)
+//   q2           → CL_Q2_QUESTION + CL_OPTIONS_Q2               (single-select)
+//   q3           → CL_Q3_QUESTION + text input                  (free text)
+//   q4           → CL_Q4_QUESTION + CL_OPTIONS_Q4 + Done        (multi-select)
+//   q6           → CL_Q6_QUESTION + text input                  (free text)
+//   building     → thinking indicator (3s)                      (transient)
+//   validate     → customer read-back + Yes/Fix options         (single-select)
+//   validate_fix → "tell me more" text input                    (free text)
+//   done         → free chat, no options                        (terminal)
 //
 // Q5 (budget) is intentionally skipped for now — Clara will ask it later
 // when she's actually recommending paid options.
@@ -113,6 +115,25 @@ function renderChat(container) {
     return;
   }
 
+  // Post-onboarding customer validation. Runs exactly once per concept
+  // — the first time the user is on Chat after onboarding wraps up.
+  // The 1500ms beat lets the "Your workspace is ready" line breathe
+  // before Clara pipes up one more time with her read-back.
+  if (chat.onboardingComplete
+      && chat.onboardingStep === 'done'
+      && !getBusiness().customerValidated) {
+    _renderStepUI();
+    setTimeout(function () {
+      if (appState.mode !== 'home' || appState.activeView !== 'chat') return;
+      const c = getChat();
+      // Guard against double-fire if renderChat re-runs before the beat.
+      if (c.onboardingStep !== 'done' || getBusiness().customerValidated) return;
+      _advanceStep('validate');
+      _claraQueue([_claraValidationQuestion()], _renderStepUI);
+    }, 1500);
+    return;
+  }
+
   _renderStepUI();
 }
 
@@ -176,6 +197,8 @@ function _renderOptionsForStep(step) {
     _appendOptionsRow('single', CL_OPTIONS_Q2);
   } else if (step === 'q4') {
     _appendOptionsRow('multi', CL_OPTIONS_Q4);
+  } else if (step === 'validate') {
+    _appendOptionsRow('single', CL_OPTIONS_VALIDATE);
   }
 }
 
@@ -341,6 +364,22 @@ function _commitSingleAnswer(label) {
     _claraQueue([ack, CL_Q3_QUESTION], _renderStepUI);
     return;
   }
+
+  if (step === 'validate') {
+    if (label === CL_VALIDATE_YES) {
+      // Confirmation path: lock the flag and drop back into free chat.
+      getBusiness().customerValidated = true;
+      _advanceStep('done');
+      _saveState();
+      _claraQueue([CL_VALIDATE_YES_ACK], _renderStepUI);
+    } else {
+      // Fix path: open a single free-text step so the user can rewrite
+      // the customer summary in their own words.
+      _advanceStep('validate_fix');
+      _claraQueue([CL_VALIDATE_FIX_QUESTION], _renderStepUI);
+    }
+    return;
+  }
 }
 
 // ---------------------------------------------
@@ -348,13 +387,18 @@ function _commitSingleAnswer(label) {
 // ---------------------------------------------
 
 function _isTextStep(step) {
-  return step === 'q1_other' || step === 'q3' || step === 'q6' || step === 'done';
+  return step === 'q1_other'
+      || step === 'q3'
+      || step === 'q6'
+      || step === 'validate_fix'
+      || step === 'done';
 }
 
 function _placeholderForStep(step) {
   if (step === 'q1_other') return 'Tell Clara a bit about what you do...';
   if (step === 'q3') return CL_Q3_PLACEHOLDER;
   if (step === 'q6') return CL_Q6_PLACEHOLDER;
+  if (step === 'validate_fix') return CL_VALIDATE_FIX_PLACEHOLDER;
   return 'Message Clara...';
 }
 
@@ -453,7 +497,7 @@ function _bindInputEvents() {
 
 // Per-step minimum content length. "UK" is fine for location; "Local
 // families who want fresh sourdough" is a much lower bar for Q3.
-const CL_TEXT_MIN = { q1_other: 3, q3: 8, q6: 2 };
+const CL_TEXT_MIN = { q1_other: 3, q3: 8, q6: 2, validate_fix: 6 };
 
 function _handleSend() {
   const input = document.getElementById('clInput');
@@ -504,6 +548,18 @@ function _handleSend() {
     _saveState();
     _advanceStep('building');
     _claraQueue([CL_Q6_ACK], _startBuildingPlan);
+    return;
+  }
+
+  if (step === 'validate_fix') {
+    // Overwrite the customer summary with the user's correction and lock
+    // the validation flag so this whole flow never runs again.
+    const business = getBusiness();
+    business.customer = text;
+    business.customerValidated = true;
+    _advanceStep('done');
+    _saveState();
+    _claraQueue([CL_VALIDATE_FIX_ACK], _renderStepUI);
     return;
   }
 

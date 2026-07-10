@@ -64,6 +64,8 @@ function renderOverview(container) {
         ${_renderCreateTile(draftCount)}
         ${_renderResultsTile(publishedCount)}
       </div>
+
+      ${_renderResearchInsights(b)}
     </section>
   `;
 
@@ -166,6 +168,141 @@ function _renderResultsTile(publishedCount) {
       <div class="ov-tile-cta">${cta}</div>
     </button>
   `;
+}
+
+// ---------------------------------------------
+// Research insights (below the three tiles)
+// ---------------------------------------------
+//
+// A static 2×2 grid of Clara-authored insights derived entirely from
+// onboarding answers. Purely presentational for now — no click targets,
+// no follow-through actions — but the copy is keyed on business.type,
+// business.customer, business.goal and business.channels so switching
+// concept gives you a different read every time.
+
+function _renderResearchInsights(b) {
+  const cards = [
+    { label: 'YOUR MARKET',   color: 'var(--accent)',                text: _ovMarketInsight(b) },
+    { label: 'YOUR CUSTOMER', color: 'var(--accent-secondary)',      text: _ovCustomerInsight(b) },
+    { label: 'YOUR EDGE',     color: '#7C6AE8',                      text: _ovEdgeInsight(b) },
+    { label: 'FIRST MOVE',    color: 'rgba(245, 166, 35, 0.7)',      text: _ovFirstMoveInsight(b) }
+  ];
+
+  const cardsHtml = cards.map(function (c) {
+    return ''
+      + '<div class="ov-research-card" style="--card-accent:' + c.color + '">'
+      +   '<div class="ov-research-eye">' + _escape(c.label) + '</div>'
+      +   '<div class="ov-research-text">' + _escape(c.text) + '</div>'
+      +   '<div class="ov-research-foot">'
+      +     '<span class="ov-research-foot-label">Clara\u2019s read</span>'
+      +     '<span class="ov-research-foot-arrow" aria-hidden="true">\u2192</span>'
+      +   '</div>'
+      + '</div>';
+  }).join('');
+
+  return ''
+    + '<section class="ov-research-section">'
+    +   '<div class="ov-research-label">WHAT CLARA FOUND</div>'
+    +   '<div class="ov-research-grid">' + cardsHtml + '</div>'
+    + '</section>';
+}
+
+// --- Card 1: market gap keyed on business type ---
+function _ovMarketInsight(b) {
+  const t = String(b.type || '').toLowerCase();
+  if (t === 'small' || t === 'food') {
+    return 'Local demand is strong but most competitors are undifferentiated. The gap is trust and consistency.';
+  }
+  if (t === 'ecommerce') {
+    return 'Online buyers are comparing 3\u20135 options before buying. The gap is clear positioning and social proof.';
+  }
+  if (t === 'service' || t === 'agency') {
+    return 'Most service businesses win on referrals but lose on visibility. The gap is a consistent content presence.';
+  }
+  if (t === 'tech' || t === 'saas') {
+    return 'The simple, highly specialised quadrant is the least contested. Complexity is your biggest competitor.';
+  }
+  if (t === 'creator') {
+    return 'Authenticity beats production quality right now. The gap is showing the real person behind the brand.';
+  }
+  if (t === 'nonprofit') {
+    return 'Donor fatigue is real. The gap is impact storytelling that feels personal, not institutional.';
+  }
+  return 'Your market has room for a business that communicates clearly and consistently.';
+}
+
+// --- Card 2: customer profile — prefer their own words, fall back by type ---
+function _ovCustomerInsight(b) {
+  const raw = (b.customer || '').trim();
+  if (raw) {
+    if (raw.length <= 120) return raw;
+    // Truncate on a word boundary so we don't lop off mid-word, then
+    // strip any trailing punctuation the cut left behind.
+    const cut = raw.substring(0, 117);
+    const lastSpace = cut.lastIndexOf(' ');
+    const trimmed = (lastSpace > 60 ? cut.substring(0, lastSpace) : cut).replace(/[,;\s]+$/, '');
+    return trimmed + '\u2026';
+  }
+  const t = String(b.type || '').toLowerCase();
+  if (t === 'small' || t === 'food') {
+    return 'Local regulars who value quality and consistency over price.';
+  }
+  if (t === 'ecommerce') {
+    return 'Online shoppers comparing options who need a reason to choose you specifically.';
+  }
+  if (t === 'service') {
+    return 'Decision-makers who want reliability and clear communication above all else.';
+  }
+  if (t === 'tech') {
+    return 'Early adopters and pragmatists looking for a solution that just works.';
+  }
+  if (t === 'creator') {
+    return 'Followers who want access to the real person, not the polished brand.';
+  }
+  return 'Customers who care about quality and want to feel heard.';
+}
+
+// --- Card 3: competitive whitespace keyed on goal ---
+function _ovEdgeInsight(b) {
+  const g = String(b.goal || '').toLowerCase();
+  if (g.indexOf('leads') !== -1 || g.indexOf('sales') !== -1) {
+    return 'Most competitors in your space are not nurturing leads after first contact. That\u2019s your opening.';
+  }
+  if (g.indexOf('content') !== -1 || g.indexOf('marketing') !== -1) {
+    return 'Consistent, valuable content in your niche is rare. Showing up regularly is itself a differentiator.';
+  }
+  if (g.indexOf('launch') !== -1) {
+    return 'A well-documented launch builds an audience before you even sell. Most skip this entirely.';
+  }
+  if (g.indexOf('customers') !== -1 || g.indexOf('understand') !== -1) {
+    return 'Businesses that actually talk to their customers outperform those that guess. You\u2019re already ahead.';
+  }
+  return 'Your edge is clarity. Most businesses in your space don\u2019t communicate what makes them different.';
+}
+
+// --- Card 4: first move keyed on channels first, then goal ---
+function _ovFirstMoveInsight(b) {
+  const channels = Array.isArray(b.channels) ? b.channels : [];
+  const notMarketing = channels.length === 0 || channels.some(function (c) {
+    return /not marketing/i.test(String(c || ''));
+  });
+  if (notMarketing) {
+    return 'Start with one platform. Pick the one where your customer already spends time and post once this week.';
+  }
+  const has = function (needle) {
+    return channels.some(function (c) { return new RegExp(needle, 'i').test(String(c || '')); });
+  };
+  if (has('instagram')) {
+    return 'Your Instagram presence is your fastest growth lever right now. Post something real today.';
+  }
+  if (has('linkedin')) {
+    return 'LinkedIn rewards consistency more than any other platform. One post a week compounds fast.';
+  }
+  const g = String(b.goal || '').toLowerCase();
+  if (g.indexOf('leads') !== -1) {
+    return 'Your fastest path to leads is a direct outreach message to 5 people who already know you.';
+  }
+  return 'Pick one channel, one message, one week. Consistency beats perfection every time.';
 }
 
 window.renderOverview = renderOverview;

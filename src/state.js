@@ -97,7 +97,11 @@ function _defaultBusiness() {
     budget: '',
     location: '',
     reach: '',
-    challenge: ''
+    challenge: '',
+    // Set true once the user has confirmed (or corrected) the customer
+    // summary Clara reads back right after onboarding completes. Prevents
+    // the validation prompt from ever asking twice for the same concept.
+    customerValidated: false
   };
 }
 
@@ -130,6 +134,20 @@ function _defaultResults() {
   return { items: [] };
 }
 
+// Strategic-planning research payload. Populated at onboarding-complete
+// time by _generateResearch(business) in src/clara/research.js. Legacy
+// concepts that finished onboarding before this feature landed get
+// their research backfilled by the normalizer on first load.
+function _defaultResearch() {
+  return {
+    marketScan: null,
+    customerIntelligence: null,
+    competition: null,
+    gtm: null,
+    generatedAt: 0
+  };
+}
+
 function _newConceptId() {
   return 'ck_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 }
@@ -160,9 +178,16 @@ function _newConcept(opts) {
     // Concrete task list (with kanban statuses). Seeded lazily by
     // the Today screen from `_todayTasks()` on first render so each
     // concept persists its own todo/in_progress/done state.
-    today: { tasks: [] },
+    // `viewingTaskId` (string | null) toggles Today into task-detail
+    // mode. Cleared by the detail page's Back button, by the concept
+    // header's Today tab click, and any time the id no longer resolves.
+    today: { tasks: [], viewingTaskId: null },
     create: _defaultCreate(),
     results: _defaultResults(),
+    // Strategic Planning research (Market, Customer, Competition, GTM).
+    // Filled at onboarding completion; drives the four full-screen
+    // reports the user opens from Overview's insight cards.
+    research: _defaultResearch(),
     // Remembers which workspace tab (overview/today/create/results) the
     // user last had open, so clicking "Workspace \u2192" from the chat page
     // returns them there instead of always dumping them on Overview.
@@ -285,6 +310,14 @@ function _normalizeState() {
     if (!c.color) c.color = CONCEPT_COLORS[i % CONCEPT_COLORS.length];
     c.business = Object.assign(_defaultBusiness(), c.business || {});
     if (!Array.isArray(c.business.channels)) c.business.channels = [];
+    // Legacy concepts that finished onboarding before this flag existed
+    // are grandfathered as already-validated so returning users don't get
+    // a fresh "does that sound right?" popup on their next Chat visit.
+    // Concepts still mid-onboarding start at false so the prompt fires
+    // naturally once they reach the completion beat.
+    if (typeof c.business.customerValidated !== 'boolean') {
+      c.business.customerValidated = !!(c.chat && c.chat.onboardingComplete);
+    }
 
     // Approved-label migrations (Zay/stakeholder sign-off pass).
     // business.goal stores the raw Q2 label so downstream code (task
@@ -326,8 +359,12 @@ function _normalizeState() {
     }
     c.widgetChat = Object.assign({ messages: [] }, c.widgetChat || {});
     if (!Array.isArray(c.widgetChat.messages)) c.widgetChat.messages = [];
-    c.today = Object.assign({ tasks: [] }, c.today || {});
+    c.today = Object.assign({ tasks: [], viewingTaskId: null }, c.today || {});
     if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
+    // viewingTaskId is either a task id string or null. Anything else
+    // (undefined, number, corrupted value) resets to null so the Today
+    // list opens by default on load.
+    if (typeof c.today.viewingTaskId !== 'string') c.today.viewingTaskId = null;
     c.create = Object.assign(_defaultCreate(), c.create || {});
     // Old create shape used string steps ('ask', 'publish') and free-text
     // fields (askSubmitted, userRequest, angle). If we see anything but a
@@ -344,6 +381,19 @@ function _normalizeState() {
     });
     c.results = Object.assign(_defaultResults(), c.results || {});
     if (!Array.isArray(c.results.items)) c.results.items = [];
+
+    // Backfill the research payload for any concept that finished
+    // onboarding before this feature existed, so opening a legacy
+    // concept's reports doesn't produce an empty page.
+    c.research = Object.assign(_defaultResearch(), c.research || {});
+    const researchMissing = !c.research.marketScan
+                         || !c.research.customerIntelligence
+                         || !c.research.competition
+                         || !c.research.gtm;
+    if (c.chat.onboardingComplete && researchMissing && typeof window._generateResearch === 'function') {
+      c.research = window._generateResearch(c.business);
+    }
+
     if (!c.lastWorkspaceView || ['overview', 'today', 'create', 'results'].indexOf(c.lastWorkspaceView) === -1) {
       c.lastWorkspaceView = 'overview';
     }
@@ -416,16 +466,34 @@ function switchConcept(conceptId) {
 }
 
 function setActiveView(view) {
-  const allowed = ['chat', 'overview', 'today', 'create', 'results'];
+  const allowed = [
+    'chat', 'overview', 'today', 'create', 'results',
+    // Strategic Planning reports. Each opens as a full-screen view
+    // (no concept-header tabs), routed by the report shell in
+    // router.js. Reached from the Overview insight cards.
+    'market-report', 'customer-report', 'competition-report', 'plan-report'
+  ];
   if (allowed.indexOf(view) === -1) return;
   appState.activeView = view;
   // Remember the last workspace tab so pressing "Workspace \u2192" from chat
-  // lands back on it rather than always going to Overview.
-  if (view !== 'chat') {
+  // lands back on it rather than always going to Overview. Reports are
+  // navigation "sub-pages" — they don't count as the last workspace tab.
+  const isReport = view.indexOf('-report') !== -1;
+  if (view !== 'chat' && !isReport) {
     const c = getActiveConcept();
     if (c) c.lastWorkspaceView = view;
   }
   _saveState();
+}
+
+// True when the active view is one of the four Strategic Planning
+// reports. Used by the router to swap out the concept-header chrome
+// for a report-specific topbar.
+function _isReportView(view) {
+  return view === 'market-report'
+      || view === 'customer-report'
+      || view === 'competition-report'
+      || view === 'plan-report';
 }
 
 // ---------------------------------------------
@@ -445,3 +513,5 @@ window.getResults = getResults;
 window.createConcept = createConcept;
 window.switchConcept = switchConcept;
 window.setActiveView = setActiveView;
+window._isReportView = _isReportView;
+window._defaultResearch = _defaultResearch;

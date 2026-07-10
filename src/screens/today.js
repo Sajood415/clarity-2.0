@@ -77,6 +77,20 @@ function renderToday(container) {
 
   _seedTodayTasks(c);
 
+  // Task-detail sub-view. If the user has tapped a task, render Clara's
+  // step-by-step guide for that task instead of the list/kanban shell.
+  // Falls through cleanly if the id no longer matches (e.g. the task
+  // list regenerated between renders) — we just clear the pointer.
+  if (c.today && c.today.viewingTaskId) {
+    const task = c.today.tasks.find(function (t) { return t.id === c.today.viewingTaskId; });
+    if (task) {
+      _renderTdDetail(container, task, c);
+      return;
+    }
+    c.today.viewingTaskId = null;
+    _saveState();
+  }
+
   const view = _currentTodayView();
   const isKanban = view === 'kanban';
 
@@ -282,7 +296,7 @@ function _buildTdListCard(task, idx) {
     });
   }
 
-  card.addEventListener('click', function () { _openTaskInCreate(task); });
+  card.addEventListener('click', function () { _openTaskDetail(task); });
 
   return card;
 }
@@ -383,7 +397,7 @@ function _buildTdKanbanCard(task, idx) {
 
   card.addEventListener('click', function () {
     if (dragged) return;
-    _openTaskInCreate(task);
+    _openTaskDetail(task);
   });
 
   return card;
@@ -407,6 +421,145 @@ function _openTaskInCreate(task) {
   appState.activeView = 'create';
   _saveState();
   renderApp();
+}
+
+// ---------------------------------------------
+// Task detail — Clara's step-by-step guide
+// ---------------------------------------------
+
+// Generates 4–5 concrete steps for how to actually do a task. Content
+// is type-driven (POST / OUTREACH / OFFER) and references business
+// context so the language stays grounded, not generic. Falls back to a
+// short generic recipe for any future / unknown task type.
+function _taskSteps(task) {
+  const type = String((task && task.type) || '').toUpperCase();
+  const b = getBusiness();
+  const name = (b.name && b.name.trim()) ? b.name.trim() : 'your business';
+  const product = (b.product && b.product.trim()) ? b.product.trim() : 'what you make';
+  const location = (b.location || '').trim();
+  const audienceLine = location ? 'People in ' + location : 'Your audience';
+
+  if (type === 'POST') {
+    return [
+      'Get one thing ready — a real photo, a short clip, or a single line about ' + product + ' at ' + name + '. Not stock, not polished.',
+      'Write the caption in one sitting. First draft only. Say the specific thing, not the brand thing.',
+      'Read it aloud once. Cut anything that sounds like everyone else in your space.',
+      'Post it and note the time. ' + audienceLine + ' respond fastest in the first hour — be around to reply.',
+      'Come back in 24 hours. Read the replies, not the like count — that\u2019s where the real signal is.'
+    ];
+  }
+  if (type === 'OUTREACH') {
+    return [
+      'Open your last 20 conversations about ' + product + ' — DMs, emails, whatever channel you actually use.',
+      'Pick 3 people who came close to buying but never did. Real names, not personas.',
+      'Send each one a short message. Personalize the first sentence, keep the ask identical across all three.',
+      'Set a 3-day reminder. If they haven\u2019t replied, send one gentle nudge. No pitch, just curiosity.',
+      'When someone answers, listen for what almost stopped them. That sentence is your next post.'
+    ];
+  }
+  if (type === 'OFFER') {
+    return [
+      'Write the offer in one sentence: who it\u2019s for, what it is, and why now. If you can\u2019t say it in a sentence, it\u2019s not sharp enough.',
+      'Set the boundary — how long it runs, how many spots or units, what happens when it ends.',
+      'Publish or send it today. Don\u2019t pre-launch or tease. For a small audience, teasing kills momentum.',
+      'Track two numbers only: who clicked, and who bought. Every other metric is noise this week.',
+      'In 48 hours decide: extend it, kill it, or roll it into a permanent option for ' + name + '.'
+    ];
+  }
+  // Generic fallback for any future task type.
+  return [
+    'Set aside 15 uninterrupted minutes today.',
+    'Do the task exactly as written above. Don\u2019t polish — done beats perfect for a first pass.',
+    'When you\u2019re finished, note one thing you noticed. That note is what Clara learns from tomorrow.'
+  ];
+}
+
+function _openTaskDetail(task) {
+  const c = getActiveConcept();
+  if (!c || !task) return;
+  if (!c.today) c.today = { tasks: [], viewingTaskId: null };
+  c.today.viewingTaskId = task.id;
+  _saveState();
+  _rerenderToday();
+}
+
+function _closeTaskDetail() {
+  const c = getActiveConcept();
+  if (!c || !c.today) return;
+  c.today.viewingTaskId = null;
+  _saveState();
+  _rerenderToday();
+}
+
+function _renderTdDetail(container, task, c) {
+  const idx = c.today.tasks.findIndex(function (t) { return t.id === task.id; });
+  const status = _resolveStatus(task.status);
+  const done = status === 'done';
+  const steps = _taskSteps(task);
+
+  const doneBadge = done
+    ? '<span class="td-detail-done-badge" aria-hidden="true">' + TD_CHECK_ICON + '</span>'
+    : '';
+
+  const stepsHtml = steps.map(function (s, i) {
+    return ''
+      + '<li class="td-detail-step">'
+      +   '<span class="td-detail-step-num">' + (i + 1) + '</span>'
+      +   '<span class="td-detail-step-text">' + _escape(s) + '</span>'
+      + '</li>';
+  }).join('');
+
+  const secondaryLabel = done ? 'Mark as to-do' : 'Mark as done';
+
+  container.innerHTML = ''
+    + '<section class="td-wrap td-wrap-detail' + (done ? ' td-wrap-detail-done' : '') + '">'
+    +   '<button type="button" class="td-detail-back" id="tdDetailBack">\u2190 Back to Today</button>'
+    +   '<div class="td-detail-head">'
+    +     '<div class="td-card-type td-detail-type" data-type="' + _escape(task.type) + '">' + _escape(task.type) + '</div>'
+    +     doneBadge
+    +     '<span class="td-detail-time">' + _escape(task.time || '') + '</span>'
+    +   '</div>'
+    +   '<h1 class="td-detail-title">' + _escape(task.description) + '</h1>'
+    +   '<div class="td-detail-reason">'
+    +     '<div class="td-detail-reason-label">Why Clara picked this</div>'
+    +     '<div class="td-detail-reason-body">' + _escape(task.reason) + '</div>'
+    +   '</div>'
+    +   '<div class="td-detail-steps-head">Clara\u2019s step-by-step</div>'
+    +   '<ol class="td-detail-steps">' + stepsHtml + '</ol>'
+    +   '<div class="td-detail-actions">'
+    +     '<button type="button" class="td-detail-action-primary" id="tdDetailOpenCreate">Open in Create \u2192</button>'
+    +     '<button type="button" class="td-detail-action-secondary" id="tdDetailToggleDone">' + secondaryLabel + '</button>'
+    +   '</div>'
+    + '</section>';
+
+  const backBtn = document.getElementById('tdDetailBack');
+  if (backBtn) backBtn.addEventListener('click', _closeTaskDetail);
+
+  const createBtn = document.getElementById('tdDetailOpenCreate');
+  if (createBtn) {
+    createBtn.addEventListener('click', function () {
+      // Clear the detail pointer first so backing out of Create returns
+      // the user to the Today list, not straight back into this detail.
+      const active = getActiveConcept();
+      if (active && active.today) {
+        active.today.viewingTaskId = null;
+        _saveState();
+      }
+      _openTaskInCreate(task);
+    });
+  }
+
+  const toggleBtn = document.getElementById('tdDetailToggleDone');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function () {
+      if (idx < 0) return;
+      // Toggling status keeps you ON the detail page so you can hit the
+      // primary action right after, or undo the toggle if it was a
+      // misfire. Back button is the way out to the list.
+      _setTaskStatus(idx, done ? 'todo' : 'done');
+      _rerenderToday();
+    });
+  }
 }
 
 window.renderToday = renderToday;

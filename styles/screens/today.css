@@ -459,3 +459,242 @@
     align-self: flex-end;
   }
 }
+
+/* ==========================================
+   Task detail (sub-view of Today)
+   ========================================== */
+
+/* Narrower column than the list — the detail is a "focused reading"
+   page where Clara walks the user through concrete steps. */
+.td-wrap-detail {
+  max-width: 640px;
+  padding-top: 24px;
+}
+
+.td-detail-back {
+  background: transparent;
+  border: none;
+  padding: 4px 2px;
+  margin: 0 0 20px -2px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.td-detail-back:hover {
+  color: var(--text);
+}
+
+.td-detail-back:focus-visible {
+  outline: none;
+  color: var(--text);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+  border-radius: 4px;
+}
+
+/* Head strip: type badge + optional done tick + estimated time. Same
+   type-dot palette as the list card so the visual link is obvious. */
+.td-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.td-detail-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.td-detail-done-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #5AAAB0;
+  background: rgba(90, 170, 176, 0.14);
+  border: 1px solid rgba(90, 170, 176, 0.32);
+  flex-shrink: 0;
+}
+
+.td-detail-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.28;
+  margin: 0 0 22px;
+}
+
+/* "Why Clara picked this" — surfaced permanently (no accordion) so the
+   user reads the reasoning first, then the steps. */
+.td-detail-reason {
+  background: rgba(245, 166, 35, 0.05);
+  border: 1px solid rgba(245, 166, 35, 0.16);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 28px;
+}
+
+.td-detail-reason-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.td-detail-reason-body {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.td-detail-steps-head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.td-detail-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  counter-reset: none;
+}
+
+.td-detail-step {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.td-detail-step:hover {
+  background: var(--surface-2);
+  border-color: rgba(245, 166, 35, 0.18);
+}
+
+.td-detail-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: rgba(245, 166, 35, 0.12);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.td-detail-step-text {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+}
+
+/* Actions live at the bottom of the detail. Primary CTA keeps the
+   original task -> Create handoff. Secondary toggles the task's
+   status so the user can mark it done without leaving the page. */
+.td-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.td-detail-action-primary {
+  width: 100%;
+  height: 48px;
+  background: var(--accent);
+  color: #1a120a;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: var(--shadow-accent);
+  transition: background 150ms ease, transform 100ms ease;
+}
+
+.td-detail-action-primary:hover {
+  background: var(--accent-dark);
+}
+
+.td-detail-action-primary:active {
+  transform: translateY(1px);
+}
+
+.td-detail-action-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.5), var(--shadow-accent);
+}
+
+.td-detail-action-secondary {
+  width: 100%;
+  height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.td-detail-action-secondary:hover {
+  background: var(--surface-2);
+  border-color: rgba(255, 240, 220, 0.14);
+}
+
+.td-detail-action-secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+/* When the task is already done, dim the title and reason a touch so
+   the completed state reads visually without hiding the content. */
+.td-wrap-detail-done .td-detail-title {
+  text-decoration: line-through;
+  text-decoration-color: rgba(196, 186, 168, 0.6);
+  text-decoration-thickness: 1px;
+  color: var(--text-secondary);
+}
+
+.td-wrap-detail-done .td-detail-reason {
+  opacity: 0.75;
+}
+
+@media (max-width: 640px) {
+  .td-wrap-detail {
+    padding: 20px 16px 56px;
+  }
+  .td-detail-title {
+    font-size: 20px;
+  }
+}
