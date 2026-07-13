@@ -1205,8 +1205,8 @@ function _rpRenderTopbar(config, mode) {
   const toggleLabel = mode === 'all' ? 'Tabbed view' : 'View all \u2192';
   return `
     <header class="rp-topbar" role="banner">
-      <button type="button" class="rp-back" id="rpBackBtn" aria-label="Back to Overview">
-        <span aria-hidden="true">\u2190</span> Overview
+      <button type="button" class="rp-back" id="rpBackBtn" aria-label="Back to Today">
+        <span aria-hidden="true">\u2190</span> Today
       </button>
       <h1 class="rp-title">${_rpEscape(config.title)}</h1>
       <button type="button" class="rp-view-toggle" id="rpViewToggle" aria-pressed="${mode === 'all' ? 'true' : 'false'}">
@@ -1696,11 +1696,12 @@ function _rpPanelSources(data) {
 // ---------------------------------------------
 
 function _rpBindEvents(container, view, config, data) {
-  // Back to Overview.
+  // Back to Today (the dashboard's primary landing since Overview was
+  // retired as a nav destination).
   const backBtn = container.querySelector('#rpBackBtn');
   if (backBtn) {
     backBtn.addEventListener('click', function () {
-      setActiveView('overview');
+      setActiveView('today');
       renderApp();
     });
   }

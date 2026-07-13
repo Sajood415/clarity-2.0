@@ -908,10 +908,11 @@ function _completeOnboardingNow() {
   const chat = getChat();
   chat.onboardingComplete = true;
   chat.onboardingStep = 'done';
-  // Onboarding always dismisses onto the sidebar dashboard with
-  // Overview selected. Chat is never a landing view \u2014 users reach it
-  // from the sidebar nav after the workspace is open.
-  appState.activeView = 'overview';
+  // Onboarding always dismisses onto the sidebar dashboard with Today
+  // selected (Today replaced Overview as the primary landing). Chat is
+  // never a landing view \u2014 users reach it from the sidebar nav after
+  // the workspace is open.
+  appState.activeView = 'today';
   appState.onboardingOverlayOpen = false;
   // Legacy flag consumed by the old concept header. Harmless now (no
   // reader) \u2014 kept for one release in case anything downstream still

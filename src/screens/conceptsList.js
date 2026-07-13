@@ -3,7 +3,7 @@
 // ---------------------------------------------
 //
 // A gallery of every concept the user owns. Clicking a card switches
-// the active concept and lands on its Overview (or resumes onboarding
+// the active concept and lands on its Today view (or resumes onboarding
 // if it isn't done). Reached from the sidebar concept picker's
 // "View all concepts" action.
 

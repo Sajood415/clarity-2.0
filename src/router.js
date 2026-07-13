@@ -8,11 +8,9 @@
 //   \u2502 brand                  \u2502 \u2502 top bar (48px)                  \u2502
 //   \u2502 concept picker         \u2502 \u2502 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2502
 //   \u2502 NAV                    \u2502 \u2502 active view renders here        \u2502
-//   \u2502   Overview             \u2502 \u2502                                 \u2502
 //   \u2502   Today                \u2502 \u2502                                 \u2502
-//   \u2502   Chat                 \u2502 \u2502                                 \u2502
 //   \u2502   Create               \u2502 \u2502                                 \u2502
-//   \u2502   Insights             \u2502 \u2502                                 \u2502
+//   \u2502   Results              \u2502 \u2502                                 \u2502
 //   \u2502 (spacer)               \u2502 \u2502                                 \u2502
 //   \u2502 user footer            \u2502 \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518
 //   \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518
@@ -148,21 +146,31 @@ function _renderActiveView(container) {
   if (!active) return;
 
   // Report views open full-screen inside the content area with a Back
-  // link (unchanged from the previous shell).
-  const view = appState.activeView || 'overview';
+  // link (unchanged from the previous shell). Default landing is
+  // Today; Overview, Chat and the standalone Insights tab were all
+  // removed from the sidebar but their cases below are kept as safety
+  // fallbacks so legacy state or programmatic calls never crash the
+  // app. Chat itself is still fully functional \u2014 it just has no
+  // navigation entry point any more.
+  const view = appState.activeView || 'today';
 
   switch (view) {
     case 'overview':         renderOverview(container); break;
     case 'today':            renderToday(container); break;
     case 'tasks':
       if (typeof renderTasks === 'function') renderTasks(container);
-      else renderOverview(container);
+      else renderToday(container);
       break;
     case 'chat':             renderChat(container); break;
     case 'create':           renderCreate(container); break;
+    // Results is the canonical key for the published-content +
+    // analytics screen. 'insights' is kept as a silent legacy alias
+    // that points at the same renderer so any deep-link or persisted
+    // lastWorkspaceView still lands the user on the same page.
+    case 'results':          renderInsights(container); break;
     case 'insights':         renderInsights(container); break;
     case 'insights-detail':
-      // Sub-page of Insights. Falls back to the list if the pinned id
+      // Sub-page of Results. Falls back to the list if the pinned id
       // is missing or the item no longer exists (defensive \u2014 the
       // normalizer already handles the empty-id case).
       if (typeof renderInsightsDetail === 'function') renderInsightsDetail(container);
@@ -175,9 +183,9 @@ function _renderActiveView(container) {
     case 'plan-report':
       // Legacy report keys \u2014 kept in the switch for state migration
       // safety, but currently no renderer is registered (renderReport
-      // was never built). Fall through to Overview.
+      // was never built). Fall through to Today.
       if (typeof window.renderReport === 'function') window.renderReport(container, view);
-      else renderOverview(container);
+      else renderToday(container);
       break;
     case 'report-market':
     case 'report-customer':
@@ -188,10 +196,10 @@ function _renderActiveView(container) {
       // its own topbar (no concept header \u2014 that's suppressed by
       // conceptHeader.js for these view keys).
       if (typeof renderReport === 'function') renderReport(container, view);
-      else renderOverview(container);
+      else renderToday(container);
       break;
     default:
-      renderOverview(container);
+      renderToday(container);
       break;
   }
 }

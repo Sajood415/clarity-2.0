@@ -1364,13 +1364,14 @@ function _crBindStep4() {
       _crMountPublishingOverlay(platformLabel);
 
       // Give the overlay just under 1.4s to play, then redirect to
-      // Insights. If the user has navigated away in that window we
-      // silently bail on the redirect.
+      // Results (the published-content + analytics screen). If the
+      // user has navigated away in that window we silently bail on
+      // the redirect.
       setTimeout(function () {
         _resetCreate();
         _saveState();
         if (appState.mode === 'home' && appState.activeView === 'create') {
-          appState.activeView = 'insights';
+          appState.activeView = 'results';
           _saveState();
           renderApp();
         }

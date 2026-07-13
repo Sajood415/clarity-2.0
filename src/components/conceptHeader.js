@@ -22,8 +22,13 @@ const CH_VIEW_LABELS = {
   'tasks':             'Tasks',
   'chat':              'Chat',
   'create':            'Create',
-  'insights':          'Insights',
-  'insights-detail':   'Insights',
+  // 'results' is the canonical key; 'insights' is the legacy alias
+  // that routes to the same screen. Both must map to the same label
+  // so the topbar reads consistently regardless of which key set the
+  // view.
+  'results':           'Results',
+  'insights':          'Results',
+  'insights-detail':   'Results',
   'concepts-list':     'Your concepts',
   'market-report':     'Market report',
   'customer-report':   'Customer report',
@@ -38,7 +43,7 @@ const CH_VIEW_LABELS = {
 };
 
 // Truncate a longer content body to something that fits in the top
-// bar as the terminal crumb on the Insights detail page. Kept short
+// bar as the terminal crumb on the Results detail page. Kept short
 // so the breadcrumb never wraps the 48px topbar.
 function _chTruncate(str, max) {
   const s = String(str || '').trim();
@@ -57,7 +62,7 @@ function _chInsightsDetailTitle() {
 }
 
 function _renderConceptHeader() {
-  const view = appState.activeView || 'overview';
+  const view = appState.activeView || 'today';
   const pageLabel = CH_VIEW_LABELS[view] || _capitalize(view);
 
   // v2 report views own their own report topbar (the "\u2190 Overview |
@@ -103,8 +108,8 @@ function _renderConceptHeader() {
   const b = c.business || {};
   const conceptName = (b.name && b.name.trim()) || 'New concept';
 
-  // Insights detail sub-page gets a 3-part crumb where the middle
-  // segment (Insights) is clickable and takes the user back to the
+  // Results detail sub-page gets a 3-part crumb where the middle
+  // segment (Results) is clickable and takes the user back to the
   // list view. Terminal segment is a preview of the item's angle.
   if (view === 'insights-detail') {
     const itemTitle = _chInsightsDetailTitle();
@@ -114,7 +119,7 @@ function _renderConceptHeader() {
           <div class="ch-crumbs">
             <span class="ch-crumb-concept">${_escape(conceptName)}</span>
             <span class="ch-crumb-sep" aria-hidden="true">/</span>
-            <button type="button" class="ch-crumb-link" id="chCrumbInsights">Insights</button>
+            <button type="button" class="ch-crumb-link" id="chCrumbInsights">Results</button>
             <span class="ch-crumb-sep" aria-hidden="true">/</span>
             <span class="ch-crumb-page">${_escape(itemTitle)}</span>
           </div>
@@ -162,10 +167,12 @@ function _renderConceptHeader() {
 // Wire the clickable crumb / back links in the topbar. Kept as native
 // buttons so they're keyboard-focusable without extra work.
 function _bindConceptHeaderEvents() {
+  // Element id is left as 'chCrumbInsights' (git-blame continuity);
+  // the crumb text and navigation target are both 'Results'.
   const backCrumb = document.getElementById('chCrumbInsights');
   if (backCrumb) {
     backCrumb.addEventListener('click', function () {
-      setActiveView('insights');
+      setActiveView('results');
       renderApp();
     });
   }

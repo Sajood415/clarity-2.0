@@ -11,24 +11,32 @@
 //         + New concept
 //         View all concepts
 //   NAVIGATION
-//     Overview  Today  Chat  Create  Insights
+//     Today  Create  Results
 //   \u2500\u2500
 //   [avatar]  Name / email                 [logout]
 //
-// The old Chat vs Workspace split is gone. Nav items are all peers.
-// Sidebar is always visible when in home mode \u2014 no more slide-off
-// during "workspace mode".
+// The nav is deliberately just three peers now: Today (dashboard
+// landing), Create (compose flow), Results (published content +
+// analytics, previously known as Insights). Chat, Insights (as a
+// separate destination) and Overview all still exist as screens for
+// safety fallbacks in the router, but no sidebar row navigates to
+// them any more. The Chat screen is still fully functional \u2014 it just
+// isn't in the primary rail.
 
 const SB_ALLOWED_MODES = ['home'];
 
 // Nav items in the order the spec calls out. `key` matches
 // `appState.activeView`; `icon` pulls from VIEW_ICONS.
+//
+// NOTE: The 'results' key is the canonical destination for the
+// published-content + analytics screen. The router also routes the
+// legacy 'insights' key to the same screen so any deep-link or
+// persisted state landing on 'insights' still works. The sidebar
+// itself only ever emits 'results'.
 const SB_NAV_ITEMS = [
-  { key: 'overview', label: 'Overview', icon: 'overview' },
-  { key: 'today',    label: 'Today',    icon: 'today'    },
-  { key: 'chat',     label: 'Chat',     icon: 'chat'     },
-  { key: 'create',   label: 'Create',   icon: 'create'   },
-  { key: 'insights', label: 'Insights', icon: 'insights' }
+  { key: 'today',   label: 'Today',   icon: 'today'   },
+  { key: 'create',  label: 'Create',  icon: 'create'  },
+  { key: 'results', label: 'Results', icon: 'results' }
 ];
 
 // Machine-key \u2192 human label for the concept-type line under each row.
@@ -201,15 +209,18 @@ function _renderConceptDropdown(active) {
 }
 
 function _renderNavItems(collapsed) {
-  const rawView = appState.activeView || 'overview';
+  const rawView = appState.activeView || 'today';
   // Sub-pages roll up to their parent nav item for highlight purposes
   // so the sidebar doesn't visually "lose" the active section when the
   // user drills into a detail view. Tasks is accessed from Today's
-  // "Manage all tasks" link, so it inherits Today's highlight.
+  // "Manage all tasks" link, so it inherits Today's highlight. The
+  // legacy 'insights' and 'insights-detail' keys both roll up to
+  // 'results' so any code path that still uses the old key still
+  // highlights the correct tab.
   let activeView = rawView;
-  if (activeView === 'insights-detail') activeView = 'insights';
-  else if (activeView === 'tasks')      activeView = 'today';
-  const unread = (appState && typeof appState.chatUnread === 'number') ? appState.chatUnread : 0;
+  if (activeView === 'insights-detail')   activeView = 'results';
+  else if (activeView === 'insights')     activeView = 'results';
+  else if (activeView === 'tasks')        activeView = 'today';
 
   return SB_NAV_ITEMS.map(function (item) {
     const isActive = activeView === item.key;
@@ -217,23 +228,10 @@ function _renderNavItems(collapsed) {
     // Native title attribute is our tooltip in collapsed mode so users
     // can still identify a rail icon without a label.
     const titleAttr = collapsed ? (' title="' + _escape(item.label) + '" aria-label="' + _escape(item.label) + '"') : '';
-    // Unread badge on the Chat item only. Exact-1 renders as a small
-    // dot (no number) per spec; 2+ renders the count. Anything above
-    // 99 is capped upstream in the state normalizer.
-    let badge = '';
-    if (item.key === 'chat' && unread > 0) {
-      if (unread === 1) {
-        badge = '<span class="tk-badge tk-badge-dot" aria-label="1 unread message"></span>';
-      } else {
-        const displayCount = unread > 99 ? '99+' : String(unread);
-        badge = '<span class="tk-badge" aria-label="' + unread + ' unread messages">' + displayCount + '</span>';
-      }
-    }
     return (
       '<button type="button" class="sb-nav-item' + (isActive ? ' sb-nav-item-active' : '') + '" data-nav="' + item.key + '"' + titleAttr + '>'
       +   '<span class="sb-nav-icon" aria-hidden="true">' + icon + '</span>'
       +   '<span class="sb-nav-label-text">' + _escape(item.label) + '</span>'
-      +   badge
       + '</button>'
     );
   }).join('');

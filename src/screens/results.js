@@ -1,5 +1,5 @@
 // ---------------------------------------------
-// Clarity 2.0 — Insights View
+// Clarity 2.0 — Results View
 // ---------------------------------------------
 //
 // Two screens live in this file, both rendered inside the dashboard
@@ -7,12 +7,20 @@
 //
 //   1. renderInsights(container)        — list view (header + summary
 //                                          bar + feed of content cards)
+//                                          for the "Results" sidebar
+//                                          tab. Legacy function name.
 //   2. renderInsightsDetail(container)  — sub-page for a single item
 //                                          with the full analytics
 //                                          breakdown. Reached by
 //                                          clicking a card; leaves via
 //                                          the top-bar breadcrumb or
 //                                          the in-page back link.
+//
+// NAMING: The sidebar tab and page title read "Results" now (previously
+// "Insights"). The exported function names are still `renderInsights`
+// and `renderInsightsDetail` for git-blame continuity and to avoid a
+// wide rename \u2014 the router aliases both 'results' and 'insights' view
+// keys to the same function, so callers can use either.
 //
 // State contract:
 //   - The list reads `concept.results.items`. Each item has shape
@@ -26,10 +34,6 @@
 // fit — is deterministically seeded from the item id via Math.sin so
 // the same item always renders the same numbers. `_insdRand(id, offset)`
 // is the primitive; higher-level helpers below layer on it.
-//
-// File name is `results.js` for git-blame continuity from the pre-
-// rename shell. The `renderResults` global alias is preserved for any
-// stale caller that still uses it.
 
 const INS_PLATFORM_LABELS = {
   instagram: 'Instagram',
@@ -245,7 +249,7 @@ function renderInsights(container) {
   container.innerHTML = `
     <div class="ins-wrap">
       <div class="ins-header">
-        <h1 class="ins-heading">Insights</h1>
+        <h1 class="ins-heading">Results</h1>
         <p class="ins-subtext">Everything you have published, and how it is performing.</p>
       </div>
       ${published.length === 0 ? _insRenderEmpty() : _insRenderContent(published)}
@@ -621,7 +625,7 @@ function _insdSuggestedActions(item) {
 
 // Public entrypoint for the detail sub-page. If the pinned id is
 // missing or doesn't match any item on the active concept, we bounce
-// back to /insights so the user isn't stuck on an empty shell.
+// back to /results so the user isn't stuck on an empty shell.
 function renderInsightsDetail(container) {
   const concept = getActiveConcept();
   const items = (concept && concept.results && Array.isArray(concept.results.items))
@@ -631,7 +635,7 @@ function renderInsightsDetail(container) {
   const item = id ? items.find(function (i) { return i && i.id === id; }) : null;
 
   if (!item) {
-    setActiveView('insights');
+    setActiveView('results');
     renderInsights(container);
     return;
   }
@@ -754,7 +758,7 @@ function renderInsightsDetail(container) {
     <div class="insd-wrap">
       <button type="button" class="insd-back" id="insdBackBtn">
         <span class="insd-back-icon" aria-hidden="true">${INS_BACK_ICON}</span>
-        <span>Back to Insights</span>
+        <span>Back to Results</span>
       </button>
 
       <div class="insd-hero" style="background:${gradient}">
@@ -844,7 +848,7 @@ function _insdBindEvents() {
   const backBtn = document.getElementById('insdBackBtn');
   if (backBtn) {
     backBtn.addEventListener('click', function () {
-      setActiveView('insights');
+      setActiveView('results');
       renderApp();
     });
   }
@@ -852,5 +856,8 @@ function _insdBindEvents() {
 
 window.renderInsights = renderInsights;
 window.renderInsightsDetail = renderInsightsDetail;
-// Legacy alias for any stale caller.
+// Alias so callers using the canonical 'results' name resolve to the
+// same renderer as the legacy 'insights' one. Both point at the list
+// entry point (renderInsights); the detail sub-page is reached via
+// setActiveView('insights-detail') from the list.
 window.renderResults = renderInsights;

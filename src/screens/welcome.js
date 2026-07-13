@@ -101,11 +101,12 @@ function _enterHome() {
   appState.mode = 'home';
 
   // The post-welcome landing is ALWAYS the sidebar dashboard with
-  // Overview selected. Chat is a nav item, never a landing page.
-  // The only variation is whether the onboarding overlay opens on
-  // top (new user or incomplete concept) or the dashboard is clean
-  // (returning user with a completed concept).
-  appState.activeView = 'overview';
+  // Today selected (Today replaced Overview as the primary landing
+  // surface). Chat is a nav item, never a landing page. The only
+  // variation is whether the onboarding overlay opens on top (new
+  // user or incomplete concept) or the dashboard is clean (returning
+  // user with a completed concept).
+  appState.activeView = 'today';
 
   // Fresh signup \u2014 no concepts exist yet. Spawn a placeholder concept;
   // the router will detect "no completed concepts" and open the

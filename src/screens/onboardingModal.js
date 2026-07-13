@@ -945,15 +945,16 @@ function _obCompleteFlow() {
   // The 5 canonical steps from the spec, in this exact order:
   //   1. appState.mode = 'home'                (defensive: already home
   //      by the time we get here, but pins it against any stale value)
-  //   2. appState.activeView = 'overview'       (this is our routing key
+  //   2. appState.activeView = 'today'          (this is our routing key
   //      \u2014 the same idea as appState.nav in the spec; the router
-  //      switches on activeView, not `nav`)
+  //      switches on activeView, not `nav`. Today is the new dashboard
+  //      landing after the Overview tab was removed from the sidebar.)
   //   3. appState.onboardingOverlayOpen = false (dismount the overlay)
   //   4. _saveState()                           (persist BEFORE any
   //      async re-render so a reload lands here too)
   //   5. renderApp()                            (paint the dashboard)
   appState.mode = 'home';
-  appState.activeView = 'overview';
+  appState.activeView = 'today';
   appState.onboardingOverlayOpen = false;
 
   // Flip the concept out of onboarding. Wrapped defensively \u2014

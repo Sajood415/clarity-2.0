@@ -214,12 +214,12 @@ function _renderResultsTile(publishedCount) {
   const body = empty
     ? 'Ship your first post and Clara will start tracking reach, engagement, and what\u2019s working.'
     : 'See reach, top channels, and Clara\u2019s take on what\u2019s working right now.';
-  const cta = empty ? 'Preview \u2192' : 'View insights \u2192';
+  const cta = empty ? 'Preview \u2192' : 'View results \u2192';
 
   return `
-    <button type="button" class="ov-tile ov-tile-results${empty ? ' ov-tile-results-empty' : ''}" data-nav="insights">
+    <button type="button" class="ov-tile ov-tile-results${empty ? ' ov-tile-results-empty' : ''}" data-nav="results">
       <div class="ov-tile-head">
-        <span class="ov-tile-label">INSIGHTS</span>
+        <span class="ov-tile-label">RESULTS</span>
         <span class="ov-tile-arrow">\u2192</span>
       </div>
       <div class="ov-tile-title">${_escape(title)}</div>

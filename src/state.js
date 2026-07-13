@@ -7,8 +7,11 @@
 //   appState = {
 //     mode:              'splash' | 'auth' | 'loading' | 'welcome' | 'home',
 //     activeConceptId:   string | null,
-//     activeView:        'overview' | 'today' | 'chat' | 'create' | 'insights'
-//                      | 'insights-detail' | 'concepts-list' | '<name>-report',
+//     activeView:        'today' | 'create' | 'results'
+//                      | 'insights-detail' | 'concepts-list' | '<name>-report'
+//                      | 'overview' | 'chat' | 'insights' (all legacy,
+//                                    no longer surfaced in the sidebar
+//                                    but still routable for safety),
 //     insightsDetailId:  string | null,   // active item on the insights-detail sub-page
 //     user:              { name, email } | null,
 //     auth:              { mode: 'signup' | 'login' },
@@ -58,9 +61,10 @@ function _defaultState() {
   return {
     mode: 'splash',
     activeConceptId: null,
-    // Overview is the default landing view now that the dashboard is the
-    // primary shell. Chat / today / create / insights are peer nav items.
-    activeView: 'overview',
+    // Today is the default landing view. Chat / create / insights are
+    // peer nav items. Overview was retired as a nav destination but
+    // remains routable for legacy safety.
+    activeView: 'today',
     user: null,
     auth: { mode: 'signup' },
     sidebarOpen: false,
@@ -571,11 +575,18 @@ function _migrateState(saved) {
   // Legacy state migrates onto the dashboard's default landing view.
   // Chat is never a landing page in the new shell, so the old `tab`
   // field is only honored when it points at a valid dashboard view;
-  // otherwise we send them to Overview and let the router flip the
-  // onboarding overlay on top if the concept isn't done yet.
+  // otherwise we send them to Today (the current landing surface after
+  // Overview was retired as a nav destination) and let the router flip
+  // the onboarding overlay on top if the concept isn't done yet. A
+  // legacy 'overview' tab is also collapsed to 'today' so returning
+  // users don't get parked on an unreachable-from-sidebar view.
   const legacyTab = legacy.tab;
-  const validLandings = ['overview', 'today', 'create', 'insights'];
-  const activeView = validLandings.indexOf(legacyTab) !== -1 ? legacyTab : 'overview';
+  const validLandings = ['today', 'create', 'results', 'insights'];
+  let activeView = validLandings.indexOf(legacyTab) !== -1 ? legacyTab : 'today';
+  // Legacy 'insights' collapses to 'results' \u2014 same screen, canonical
+  // key. We keep 'insights' in the valid list above so that stray
+  // legacy state doesn't fall through to the 'today' fallback.
+  if (activeView === 'insights') activeView = 'results';
   const overlayOpen = !concept.chat.onboardingComplete;
 
   return {
@@ -593,11 +604,20 @@ function _migrateState(saved) {
 // Defensive: make sure all fields exist after migration or partial saves.
 function _normalizeState() {
   if (!appState.mode) appState.mode = 'splash';
-  if (!appState.activeView) appState.activeView = 'overview';
-  // Legacy 'results' key was renamed to 'insights' in the dashboard
-  // restructure. Any persisted concept that landed there gets remapped
-  // in place so returning users don't get a blank screen.
-  if (appState.activeView === 'results') appState.activeView = 'insights';
+  if (!appState.activeView) appState.activeView = 'today';
+  // View-key migrations for returning users. Order matters:
+  //   - Old 'insights' \u2192 new canonical 'results' (same screen, same
+  //     renderer). Router still accepts 'insights' as a silent alias
+  //     but we canonicalise here so the sidebar highlight matches.
+  //   - Legacy 'overview' collapses to 'today'. The overview screen
+  //     is still routable for safety fallbacks but no sidebar row
+  //     points at it any more.
+  //   - Legacy 'chat' as a landing key is left alone \u2014 the screen is
+  //     still functional; it just isn't in the sidebar. If a caller
+  //     genuinely lands the user on 'chat' we don't want to yank them
+  //     off it.
+  if (appState.activeView === 'insights') appState.activeView = 'results';
+  if (appState.activeView === 'overview') appState.activeView = 'today';
   if (!appState.auth || !appState.auth.mode) appState.auth = { mode: 'signup' };
   if (typeof appState.sidebarOpen !== 'boolean') appState.sidebarOpen = false;
   if (typeof appState.sidebarCollapsed !== 'boolean') appState.sidebarCollapsed = false;
@@ -612,9 +632,10 @@ function _normalizeState() {
     appState.insightsDetailId = null;
   }
   // If we landed on the detail sub-page but no id is set, fall back to
-  // the parent list so we don't render an empty detail shell.
+  // the parent list so we don't render an empty detail shell. The
+  // parent list now lives under the 'results' key.
   if (appState.activeView === 'insights-detail' && !appState.insightsDetailId) {
-    appState.activeView = 'insights';
+    appState.activeView = 'results';
   }
   // Unread proactive-message counter. Defensive normalisation: any
   // non-integer or negative value collapses to 0. Never persisted above
@@ -869,10 +890,17 @@ function _normalizeState() {
       c.research = window._generateResearch(c.business);
     }
 
-    // Legacy 'results' collapses to 'insights' after the dashboard rename.
-    if (c.lastWorkspaceView === 'results') c.lastWorkspaceView = 'insights';
-    if (!c.lastWorkspaceView || ['overview', 'today', 'chat', 'create', 'insights'].indexOf(c.lastWorkspaceView) === -1) {
-      c.lastWorkspaceView = 'overview';
+    // The dashboard rename ping-ponged: 'results' \u2192 'insights' (v1)
+    // \u2192 'results' (v2, current). We now canonicalise every legacy
+    // 'insights' back to 'results'. The allowed list keeps 'insights'
+    // as a routable safety alias but persisted state settles on the
+    // new canonical key so returning users see the correct sidebar
+    // highlight on load. Default landing is 'today' now that Overview
+    // is no longer a nav destination.
+    if (c.lastWorkspaceView === 'insights') c.lastWorkspaceView = 'results';
+    if (c.lastWorkspaceView === 'overview') c.lastWorkspaceView = 'today';
+    if (!c.lastWorkspaceView || ['overview', 'today', 'chat', 'create', 'results', 'insights'].indexOf(c.lastWorkspaceView) === -1) {
+      c.lastWorkspaceView = 'today';
     }
     if (typeof c.hasSeenWorkspaceIntro !== 'boolean') c.hasSeenWorkspaceIntro = false;
 
@@ -948,16 +976,18 @@ function getTasks() {
 // id. The only supported option is `name` (pre-set business name for
 // the rare code paths that seed a value from outside Clara's flow \u2014
 // e.g. the retired new-concept modal). New concepts always land on
-// Overview with the onboarding overlay open so Clara can collect the
-// rest of the business context. Chat is not a landing view.
+// Today (the primary dashboard landing) with the onboarding overlay
+// open so Clara can collect the rest of the business context. Chat is
+// not a landing view.
 function createConcept(opts) {
   const concept = _newConcept(opts);
   appState.concepts[concept.id] = concept;
   appState.activeConceptId = concept.id;
-  // Fresh concept \u2014 land on Overview and let the onboarding overlay
+  // Fresh concept \u2014 land on Today and let the onboarding overlay
   // (mounted by the router) drive Clara's questions on top. Overlay
-  // closes on completion and the user is already on Overview.
-  appState.activeView = 'overview';
+  // closes on completion and the user is already on Today, which is
+  // now the primary dashboard landing.
+  appState.activeView = 'today';
   appState.onboardingOverlayOpen = true;
   appState.conceptDropdownOpen = false;
   _saveState();
@@ -965,13 +995,14 @@ function createConcept(opts) {
 }
 
 // Switch the active concept from the sidebar dropdown. Always lands on
-// Overview \u2014 that's the dashboard "home" for the concept. If the target
-// concept hasn't finished onboarding, the router mounts the overlay so
-// the user resumes with Clara without leaving the dashboard chrome.
+// Today \u2014 that's the dashboard "home" for the concept now. If the
+// target concept hasn't finished onboarding, the router mounts the
+// overlay so the user resumes with Clara without leaving the
+// dashboard chrome.
 function switchConcept(conceptId) {
   if (!appState.concepts[conceptId]) return;
   appState.activeConceptId = conceptId;
-  appState.activeView = 'overview';
+  appState.activeView = 'today';
   appState.conceptDropdownOpen = false;
   const c = getActiveConcept();
   appState.onboardingOverlayOpen = !!(c && c.chat && !c.chat.onboardingComplete);
@@ -980,10 +1011,21 @@ function switchConcept(conceptId) {
 
 function setActiveView(view) {
   const allowed = [
-    'overview', 'today', 'tasks', 'chat', 'create', 'insights',
-    // Sub-page of Insights \u2014 rich analytics for a single content item.
-    // Reached from an Insights card click. The active id lives on
-    // appState.insightsDetailId; the sidebar Insights nav item stays
+    // Primary sidebar destinations (the only three the sidebar itself
+    // will ever emit).
+    'today', 'create', 'results',
+    // Legacy view keys \u2014 kept in the allowed list on purpose so that
+    // any deep-link, saved lastWorkspaceView, or programmatic caller
+    // that still references them doesn't silently no-op. Overview,
+    // Chat and the standalone Insights tab are all still routable in
+    // router.js as safety fallbacks; they simply have no sidebar row
+    // any more.
+    'overview', 'chat', 'insights',
+    // Today sub-page (reached via "Manage all tasks \u2192").
+    'tasks',
+    // Sub-page of Results \u2014 rich analytics for a single content item.
+    // Reached from a Results card click. The active id lives on
+    // appState.insightsDetailId; the Results nav item stays
     // highlighted while we're here.
     'insights-detail',
     // Full-screen sibling view (no concept top-bar row).
