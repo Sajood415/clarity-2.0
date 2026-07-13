@@ -2,24 +2,35 @@
    Today view
    ========================================== */
 
+/* Wide, flat content column. 900px cap keeps line-lengths readable
+   on wide monitors without forcing the layout into a narrow tunnel
+   the way the old 720px column did. Horizontal padding is 48px per
+   the new spec; vertical uses a light 32px/48px so the insight card
+   isn't glued to the concept-header seam above.
+
+   The old max-width transition is dropped \u2014 the list \u2192 kanban view
+   switch just cross-fades class overrides now.
+
+   .td-wrap-kanban keeps a wider cap so three columns still breathe. */
 .td-wrap {
-  padding: 32px 24px 64px 24px;
-  max-width: 720px;
+  padding: 32px 48px 48px 48px;
+  max-width: 900px;
   margin: 0 auto;
-  transition: max-width 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Kanban needs more horizontal room for three columns to breathe. */
 .td-wrap-kanban {
   max-width: 1120px;
 }
 
+/* Top strip: greeting + heading on the left, list/kanban toggle on
+   the right. 40px bottom gap lands the insight card exactly one
+   step below (matches the spec's between-block rhythm). */
 .td-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 40px;
 }
 
 .td-top-text {
@@ -27,19 +38,26 @@
   min-width: 0;
 }
 
+/* "GOOD MORNING" style eyebrow: small, uppercase, muted. */
 .td-greeting {
   font-size: 13px;
   color: var(--muted);
-  font-weight: 400;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1;
 }
 
+/* Section heading. Inter 22/600. Kept purposefully lighter than the
+   old 24/700 so the insight card headline stays the visual anchor
+   on the fold. */
 .td-heading {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin-top: 4px;
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+  margin-top: 8px;
   margin-bottom: 0;
 }
 
@@ -91,74 +109,15 @@
   color: var(--accent);
 }
 
-.td-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.td-card {
-  /* position:relative anchors the Approve-flash overlay
-     (.td-card-flash) which absolutely-positions itself edge-to-edge
-     across the card. Without this the flash would escape to the
-     nearest positioned ancestor and no longer read as "on the card". */
-  position: relative;
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 18px 16px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, opacity 220ms ease;
-}
-
-.td-card:hover {
-  background: var(--surface-2);
-  border-color: rgba(255, 240, 220, 0.1);
-  box-shadow: var(--shadow-md);
-}
-
-.td-card:active {
-  transform: scale(0.995);
-}
-
-/* Head row that sits at the top of each list card. Layout:
-     [status circle] [STATUS pill] [TYPE pill]         [done check]
-   Chips borrow the visual language from the Tasks screen's list view
-   (.tk-status-chip / .tk-task-type) so both surfaces feel like the
-   same product. */
-.td-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.td-card-head-chips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-.td-card-done-check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  color: #5AAAB0;
-  background: rgba(90, 170, 176, 0.14);
-  border: 1px solid rgba(90, 170, 176, 0.32);
-  flex-shrink: 0;
-}
-
-/* Legacy chip \u2014 kept for any callsite that still emits .td-card-type
-   (task-detail head uses it, for instance). New card layout uses the
-   pill styles below instead. */
-.td-card-type {
+/* =====================================================
+   Task type chip
+   =====================================================
+   Small monochrome type label used on the Kanban card top-strip and
+   the task-detail head. The Today list view no longer renders a
+   chip \u2014 it uses the 3px .td-row-accent bar instead \u2014 but this
+   chip lives on for the two sibling surfaces above.
+   Colour comes from the accent dot before the label. */
+.td-type-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -169,7 +128,7 @@
   text-transform: uppercase;
 }
 
-.td-card-type::before {
+.td-type-chip::before {
   content: '';
   width: 8px;
   height: 8px;
@@ -178,140 +137,126 @@
   flex-shrink: 0;
 }
 
-.td-card-type[data-type="OUTREACH"]::before {
+.td-type-chip[data-type="OUTREACH"]::before {
   background: var(--accent-secondary);
 }
 
-.td-card-type[data-type="OFFER"]::before {
+.td-type-chip[data-type="OFFER"]::before {
   background: #C8A96E;
 }
 
-/* --- Status pill (accompanies the cycling circle) --- */
-.td-card-status-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 5px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1;
-  border: 1px solid var(--border-strong);
-  background: rgba(255, 240, 220, 0.04);
-  color: var(--muted);
-  white-space: nowrap;
+/* =====================================================
+   Today list view \u2014 flat row layout
+   =====================================================
+   Rows are separated by a single 1px border, no card chrome. Each
+   row wears a 3px accent bar down its left edge whose colour is
+   driven by [data-type] on .td-row (see below).
+
+   The reason accordion sits below .td-row-main inside the same
+   .td-row, so the accent bar's absolute positioning naturally spans
+   its expanded height. Discard is icon-only and reveals on hover.
+
+   Layout inside .td-row-main (row-1 grid):
+     [status 24px] [body:  flex-1] [actions]
+
+   The row body itself is a vertical stack of:
+     .td-row-desc  \u2014 the task description (Inter 15/500 white)
+     .td-row-meta  \u2014 uppercase type label + \u00b7 + clock/time  (11px muted) */
+
+.td-rows {
+  display: flex;
+  flex-direction: column;
+  /* Cap the top border on the first row so the block reads as a
+     bordered list, not a card sitting inside another card. */
+  border-top: 1px solid var(--border);
 }
 
-.td-card-status-pill[data-status="in_progress"] {
-  background: rgba(232, 181, 100, 0.12);
-  color: #E8B564;
-  border-color: rgba(232, 181, 100, 0.3);
+.td-row {
+  position: relative;
+  padding: 20px 0 20px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  min-height: 72px;
+  transition: background 160ms ease, opacity 220ms ease, transform 220ms ease;
 }
 
-.td-card-status-pill[data-status="done"] {
-  background: rgba(126, 208, 122, 0.12);
-  color: #7ED07A;
-  border-color: rgba(126, 208, 122, 0.3);
+.td-row:hover {
+  background: rgba(255, 255, 255, 0.02);
 }
 
-/* --- Type chip (POST / OUTREACH / OFFER) --- */
-.td-card-type-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 5px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1;
-  border: 1px solid transparent;
-  white-space: nowrap;
+.td-row:hover .td-row-discard,
+.td-row:focus-within .td-row-discard {
+  opacity: 1;
 }
 
-/* POST \u2192 cool steel-blue. Reads as "content on a channel" without
-   competing with the amber accent used elsewhere in the shell. */
-.td-card-type-chip[data-type="POST"] {
-  background: rgba(122, 175, 219, 0.12);
-  color: #8FB6DB;
-  border-color: rgba(122, 175, 219, 0.32);
+/* --- Accent bar (3px flush to left edge, spans full row height) --- */
+.td-row-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--muted);
+  transition: background 160ms ease;
 }
 
-/* OUTREACH \u2192 house amber. Same hue as the primary accent so
-   "reach out / act now" tasks pop next to their siblings. */
-.td-card-type-chip[data-type="OUTREACH"] {
-  background: rgba(245, 166, 35, 0.14);
-  color: var(--accent);
-  border-color: rgba(245, 166, 35, 0.32);
+.td-row[data-type="POST"]     .td-row-accent { background: #4A90D9; }
+.td-row[data-type="OUTREACH"] .td-row-accent { background: var(--accent); }
+.td-row[data-type="OFFER"]    .td-row-accent { background: #4CAF82; }
+
+/* --- Main row content (status + body + actions) --- */
+.td-row-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-height: 32px;
 }
 
-/* OFFER \u2192 done-green. Shares the same green used by the DONE status
-   pill so all "money-in" surfaces read as one colour family. */
-.td-card-type-chip[data-type="OFFER"] {
-  background: rgba(126, 208, 122, 0.12);
-  color: #7ED07A;
-  border-color: rgba(126, 208, 122, 0.30);
+.td-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 1px; /* nudge to baseline-align with the status circle */
 }
 
-/* Fallback for any future or unknown task type \u2014 muted neutral. */
-.td-card-type-chip:not([data-type="POST"]):not([data-type="OUTREACH"]):not([data-type="OFFER"]) {
-  background: rgba(255, 240, 220, 0.05);
-  color: var(--muted);
-  border-color: var(--border-strong);
-}
-
-/* --- Card body typography --- */
-.td-card-title {
-  font-size: 15.5px;
-  font-weight: 600;
-  color: var(--text);
-  margin-top: 12px;
-  line-height: 1.45;
-  letter-spacing: -0.005em;
-}
-
-/* Retained for any callsite still using the old class name. Same
-   visual weight as .td-card-title so nothing regresses if a stale
-   reference lingers. */
-.td-card-desc {
+.td-row-desc {
   font-size: 15px;
   font-weight: 500;
   color: var(--text);
-  margin-top: 8px;
-  line-height: 1.45;
+  line-height: 1.5;
+  letter-spacing: -0.003em;
+  word-break: break-word;
 }
 
-.td-card-bottom {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Legacy container (kept for compatibility with the task-detail head
-   which reuses these classes). New card layout doesn't wrap the left
-   side in this element. */
-.td-card-bottom-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.td-card-time {
+.td-row-meta {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 8px;
   color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.td-row-meta-type {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.td-row-meta-sep {
+  opacity: 0.6;
+}
+
+.td-row-meta-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   letter-spacing: 0.005em;
 }
 
-.td-card-time-icon {
+.td-row-meta-time-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -319,15 +264,104 @@
   flex-shrink: 0;
 }
 
-.td-card-time-text {
+.td-row-meta-time-text {
   font-variant-numeric: tabular-nums;
 }
 
-/* --- Status-cycling checkbox (bottom-left of every list card) --- */
+/* --- Right-side actions: Why this? + \u00d7 discard (hover-reveal) --- */
+.td-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
 
+.td-row-why {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  margin: -4px -6px -4px 0;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  border-radius: 6px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.td-row-why:hover {
+  background: rgba(245, 166, 35, 0.08);
+  color: var(--accent-dark);
+}
+
+.td-row-why:focus-visible {
+  outline: none;
+  background: rgba(245, 166, 35, 0.08);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+.td-row-why-text { line-height: 1; }
+
+.td-row-why-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 200ms ease;
+}
+
+.td-row-why-open .td-row-why-chevron {
+  transform: rotate(180deg);
+}
+
+.td-row-discard {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.td-row-discard:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.td-row-discard:focus-visible {
+  outline: none;
+  opacity: 1;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+.td-row-discard-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Status-cycling checkbox (leftmost item on every row) --- */
+
+/* Row status circle. 24px per spec. The SVG glyph rendered inside
+   (16px viewBox) upscales to 22px via the child selector so the ring
+   feels proportional to the larger button. */
 .td-status-btn {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: none;
   background: transparent;
@@ -338,10 +372,17 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 1px;
   transition:
     color 160ms ease,
     transform 120ms ease,
     background 160ms ease;
+}
+
+.td-status-btn svg {
+  display: block;
+  width: 22px;
+  height: 22px;
 }
 
 .td-status-btn:hover {
@@ -369,292 +410,75 @@
   color: #5AAAB0;
 }
 
-.td-status-btn svg {
-  display: block;
+/* --- Done state (whole row dims + strike-through on description) ---
+   40% opacity is subtle enough that the row stays readable but
+   clearly settled, and doesn\u2019t hide the accent bar. */
+.td-row-done {
+  opacity: 0.4;
 }
 
-/* --- Done-state overlay on the whole card --- */
-
-.td-card-done {
-  opacity: 0.5;
+.td-row-done:hover {
+  opacity: 0.6;
 }
 
-.td-card-done:hover {
-  opacity: 0.75;
-}
-
-/* When done, hide the accent dot next to the legacy type label. The
-   teal check tile in the head row takes its role. */
-.td-card-done .td-card-type::before {
-  display: none;
-}
-
-.td-card-done .td-card-type {
-  color: var(--muted);
-}
-
-.td-card-done .td-card-title,
-.td-card-done .td-card-desc {
+.td-row-done .td-row-desc {
   text-decoration: line-through;
-  text-decoration-color: rgba(196, 186, 168, 0.7);
+  text-decoration-color: rgba(196, 186, 168, 0.5);
   text-decoration-thickness: 1px;
 }
 
-/* Dim the type chip when the card is done so the "done" state reads
-   as the dominant visual signal. Border + colour drop back to the
-   muted palette without recolouring per-type. */
-.td-card-done .td-card-type-chip {
-  color: var(--muted);
-  background: rgba(255, 240, 220, 0.04);
-  border-color: var(--border-strong);
-}
-
-/* Approve is omitted from the DOM when done (see _buildTdListCard),
-   but this defensive rule ensures a done card renders as a "closed
-   ticket" if some upstream path ever re-injects the button. */
-.td-card-done .td-card-approve {
-  display: none;
-}
-
-.td-card-why {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
-  margin: -4px -6px -4px 0;
-  background: transparent;
-  border: none;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--accent);
-  cursor: pointer;
-  user-select: none;
-  border-radius: 6px;
-  transition: background 120ms ease, color 120ms ease;
-}
-
-.td-card-why:hover {
-  background: rgba(245, 166, 35, 0.08);
-  color: var(--accent-dark);
-}
-
-.td-card-why:focus-visible {
-  outline: none;
-  background: rgba(245, 166, 35, 0.08);
-  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
-}
-
-.td-card-why-text {
-  line-height: 1;
-}
-
-.td-card-why-chevron {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 200ms ease;
-}
-
-.td-card-why-open .td-card-why-chevron {
-  transform: rotate(180deg);
-}
-
-/* ---------------------------------------------
-   Card-bottom action group (Why this? / Approve / Discard)
-   ---------------------------------------------
-   Three inline pill buttons anchored to the bottom-right of every
-   list card. Container is a right-aligned flex row with a generous
-   gap so the buttons never touch. `flex-wrap: wrap` covers the
-   narrow-column edge case (e.g. sidebar-open on a 13" laptop) so
-   the actions collapse onto a second row rather than overflowing
-   the card. */
-.td-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-/* --- Approve pill --- */
-.td-card-approve {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  cursor: pointer;
-  user-select: none;
-  border-radius: 999px;
-  color: #7ED07A;
-  background: rgba(126, 208, 122, 0.10);
-  border: 1px solid rgba(126, 208, 122, 0.32);
-  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 100ms ease;
-}
-
-.td-card-approve:hover {
-  background: rgba(126, 208, 122, 0.18);
-  border-color: rgba(126, 208, 122, 0.5);
-  color: #93D68F;
-}
-
-.td-card-approve:active {
-  transform: scale(0.97);
-}
-
-.td-card-approve:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(126, 208, 122, 0.35);
-}
-
-.td-card-approve-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.td-card-approve-text {
-  line-height: 1;
-}
-
-/* --- Discard pill --- */
-.td-card-discard {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  cursor: pointer;
-  user-select: none;
-  border-radius: 999px;
-  color: #D48C8C;
-  background: rgba(231, 107, 107, 0.06);
-  border: 1px solid rgba(231, 107, 107, 0.22);
-  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 100ms ease;
-}
-
-.td-card-discard:hover {
-  background: rgba(231, 107, 107, 0.14);
-  border-color: rgba(231, 107, 107, 0.4);
-  color: #E76B6B;
-}
-
-.td-card-discard:active {
-  transform: scale(0.97);
-}
-
-.td-card-discard:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(231, 107, 107, 0.35);
-}
-
-.td-card-discard-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.td-card-discard-text {
-  line-height: 1;
-}
-
-/* --- Approve flash overlay ---
-   Injected into the card as a transient child when the user clicks
-   Approve. Renders a big green check that fades in and back out
-   over 480ms; the parent handler then swaps the card into its done
-   state via _setTaskStatus + _rerenderToday. */
-.td-card-flash {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  color: #7ED07A;
-  background: rgba(126, 208, 122, 0.12);
-  border-radius: var(--radius);
-  animation: td-approve-flash 480ms ease forwards;
-}
-
-.td-card-flash svg {
-  filter: drop-shadow(0 2px 6px rgba(126, 208, 122, 0.35));
-  animation: td-approve-check 480ms ease forwards;
-}
-
-@keyframes td-approve-flash {
-  0%   { opacity: 0; }
-  25%  { opacity: 1; }
-  70%  { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@keyframes td-approve-check {
-  0%   { opacity: 0; transform: scale(0.4); }
-  40%  { opacity: 1; transform: scale(1.08); }
-  70%  { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1); }
-}
-
-/* Card locks pointer events while approving so a second click can't
-   fire a duplicate flash / status write. Border pulse is subtle so
-   the eye stays on the overlay check, not the frame. */
-.td-card-approving {
-  pointer-events: none;
-  border-color: rgba(126, 208, 122, 0.45);
-}
-
 /* --- Discard fade-out ---
-   Slides the card slightly left as it fades. The 260ms duration is
-   mirrored by the setTimeout in the JS handler so the fade always
-   completes before the re-render swaps the DOM. */
-.td-card-discarding {
-  animation: td-discard-out 260ms ease forwards;
+   Slides the row a hair left as it fades. The 240ms duration is
+   mirrored by the setTimeout in the JS handler so the fade
+   completes before the re-render swaps DOM. Pointer events lock
+   while animating so a second click can\u2019t fire a duplicate. */
+.td-row-discarding {
+  animation: td-row-discard-out 240ms ease forwards;
   pointer-events: none;
 }
 
-@keyframes td-discard-out {
-  0%   { opacity: 1; transform: translateX(0);     }
-  100% { opacity: 0; transform: translateX(-14px); }
+@keyframes td-row-discard-out {
+  0%   { opacity: 1; transform: translateX(0);    }
+  100% { opacity: 0; transform: translateX(-12px); }
 }
 
-.td-card-reason {
+/* --- Reason accordion (below .td-row-main, indented to the body col) --- */
+.td-row-reason {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 250ms ease;
+  transition: max-height 260ms ease;
+  padding-left: 40px; /* line up with .td-row-desc (24px status + 16px gap) */
+  padding-right: 24px;
 }
 
-.td-card-reason-open {
-  max-height: 220px;
+.td-row-reason-open {
+  max-height: 260px;
 }
 
-.td-card-reason-inner {
+.td-row-reason-inner {
   font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.55;
   padding-top: 12px;
-  margin-top: 8px;
 }
 
+/* Sub-list microcopy: "Clara updates these every day based on
+   what\u2019s working." Centered muted footer, one step down from the
+   last task row. 32px per spec. */
 .td-footer-note {
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
-  margin-top: 20px;
+  margin-top: 32px;
 }
 
+/* Only entry point to the full Tasks workspace (Tasks isn\u2019t a
+   sidebar item). Anchored 12px under the footer note so the two
+   lines read as one grouped block. */
 .td-manage-tasks {
   display: block;
-  margin-top: 20px;
-  padding: 8px 0;
+  margin-top: 12px;
+  padding: 4px 0;
   font-size: 13px;
   color: var(--accent);
   cursor: pointer;
@@ -722,7 +546,7 @@
   min-height: 80px;
 }
 
-/* --- Kanban card (compact version of td-card) --- */
+/* --- Kanban card (compact per-column card, list view uses .td-row) --- */
 
 .td-kanban-card {
   position: relative;
@@ -811,6 +635,11 @@
    Cards stay draggable; drop targets shift accordingly. --- */
 
 @media (max-width: 767px) {
+  /* Tighten the wrap padding on phones \u2014 48px sides eat too much of
+     the viewport otherwise. Rows still keep their 20px inner padding. */
+  .td-wrap {
+    padding: 24px 20px 40px 20px;
+  }
   .td-wrap-kanban {
     max-width: 100%;
   }
@@ -823,20 +652,44 @@
   .td-top {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: 32px;
   }
   .td-view-toggle {
     align-self: flex-end;
+  }
+  /* Discard is always visible on touch, since hover-reveal doesn\u2019t
+     apply. Same idea as any hover-reveal action on mobile. */
+  .td-row-discard {
+    opacity: 1;
   }
 }
 
 /* ==========================================
    Task detail (sub-view of Today)
+   ------------------------------------------
+   Editorial layout matching the redesigned Today screen. Full-width
+   dark canvas, Playfair Display headline as the hero, flat step rows
+   (no card chrome), amber accents. Composition, top to bottom:
+
+     .td-detail-back            \u2190 muted back link
+     .td-detail-head            [TYPE chip] . . . . . . . . [time]
+     .td-detail-title           Playfair 28/700 hero
+     .td-detail-divider         1px muted line, 28px stack
+     .td-detail-section         "Why Clara picked this" \u2014 label + body
+     .td-detail-divider
+     .td-detail-section         "Clara\u2019s step-by-step" \u2014 label + <ol>
+     .td-detail-actions         [Open in Create] (POST only) / [Mark as done]
+
+   The <section class="td-wrap td-wrap-detail"> shares the same 900px
+   cap and 48px horizontal padding as the list view (via .td-wrap),
+   so both views feel like the same page at different depths.
+   .td-wrap-detail only tweaks the top padding.
    ========================================== */
 
-/* Narrower column than the list — the detail is a "focused reading"
-   page where Clara walks the user through concrete steps. */
+/* Inherits max-width: 900px + padding: 32px 48px 48px from .td-wrap.
+   No further width or padding overrides needed \u2014 the detail sits
+   in the same rail as the list. */
 .td-wrap-detail {
-  max-width: 640px;
   padding-top: 24px;
 }
 
@@ -844,16 +697,17 @@
   background: transparent;
   border: none;
   padding: 4px 2px;
-  margin: 0 0 20px -2px;
+  margin: 0 0 32px -2px;
   font-family: inherit;
   font-size: 13px;
   color: var(--muted);
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: color 150ms ease, transform 150ms ease;
 }
 
 .td-detail-back:hover {
   color: var(--text);
+  transform: translateX(-2px);
 }
 
 .td-detail-back:focus-visible {
@@ -863,19 +717,21 @@
   border-radius: 4px;
 }
 
-/* Head strip: type badge + optional done tick + estimated time. Same
-   type-dot palette as the list card so the visual link is obvious. */
+/* Head row: type chip left, done tick + estimated time right.
+   `.td-detail-time` uses margin-left:auto so it hugs the right edge
+   regardless of whether the done badge is present. */
 .td-detail-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .td-detail-time {
   margin-left: auto;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
+  letter-spacing: 0.005em;
 }
 
 .td-detail-done-badge {
@@ -891,106 +747,126 @@
   flex-shrink: 0;
 }
 
+/* Playfair Display hero. Only serif callout on the detail page \u2014
+   matches the insight card's headline as the two "big statements"
+   the user encounters on Today. */
 .td-detail-title {
-  font-size: 24px;
+  font-family: 'Playfair Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 28px;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.02em;
-  line-height: 1.28;
-  margin: 0 0 22px;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  margin: 16px 0 0 0;
 }
 
-/* "Why Clara picked this" — surfaced permanently (no accordion) so the
-   user reads the reasoning first, then the steps. */
-.td-detail-reason {
-  background: rgba(245, 166, 35, 0.05);
-  border: 1px solid rgba(245, 166, 35, 0.16);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 28px;
+/* Muted horizontal rule between sections. Uses --border (not
+   --border-strong) so it whispers rather than divides. */
+.td-detail-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 28px 0;
 }
 
+/* Section wrapper. Just a flex column of label + body \u2014 no card
+   chrome, no padding beyond what its own children own. */
+.td-detail-section {
+  display: block;
+}
+
+/* "WHY CLARA PICKED THIS" \u2014 amber uppercase eyebrow. */
 .td-detail-reason-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--accent);
-  margin-bottom: 6px;
+  line-height: 1;
+  margin-bottom: 8px;
 }
 
 .td-detail-reason-body {
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--text-secondary);
-  line-height: 1.55;
+  line-height: 1.6;
+  letter-spacing: -0.003em;
 }
 
+/* "CLARA\u2019S STEP-BY-STEP" \u2014 muted uppercase eyebrow. */
 .td-detail-steps-head {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--muted);
-  margin-bottom: 12px;
+  line-height: 1;
+  margin-bottom: 20px;
 }
 
+/* Step list: 16px gap, no card backgrounds. Each step gets a thin
+   1px left accent bar tinted by the wrap's data-type so the detail
+   page inherits the task's colour language from the row that
+   opened it. */
 .td-detail-steps {
   list-style: none;
   padding: 0;
-  margin: 0 0 32px;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  counter-reset: none;
+  gap: 16px;
 }
 
 .td-detail-step {
   display: flex;
   gap: 14px;
   align-items: flex-start;
-  padding: 14px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  transition: border-color 160ms ease, background 160ms ease;
+  padding: 4px 0 4px 16px;
+  border-left: 1px solid var(--muted);
+  background: transparent;
+  border-radius: 0;
+  transition: border-color 160ms ease;
 }
 
-.td-detail-step:hover {
-  background: var(--surface-2);
-  border-color: rgba(245, 166, 35, 0.18);
-}
+/* Per-type left accent \u2014 same palette as .td-row-accent. Fallback
+   is a muted grey (default border-left above). */
+.td-wrap-detail[data-type="POST"]     .td-detail-step { border-left-color: #4A90D9; }
+.td-wrap-detail[data-type="OUTREACH"] .td-detail-step { border-left-color: var(--accent); }
+.td-wrap-detail[data-type="OFFER"]    .td-detail-step { border-left-color: #4CAF82; }
 
 .td-detail-step-num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 12px;
-  background: rgba(245, 166, 35, 0.12);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.14);
   color: var(--accent);
+  border: 1px solid rgba(245, 166, 35, 0.28);
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .td-detail-step-text {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text);
-  line-height: 1.6;
-  letter-spacing: -0.005em;
+  line-height: 1.55;
+  letter-spacing: -0.003em;
+  padding-top: 5px; /* baseline-align with the 28px number badge */
 }
 
-/* Actions live at the bottom of the detail. Primary CTA keeps the
-   original task -> Create handoff. Secondary toggles the task's
-   status so the user can mark it done without leaving the page. */
+/* Bottom actions. Primary CTA is amber and only rendered by the JS
+   for POST tasks; secondary is the outline "Mark as done" toggle
+   and is always present. Column layout with 12px gap per spec. */
 .td-detail-actions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 40px;
 }
 
 .td-detail-action-primary {
@@ -1025,7 +901,7 @@
 .td-detail-action-secondary {
   width: 100%;
   height: 44px;
-  background: var(--surface);
+  background: transparent;
   border: 1px solid var(--border-strong);
   color: var(--text);
   border-radius: var(--radius);
@@ -1037,8 +913,8 @@
 }
 
 .td-detail-action-secondary:hover {
-  background: var(--surface-2);
-  border-color: rgba(255, 240, 220, 0.14);
+  background: rgba(255, 240, 220, 0.03);
+  border-color: rgba(255, 240, 220, 0.2);
 }
 
 .td-detail-action-secondary:focus-visible {
@@ -1046,8 +922,9 @@
   box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
 }
 
-/* When the task is already done, dim the title and reason a touch so
-   the completed state reads visually without hiding the content. */
+/* Done state: dim the hero title + reason so the "closed" state reads
+   visually without hiding the content. The step list stays crisp so
+   users can still re-read the recipe if they cycled back to todo. */
 .td-wrap-detail-done .td-detail-title {
   text-decoration: line-through;
   text-decoration-color: rgba(196, 186, 168, 0.6);
@@ -1055,17 +932,20 @@
   color: var(--text-secondary);
 }
 
-.td-wrap-detail-done .td-detail-reason {
-  opacity: 0.75;
+.td-wrap-detail-done .td-detail-reason-body {
+  opacity: 0.7;
 }
 
 @media (max-width: 640px) {
-  .td-wrap-detail {
-    padding: 20px 16px 56px;
-  }
-  .td-detail-title {
-    font-size: 20px;
-  }
+  .td-wrap-detail { padding-top: 20px; }
+  .td-detail-back { margin-bottom: 24px; }
+  .td-detail-title { font-size: 24px; margin-top: 12px; }
+  .td-detail-divider { margin: 22px 0; }
+  .td-detail-reason-body { font-size: 14px; }
+  .td-detail-steps-head { margin-bottom: 16px; }
+  .td-detail-steps { gap: 14px; }
+  .td-detail-step-text { font-size: 14px; }
+  .td-detail-actions { margin-top: 32px; }
 }
 
 /* ==========================================
@@ -1091,49 +971,59 @@
                                         the full insight expanded.
    ========================================== */
 
+/* --- Daily Insight card (redesigned) ---
+   Full-width panel that sits between the greeting/heading and the
+   task list. Visual language:
+
+     \u2022 background: --surface (nearest dark token in the palette)
+     \u2022 4px solid amber left border, no other visible borders
+     \u2022 sharp left edge, right edge softly rounded (0 4px 4px 0)
+     \u2022 subtle amber glow bleeding off the left edge (-2px offset)
+     \u2022 hover deepens the glow and lifts the arrow tile
+
+   Content layout is a vertical stack inside .td-insight-card-inner:
+     [kicker "DAILY INSIGHT"] ......... [arrow tile]
+     [Playfair headline 32/700]
+     [Inter stat 14/text-secondary]
+     [Skip for today \u2192] ........... [SOURCE pill]
+
+   min-height keeps the card visually anchored even when the copy
+   is short so it doesn\u2019t collapse into a thin banner. */
 .td-insight-card {
   position: relative;
   display: block;
   width: 100%;
-  margin-bottom: 24px;
+  min-height: 180px;
+  margin-bottom: 40px;
   padding: 0;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius);
-  background: linear-gradient(
-    180deg,
-    rgba(245, 166, 35, 0.06) 0%,
-    rgba(245, 166, 35, 0.02) 45%,
-    var(--surface) 100%
-  );
-  box-shadow: var(--shadow);
+  background: var(--surface);
+  border: none;
+  border-left: 4px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  box-shadow: -2px 0 24px rgba(245, 166, 35, 0.15);
   cursor: pointer;
-  overflow: hidden;
-  transition:
-    border-color 200ms ease,
-    box-shadow 200ms ease,
-    transform 200ms ease;
+  overflow: visible;
+  transition: box-shadow 220ms ease, background 220ms ease;
   animation: cl-init-fade-in 320ms ease;
 }
 
 .td-insight-card:hover {
-  border-color: var(--border-accent);
-  border-left-color: var(--accent);
-  box-shadow: var(--shadow-accent);
-  transform: translateY(-1px);
+  background: var(--surface-2);
+  box-shadow: -2px 0 32px rgba(245, 166, 35, 0.22);
 }
 
 .td-insight-card:focus-visible {
   outline: none;
-  border-color: var(--border-accent);
-  box-shadow: var(--shadow-accent), 0 0 0 2px rgba(245, 166, 35, 0.35);
+  box-shadow: -2px 0 32px rgba(245, 166, 35, 0.22),
+              0 0 0 2px rgba(245, 166, 35, 0.35);
 }
 
 .td-insight-card-inner {
-  padding: 22px 24px 18px;
+  padding: 28px 32px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
+  min-height: 180px;
 }
 
 .td-insight-eyebrow {
@@ -1146,7 +1036,7 @@
 .td-insight-kicker {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   color: var(--accent);
   text-transform: uppercase;
   line-height: 1;
@@ -1156,11 +1046,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   color: var(--muted);
-  background: rgba(255, 240, 220, 0.02);
+  background: rgba(255, 240, 220, 0.03);
   border: 1px solid var(--border);
   transition: color 200ms ease, background 200ms ease, border-color 200ms ease, transform 200ms ease;
 }
@@ -1168,22 +1058,24 @@
 .td-insight-card:hover .td-insight-arrow {
   color: var(--accent);
   background: rgba(245, 166, 35, 0.1);
-  border-color: rgba(245, 166, 35, 0.28);
+  border-color: rgba(245, 166, 35, 0.32);
   transform: translateX(2px);
 }
 
+/* Playfair display headline \u2014 the only Playfair callout on the
+   Today screen. 32/700 white, tight leading. */
 .td-insight-headline {
-  margin: 0;
+  margin: 12px 0 0 0;
   font-family: 'Playfair Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
 }
 
 .td-insight-stat {
-  margin: 0;
+  margin: 8px 0 0 0;
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.55;
@@ -1191,25 +1083,30 @@
   max-width: 62ch;
 }
 
+/* Footer row is pushed to the bottom of the card via margin-top:auto
+   so short-headline days still keep the skip / source at the base
+   of the 180px min-height panel. */
 .td-insight-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 6px;
+  margin-top: auto;
+  padding-top: 20px;
   flex-wrap: wrap;
 }
 
+/* Text-link styling per spec: no button chrome, just a muted link. */
 .td-insight-skip {
-  padding: 6px 8px 6px 0;
+  padding: 0;
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
   transition: color 160ms ease;
-  font-family: inherit;
 }
 
 .td-insight-skip:hover {
@@ -1227,12 +1124,12 @@
 .td-insight-source {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
   background: rgba(255, 240, 220, 0.03);
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -1406,10 +1303,12 @@
 }
 
 @media (max-width: 640px) {
-  .td-insight-card-inner { padding: 18px 18px 14px; }
-  .td-insight-headline { font-size: 22px; }
+  .td-insight-card { min-height: 0; margin-bottom: 32px; }
+  .td-insight-card-inner { padding: 20px 20px 18px; min-height: 0; }
+  .td-insight-headline { font-size: 24px; }
   .td-insight-stat { font-size: 13px; }
   .td-insight-source { max-width: 55%; }
+  .td-insight-footer { padding-top: 16px; }
 
   .td-insight-drawer-backdrop { padding: 0; }
   .td-insight-drawer {

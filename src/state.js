@@ -756,15 +756,21 @@ function _normalizeState() {
       c.today || {}
     );
     if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
-    // Backfill `discarded` on legacy tasks. This flag hides a task from
-    // the Today view only (via _renderTdList / _renderTdKanban filters)
-    // without removing it from the concept. Anything non-true resets
-    // to false so a corrupted persisted value can't accidentally keep
-    // a task hidden forever.
+    // Backfill Today-only per-task flags on legacy tasks:
+    //   * `discarded` hides the card from the Today view only (via
+    //     _renderTdList / _renderTdKanban filters) without removing
+    //     the task record from the concept.
+    //   * `approved` is the "yes, I want to do this today" flag set
+    //     by the Approve button on the list card. It does NOT drive
+    //     status \u2014 status still lives in `task.status`. Approved
+    //     tasks simply hide their Approve button on subsequent renders.
+    // Anything non-true resets to false so a corrupted persisted value
+    // can't accidentally keep a task hidden or already-approved forever.
     for (let ti = 0; ti < c.today.tasks.length; ti++) {
       const _tk = c.today.tasks[ti];
       if (_tk && typeof _tk === 'object') {
         _tk.discarded = _tk.discarded === true;
+        _tk.approved  = _tk.approved  === true;
       }
     }
     // viewingTaskId is either a task id string or null. Anything else

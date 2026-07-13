@@ -3,15 +3,17 @@
 // ---------------------------------------------
 //
 // Two visual modes sharing the same underlying task data:
-//   \u2022 List (default)  \u2014 the original stacked task cards
+//   \u2022 List (default)  \u2014 flat full-width rows separated by 1px borders,
+//                         each with a 3px accent bar down the left edge
+//                         colour-coded by task type (POST / OUTREACH / OFFER)
 //   \u2022 Kanban          \u2014 three columns (TO DO / IN PROGRESS / DONE)
 //                         with HTML5 drag-and-drop between columns
 //
-// Task content and card copy come from `_todayTasks()` unchanged. On
-// first render for a concept, the generated tasks are seeded into
+// Task content and copy come from `_todayTasks()` unchanged. On first
+// render for a concept, the generated tasks are seeded into
 // `concept.today.tasks` with `status: 'todo'` and persisted, so any
-// user-driven status changes (kanban drags) survive across renders,
-// tab switches, and reloads.
+// user-driven status changes (list status-circle cycles, kanban drags)
+// survive across renders, tab switches, and reloads.
 //
 // The view choice is a global UI preference (`appState.today.view`)
 // so the user's list-vs-kanban pick sticks across concepts.
@@ -48,38 +50,20 @@ const TD_CLOCK_ICON = ''
   + '</svg>';
 
 // Chevron used on the "Why this?" toggle. Rotates 180deg via CSS when
-// the reason panel is open (see .td-card-why-chevron).
+// the reason panel is open (see .td-row-why-chevron).
 const TD_WHY_CHEVRON_ICON = ''
   + '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" '
   +   'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
   +   '<path d="M2.5 3.75 L5 6.25 L7.5 3.75"/>'
   + '</svg>';
 
-// Small checkmark used inside the "Approve ✓" pill on each list card.
-// Same weight as TD_WHY_CHEVRON_ICON so the two action pills read as a
-// pair when they sit side-by-side in the card footer.
-const TD_APPROVE_ICON = ''
-  + '<svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" '
-  +   'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-  +   '<path d="M2 5.6 L4.4 8 L9 3.2"/>'
-  + '</svg>';
-
-// Small ✗ used inside the "Discard" pill on each list card. Kept at
-// the same 10px viewport as TD_APPROVE_ICON so the two pills align.
+// Small \u00d7 glyph rendered inside the row's hover-reveal discard button.
+// Sized to match TD_CLOCK_ICON so the icon set on a row reads at one
+// visual weight. Uses currentColor so hover states drive the tint.
 const TD_DISCARD_ICON = ''
-  + '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" '
-  +   'stroke-width="1.8" stroke-linecap="round" aria-hidden="true">'
-  +   '<path d="M2.6 2.6 L7.4 7.4 M7.4 2.6 L2.6 7.4"/>'
-  + '</svg>';
-
-// Larger check drawn into the transient overlay that flashes across a
-// card when the user clicks Approve. Rendered by JS into a temporary
-// .td-card-flash element that lives on the card for ~500ms before we
-// commit the status change and re-render.
-const TD_APPROVE_FLASH_ICON = ''
-  + '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="currentColor" '
-  +   'stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-  +   '<path d="M11 22 L19 30 L33 15"/>'
+  + '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" '
+  +   'stroke-width="1.6" stroke-linecap="round" aria-hidden="true">'
+  +   '<path d="M3 3 L9 9 M9 3 L3 9"/>'
   + '</svg>';
 
 // Status-cycling checkbox icons used in the list view.
@@ -409,9 +393,11 @@ function _seedTodayTasks(c) {
   const fresh = _todayTasks().map(function (t) {
     // `discarded` is stamped on at seed time so downstream code can
     // trust the field exists (list + kanban renderers filter by it).
-    // The state normalizer also backfills it for legacy tasks that
-    // were seeded before this flag existed.
-    return Object.assign({}, t, { status: 'todo', discarded: false });
+    // `approved` is the "yes, I want to do this today" flag toggled
+    // by the card's Approve button \u2014 initially false. The state
+    // normalizer backfills both fields for legacy tasks that were
+    // seeded before these flags existed.
+    return Object.assign({}, t, { status: 'todo', discarded: false, approved: false });
   });
   c.today.tasks = fresh;
   _saveState();
@@ -529,12 +515,12 @@ function _bindTdManageTasks(scope) {
 // ---------------------------------------------
 
 function _renderTdList(container, c) {
-  container.innerHTML = '<div class="td-cards" id="tdCards"></div>';
-  const wrap = container.querySelector('#tdCards');
-  // Skip discarded tasks: `task.discarded` hides a card from the Today
+  container.innerHTML = '<div class="td-rows" id="tdRows"></div>';
+  const wrap = container.querySelector('#tdRows');
+  // Skip discarded tasks: `task.discarded` hides a row from the Today
   // view only (the underlying task record stays on the concept). We
-  // keep the *original* idx when building each card so status-cycle,
-  // approve, and discard writes still land on the right slot in
+  // keep the *original* idx when building each row so status-cycle
+  // and discard writes still land on the right slot in
   // `c.today.tasks` after filtering.
   c.today.tasks.forEach(function (task, idx) {
     if (task && task.discarded) return;
@@ -542,91 +528,64 @@ function _renderTdList(container, c) {
   });
 }
 
-// Builds a single "ticket-style" card for the Today list view. The
-// visual language is borrowed from the Tasks screen's list view
-// (colored chip pills, tabular row/column layout) so each Today card
-// reads as a proper task ticket rather than a plain text block. The
-// card still owns the same interactions:
-//   \u2022 status circle at top-left cycles todo \u2192 in_progress \u2192 done
-//   \u2022 "Why this?" toggles the reason accordion below
-//   \u2022 card body click opens the task detail sub-view
+// Builds one row for the Today list view. The visual is now a flat,
+// full-width row separated by a 1px border \u2014 no card chrome, no
+// shadow. A 3px accent line runs down the left edge, colour-coded by
+// task type (POST / OUTREACH / OFFER). All the row's interactions
+// route through the same helpers as before:
+//   \u2022 status circle cycles todo \u2192 in_progress \u2192 done via _cycleTaskStatus
+//   \u2022 \u00d7 discard flags task.discarded = true and re-renders (hover-reveal)
+//   \u2022 clicking the row body opens the task-detail sub-view
+// "Why this?" is no longer surfaced on the row \u2014 the reason lives
+// on the task-detail page under "WHY CLARA PICKED THIS", so
+// duplicating it here just adds noise.
+// Approve is also intentionally NOT rendered \u2014 per product decision
+// the row's default meaning is "yes I plan to do this today", so an
+// explicit approve action is redundant. `task.approved` still exists
+// in state for backward compat but no longer has a UI affordance.
 function _buildTdListCard(task, idx) {
   const status = _resolveStatus(task.status);
   const done = status === 'done';
   const type = String(task.type || '').toUpperCase();
-  // Map internal status to the same label vocabulary Tasks uses so
-  // both screens read as the same product. In-progress reads as "IN
-  // PROGRESS" to match .tk-status-chip-inprogress across the app.
-  const statusLabels = { todo: 'TO DO', in_progress: 'IN PROGRESS', done: 'DONE' };
-  const statusLabel = statusLabels[status] || 'TO DO';
 
-  const card = document.createElement('div');
-  card.className = 'td-card' + (done ? ' td-card-done' : '');
-  card.setAttribute('data-task-id', task.id);
+  const row = document.createElement('div');
+  row.className = 'td-row' + (done ? ' td-row-done' : '');
+  row.setAttribute('data-task-id', task.id);
+  row.setAttribute('data-type', type);
 
-  // Bottom-row actions. Approve is hidden for tasks already in the done
-  // state (clicking it would be a no-op). Discard stays available on
-  // done cards too so the user can prune a completed task off Today
-  // without changing its status. Both buttons stop propagation on
-  // click so they never bubble into the card's open-detail handler.
-  const approveBtnHtml = done
-    ? ''
-    : '<button type="button" class="td-card-approve" data-approve="' + _escape(task.id) + '" aria-label="Approve task \u2014 mark as done">'
-      +   '<span class="td-card-approve-icon" aria-hidden="true">' + TD_APPROVE_ICON + '</span>'
-      +   '<span class="td-card-approve-text">Approve</span>'
-      + '</button>';
-  const discardBtnHtml = ''
-    + '<button type="button" class="td-card-discard" data-discard="' + _escape(task.id) + '" aria-label="Discard task \u2014 hide from Today">'
-    +   '<span class="td-card-discard-icon" aria-hidden="true">' + TD_DISCARD_ICON + '</span>'
-    +   '<span class="td-card-discard-text">Discard</span>'
-    + '</button>';
-
-  card.innerHTML = ''
-    + '<div class="td-card-head">'
-    +   '<div class="td-card-head-chips">'
-    +     _renderStatusCheckbox(status, idx)
-    +     '<span class="td-card-status-pill" data-status="' + status + '">' + statusLabel + '</span>'
-    +     '<span class="td-card-type-chip" data-type="' + _escape(type) + '">' + _escape(type) + '</span>'
+  // Layout, left to right (inside .td-row-main):
+  //   [3px accent bar] \u2014 absolute, spans full row height
+  //   [status circle]  \u2014 24px, cycles todo/in_progress/done
+  //   [body]           \u2014 description + meta (TYPE \u00b7 time)
+  //   [actions]        \u2014 \u00d7 discard (hover-reveal)
+  row.innerHTML = ''
+    + '<span class="td-row-accent" aria-hidden="true"></span>'
+    + '<div class="td-row-main">'
+    +   _renderStatusCheckbox(status, idx)
+    +   '<div class="td-row-body">'
+    +     '<div class="td-row-desc">' + _escape(task.description) + '</div>'
+    +     '<div class="td-row-meta">'
+    +       '<span class="td-row-meta-type">' + _escape(type) + '</span>'
+    +       '<span class="td-row-meta-sep" aria-hidden="true">\u00b7</span>'
+    +       '<span class="td-row-meta-time">'
+    +         '<span class="td-row-meta-time-icon" aria-hidden="true">' + TD_CLOCK_ICON + '</span>'
+    +         '<span class="td-row-meta-time-text">' + _escape(task.time) + '</span>'
+    +       '</span>'
+    +     '</div>'
     +   '</div>'
-    +   (done ? '<span class="td-card-done-check" aria-hidden="true">' + TD_CHECK_ICON + '</span>' : '')
-    + '</div>'
-    + '<div class="td-card-title">' + _escape(task.description) + '</div>'
-    + '<div class="td-card-bottom">'
-    +   '<span class="td-card-time">'
-    +     '<span class="td-card-time-icon" aria-hidden="true">' + TD_CLOCK_ICON + '</span>'
-    +     '<span class="td-card-time-text">' + _escape(task.time) + '</span>'
-    +   '</span>'
-    +   '<div class="td-card-actions">'
-    +     '<button type="button" class="td-card-why" data-why="' + _escape(task.id) + '" aria-expanded="false" aria-controls="tdReason-' + _escape(task.id) + '">'
-    +       '<span class="td-card-why-text">Why this?</span>'
-    +       '<span class="td-card-why-chevron" aria-hidden="true">' + TD_WHY_CHEVRON_ICON + '</span>'
+    +   '<div class="td-row-actions">'
+    +     '<button type="button" class="td-row-discard" data-discard="' + _escape(task.id) + '" aria-label="Discard task \u2014 hide from Today">'
+    +       '<span class="td-row-discard-icon" aria-hidden="true">' + TD_DISCARD_ICON + '</span>'
     +     '</button>'
-    +     approveBtnHtml
-    +     discardBtnHtml
     +   '</div>'
-    + '</div>'
-    + '<div class="td-card-reason" id="tdReason-' + _escape(task.id) + '" data-reason="' + _escape(task.id) + '">'
-    +   '<div class="td-card-reason-inner">' + _escape(task.reason) + '</div>'
     + '</div>';
 
-  const why = card.querySelector('.td-card-why');
-  const reason = card.querySelector('.td-card-reason');
-  const statusBtn = card.querySelector('.td-status-btn');
-  const approveBtn = card.querySelector('.td-card-approve');
-  const discardBtn = card.querySelector('.td-card-discard');
+  const statusBtn = row.querySelector('.td-status-btn');
+  const discardBtn = row.querySelector('.td-row-discard');
 
-  if (why) {
-    why.addEventListener('click', function (e) {
-      e.stopPropagation();
-      const open = reason.classList.toggle('td-card-reason-open');
-      why.setAttribute('aria-expanded', open ? 'true' : 'false');
-      why.classList.toggle('td-card-why-open', open);
-    });
-  }
-
-  // Status checkbox: cycles todo \u2192 in_progress \u2192 done \u2192 todo.
+  // Status circle: cycles todo \u2192 in_progress \u2192 done \u2192 todo.
   // Stops propagation so clicking the circle doesn't also fire the
-  // card's click-to-detail handler.
+  // row's click-to-detail handler.
   if (statusBtn) {
     statusBtn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -634,44 +593,16 @@ function _buildTdListCard(task, idx) {
     });
   }
 
-  // Approve: shortcut for "mark this task as done". We drop a transient
-  // full-card overlay (.td-card-flash) that fades a big green check in
-  // and out over ~480ms, then commit the status change and re-render.
-  // The re-render replaces this card with its .td-card-done twin, which
-  // already handles the "muted / line-through" completed state \u2014 no
-  // extra visual work needed here.
-  if (approveBtn) {
-    approveBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (card.classList.contains('td-card-approving')) return;
-      card.classList.add('td-card-approving');
-
-      const flash = document.createElement('div');
-      flash.className = 'td-card-flash';
-      flash.setAttribute('aria-hidden', 'true');
-      flash.innerHTML = TD_APPROVE_FLASH_ICON;
-      card.appendChild(flash);
-
-      setTimeout(function () {
-        if (_setTaskStatus(idx, 'done')) _rerenderToday();
-        else {
-          card.classList.remove('td-card-approving');
-          if (flash.parentNode) flash.parentNode.removeChild(flash);
-        }
-      }, 480);
-    });
-  }
-
-  // Discard: fade the card out of the Today list without deleting the
-  // underlying task. We flag `task.discarded = true`, persist, then
-  // re-render \u2014 _renderTdList / _renderTdKanban skip discarded rows.
-  // The 260ms delay matches the CSS keyframes so the fade finishes
+  // Discard: fade the row out without deleting the underlying task.
+  // Flag `task.discarded = true`, persist, then re-render \u2014
+  // _renderTdList / _renderTdKanban both skip discarded rows. The
+  // 240ms delay matches the CSS keyframes so the fade finishes
   // before the re-render swaps DOM out from under it.
   if (discardBtn) {
     discardBtn.addEventListener('click', function (e) {
       e.stopPropagation();
-      if (card.classList.contains('td-card-discarding')) return;
-      card.classList.add('td-card-discarding');
+      if (row.classList.contains('td-row-discarding')) return;
+      row.classList.add('td-row-discarding');
       setTimeout(function () {
         const active = getActiveConcept();
         if (active && active.today && active.today.tasks && active.today.tasks[idx]) {
@@ -679,13 +610,13 @@ function _buildTdListCard(task, idx) {
           _saveState();
         }
         _rerenderToday();
-      }, 260);
+      }, 240);
     });
   }
 
-  card.addEventListener('click', function () { _openTaskDetail(task); });
+  row.addEventListener('click', function () { _openTaskDetail(task); });
 
-  return card;
+  return row;
 }
 
 // ---------------------------------------------
@@ -761,7 +692,7 @@ function _buildTdKanbanCard(task, idx) {
 
   card.innerHTML = ''
     + '<div class="td-kanban-card-top">'
-    +   '<div class="td-card-type" data-type="' + task.type + '">' + task.type + '</div>'
+    +   '<div class="td-type-chip" data-type="' + task.type + '">' + task.type + '</div>'
     +   (done ? '<span class="td-kanban-check" aria-hidden="true">' + TD_CHECK_ICON + '</span>' : '')
     + '</div>'
     + '<div class="td-kanban-card-desc">' + _escape(task.description) + '</div>'
@@ -884,11 +815,37 @@ function _closeTaskDetail() {
   _rerenderToday();
 }
 
+// Full-page task detail sub-view. Editorial layout matching the new
+// Today screen aesthetic: full-width dark canvas, Playfair headline,
+// clean numbered step rows (no card chrome), amber accents.
+//
+// Layout, top to bottom:
+//   \u2190 Back to Today                    (back link, existing)
+//   [TYPE chip]                    [time]  (row: chip left, muted time right)
+//   Task description                       (Playfair 28/700, hero text)
+//   \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500                       (1px muted divider, 28px stack)
+//   WHY CLARA PICKED THIS                  (amber uppercase 11px label)
+//   Reason body                            (Inter 15px, secondary text)
+//   \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+//   CLARA\u2019S STEP-BY-STEP                   (muted uppercase 11px label)
+//   [1] step text                          (numbered rows, 28px amber circle
+//   [2] step text                           badge + Inter 15 white body;
+//   [3] step text                           1px left accent bar in the
+//                                           task-type colour)
+//   [Open in Create \u2192]                    (amber full-width, POST only)
+//   [Mark as done]                         (outline full-width, always)
+//
+// The "Open in Create \u2192" button is intentionally suppressed for
+// OUTREACH and OFFER tasks: those are actions the user does outside
+// Clarity (DM, in-person, publish an offer) \u2014 the Create engine is
+// a content composer, not an outreach/offer tool.
 function _renderTdDetail(container, task, c) {
   const idx = c.today.tasks.findIndex(function (t) { return t.id === task.id; });
   const status = _resolveStatus(task.status);
   const done = status === 'done';
   const steps = _taskSteps(task);
+  const type = String(task.type || '').toUpperCase();
+  const isPost = type === 'POST';
 
   const doneBadge = done
     ? '<span class="td-detail-done-badge" aria-hidden="true">' + TD_CHECK_ICON + '</span>'
@@ -902,25 +859,38 @@ function _renderTdDetail(container, task, c) {
       + '</li>';
   }).join('');
 
+  // "Open in Create" is content-engine only. For OUTREACH / OFFER
+  // tasks the primary CTA collapses entirely \u2014 no replacement.
+  const primaryActionHtml = isPost
+    ? '<button type="button" class="td-detail-action-primary" id="tdDetailOpenCreate">Open in Create \u2192</button>'
+    : '';
+
   const secondaryLabel = done ? 'Mark as to-do' : 'Mark as done';
 
+  // data-type on the wrap so the step accent-bar colours resolve via
+  // a single [data-type] rule per POST / OUTREACH / OFFER, matching
+  // the row-accent palette on the Today list.
   container.innerHTML = ''
-    + '<section class="td-wrap td-wrap-detail' + (done ? ' td-wrap-detail-done' : '') + '">'
+    + '<section class="td-wrap td-wrap-detail' + (done ? ' td-wrap-detail-done' : '') + '" data-type="' + _escape(type) + '">'
     +   '<button type="button" class="td-detail-back" id="tdDetailBack">\u2190 Back to Today</button>'
     +   '<div class="td-detail-head">'
-    +     '<div class="td-card-type td-detail-type" data-type="' + _escape(task.type) + '">' + _escape(task.type) + '</div>'
+    +     '<div class="td-type-chip td-detail-type" data-type="' + _escape(type) + '">' + _escape(type) + '</div>'
     +     doneBadge
     +     '<span class="td-detail-time">' + _escape(task.time || '') + '</span>'
     +   '</div>'
     +   '<h1 class="td-detail-title">' + _escape(task.description) + '</h1>'
-    +   '<div class="td-detail-reason">'
+    +   '<div class="td-detail-divider" aria-hidden="true"></div>'
+    +   '<div class="td-detail-section">'
     +     '<div class="td-detail-reason-label">Why Clara picked this</div>'
     +     '<div class="td-detail-reason-body">' + _escape(task.reason) + '</div>'
     +   '</div>'
-    +   '<div class="td-detail-steps-head">Clara\u2019s step-by-step</div>'
-    +   '<ol class="td-detail-steps">' + stepsHtml + '</ol>'
+    +   '<div class="td-detail-divider" aria-hidden="true"></div>'
+    +   '<div class="td-detail-section">'
+    +     '<div class="td-detail-steps-head">Clara\u2019s step-by-step</div>'
+    +     '<ol class="td-detail-steps">' + stepsHtml + '</ol>'
+    +   '</div>'
     +   '<div class="td-detail-actions">'
-    +     '<button type="button" class="td-detail-action-primary" id="tdDetailOpenCreate">Open in Create \u2192</button>'
+    +     primaryActionHtml
     +     '<button type="button" class="td-detail-action-secondary" id="tdDetailToggleDone">' + secondaryLabel + '</button>'
     +   '</div>'
     + '</section>';
@@ -928,6 +898,8 @@ function _renderTdDetail(container, task, c) {
   const backBtn = document.getElementById('tdDetailBack');
   if (backBtn) backBtn.addEventListener('click', _closeTaskDetail);
 
+  // createBtn will be null for OUTREACH / OFFER (primaryActionHtml is
+  // empty). Guard accordingly so we don't attach a phantom handler.
   const createBtn = document.getElementById('tdDetailOpenCreate');
   if (createBtn) {
     createBtn.addEventListener('click', function () {
