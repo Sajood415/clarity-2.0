@@ -142,7 +142,6 @@ function _tkFindBoard(tasks, id) {
 function _tkRenderLeftCol() {
   const tasks = getTasks();
   const activeBoard = tasks.activeBoard;
-  const hasFiltersActive = _tkHasAnyFilterActive();
 
   const boardRows = tasks.boards.map(function (b) {
     const isActive = b.id === activeBoard;
@@ -159,8 +158,9 @@ function _tkRenderLeftCol() {
     ? _tkRenderNewBoardForm()
     : '<button type="button" class="tk-new-board-link" id="tkNewBoardOpen">' + TK_ICONS.plus + '<span>New board</span></button>';
 
-  const filtersBlock = _tkRenderFilters(tasks);
-
+  // Filters no longer live in the sidebar \u2014 they render as a
+  // horizontal bar above the kanban board (see _tkRenderFilterBar in
+  // the right column). The left col is now boards-only.
   return ''
     + '<aside class="tk-left-col">'
     +   '<h1 class="tk-title">Tasks</h1>'
@@ -168,11 +168,6 @@ function _tkRenderLeftCol() {
     +     '<div class="tk-section-label">Boards</div>'
     +     '<div class="tk-board-list">' + boardRows + '</div>'
     +     newBoardBlock
-    +   '</div>'
-    +   '<div class="tk-filters-section">'
-    +     '<div class="tk-section-label">Filters</div>'
-    +     filtersBlock
-    +     (hasFiltersActive ? '<button type="button" class="tk-clear-filters" id="tkClearFilters">Clear filters</button>' : '')
     +   '</div>'
     + '</aside>';
 }
@@ -193,8 +188,22 @@ function _tkRenderNewBoardForm() {
     + '</div>';
 }
 
-function _tkRenderFilters(tasks) {
+// Renders the horizontal filter bar that sits above the kanban board
+// (between the topbar and the view body). Each dimension is a small
+// inline group: a muted "Status/Priority/Type/Source" label followed
+// by its chips. The bar wraps to a second line on narrow widths.
+// Clear-filters button pinned to the right when any filter is active.
+function _tkRenderFilterBar(tasks) {
   const filters = tasks.filters;
+  const hasFiltersActive = _tkHasAnyFilterActive();
+
+  const group = function (label, chipsHtml) {
+    return ''
+      + '<div class="tk-filter-bar-group">'
+      +   '<span class="tk-filter-bar-label">' + label + '</span>'
+      +   chipsHtml
+      + '</div>';
+  };
 
   const statusChips = TK_STATUS_ORDER.map(function (s) {
     const on = filters.status.indexOf(s) !== -1;
@@ -216,22 +225,17 @@ function _tkRenderFilters(tasks) {
     return '<button type="button" class="tk-filter-chip' + (on ? ' tk-filter-chip-active' : '') + '" data-filter-source="' + s + '">' + _escape(TK_SOURCE_LABELS[s]) + '</button>';
   }).join('');
 
+  const clearBtn = hasFiltersActive
+    ? '<button type="button" class="tk-clear-filters tk-clear-filters-inline" id="tkClearFilters">Clear filters</button>'
+    : '';
+
   return ''
-    + '<div class="tk-filter-group">'
-    +   '<div class="tk-filter-group-label">Status</div>'
-    +   '<div class="tk-filter-chips">' + statusChips + '</div>'
-    + '</div>'
-    + '<div class="tk-filter-group">'
-    +   '<div class="tk-filter-group-label">Priority</div>'
-    +   '<div class="tk-filter-chips">' + priorityChips + '</div>'
-    + '</div>'
-    + '<div class="tk-filter-group">'
-    +   '<div class="tk-filter-group-label">Type</div>'
-    +   '<div class="tk-filter-chips">' + typeChips + '</div>'
-    + '</div>'
-    + '<div class="tk-filter-group">'
-    +   '<div class="tk-filter-group-label">Source</div>'
-    +   '<div class="tk-filter-chips">' + sourceChips + '</div>'
+    + '<div class="tk-filter-bar">'
+    +   group('Status',   statusChips)
+    +   group('Priority', priorityChips)
+    +   group('Type',     typeChips)
+    +   group('Source',   sourceChips)
+    +   clearBtn
     + '</div>';
 }
 
@@ -390,6 +394,7 @@ function _tkRenderRightCol() {
     +       '<button type="button" class="tk-add-btn" id="tkAddBtn">' + TK_ICONS.plus + '<span>Add task</span></button>'
     +     '</div>'
     +   '</div>'
+    +   _tkRenderFilterBar(tasks)
     +   '<div class="tk-view-body">' + viewBody + '</div>'
     + '</section>';
 }

@@ -275,6 +275,47 @@
   color: var(--accent);
 }
 
+/* ==========================================
+   Filter bar (horizontal, above kanban board)
+   ========================================== */
+
+.tk-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 240, 220, 0.02);
+  flex-shrink: 0;
+}
+
+.tk-filter-bar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.tk-filter-bar-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(245, 240, 232, 0.35);
+  font-weight: 600;
+  margin-right: 4px;
+  user-select: none;
+}
+
+/* Inline variant of "Clear filters" \u2014 sits at the far right of the
+   filter bar via margin-left:auto, and reads as a subtle text button. */
+.tk-clear-filters-inline {
+  margin: 0 0 0 auto !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  align-self: center;
+}
+
 .tk-clear-filters {
   display: block;
   margin: 4px 16px 0;
