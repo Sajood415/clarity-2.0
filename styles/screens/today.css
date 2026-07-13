@@ -98,13 +98,18 @@
 }
 
 .td-card {
+  /* position:relative anchors the Approve-flash overlay
+     (.td-card-flash) which absolutely-positions itself edge-to-edge
+     across the card. Without this the flash would escape to the
+     nearest positioned ancestor and no longer read as "on the card". */
+  position: relative;
   background: var(--surface);
   border-radius: var(--radius);
   padding: 18px 16px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   cursor: pointer;
-  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, opacity 220ms ease;
 }
 
 .td-card:hover {
@@ -117,22 +122,32 @@
   transform: scale(0.995);
 }
 
-/* Head row that sits at the top of each list card. When the task is
-   done the small teal check tile appears on the right; the type's
-   colored dot is hidden by .td-card-done rules below. */
+/* Head row that sits at the top of each list card. Layout:
+     [status circle] [STATUS pill] [TYPE pill]         [done check]
+   Chips borrow the visual language from the Tasks screen's list view
+   (.tk-status-chip / .tk-task-type) so both surfaces feel like the
+   same product. */
 .td-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+}
+
+.td-card-head-chips {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .td-card-done-check {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   color: #5AAAB0;
   background: rgba(90, 170, 176, 0.14);
@@ -140,8 +155,11 @@
   flex-shrink: 0;
 }
 
+/* Legacy chip \u2014 kept for any callsite that still emits .td-card-type
+   (task-detail head uses it, for instance). New card layout uses the
+   pill styles below instead. */
 .td-card-type {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
@@ -168,6 +186,94 @@
   background: #C8A96E;
 }
 
+/* --- Status pill (accompanies the cycling circle) --- */
+.td-card-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 240, 220, 0.04);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.td-card-status-pill[data-status="in_progress"] {
+  background: rgba(232, 181, 100, 0.12);
+  color: #E8B564;
+  border-color: rgba(232, 181, 100, 0.3);
+}
+
+.td-card-status-pill[data-status="done"] {
+  background: rgba(126, 208, 122, 0.12);
+  color: #7ED07A;
+  border-color: rgba(126, 208, 122, 0.3);
+}
+
+/* --- Type chip (POST / OUTREACH / OFFER) --- */
+.td-card-type-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+/* POST \u2192 cool steel-blue. Reads as "content on a channel" without
+   competing with the amber accent used elsewhere in the shell. */
+.td-card-type-chip[data-type="POST"] {
+  background: rgba(122, 175, 219, 0.12);
+  color: #8FB6DB;
+  border-color: rgba(122, 175, 219, 0.32);
+}
+
+/* OUTREACH \u2192 house amber. Same hue as the primary accent so
+   "reach out / act now" tasks pop next to their siblings. */
+.td-card-type-chip[data-type="OUTREACH"] {
+  background: rgba(245, 166, 35, 0.14);
+  color: var(--accent);
+  border-color: rgba(245, 166, 35, 0.32);
+}
+
+/* OFFER \u2192 done-green. Shares the same green used by the DONE status
+   pill so all "money-in" surfaces read as one colour family. */
+.td-card-type-chip[data-type="OFFER"] {
+  background: rgba(126, 208, 122, 0.12);
+  color: #7ED07A;
+  border-color: rgba(126, 208, 122, 0.30);
+}
+
+/* Fallback for any future or unknown task type \u2014 muted neutral. */
+.td-card-type-chip:not([data-type="POST"]):not([data-type="OUTREACH"]):not([data-type="OFFER"]) {
+  background: rgba(255, 240, 220, 0.05);
+  color: var(--muted);
+  border-color: var(--border-strong);
+}
+
+/* --- Card body typography --- */
+.td-card-title {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 12px;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+}
+
+/* Retained for any callsite still using the old class name. Same
+   visual weight as .td-card-title so nothing regresses if a stale
+   reference lingers. */
 .td-card-desc {
   font-size: 15px;
   font-weight: 500;
@@ -186,6 +292,9 @@
   gap: 10px;
 }
 
+/* Legacy container (kept for compatibility with the task-detail head
+   which reuses these classes). New card layout doesn't wrap the left
+   side in this element. */
 .td-card-bottom-left {
   display: flex;
   align-items: center;
@@ -194,8 +303,24 @@
 }
 
 .td-card-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: var(--muted);
+  letter-spacing: 0.005em;
+}
+
+.td-card-time-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.td-card-time-text {
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- Status-cycling checkbox (bottom-left of every list card) --- */
@@ -258,8 +383,8 @@
   opacity: 0.75;
 }
 
-/* When done, hide the accent dot next to the type label. The teal
-   check tile in the head row takes its role. */
+/* When done, hide the accent dot next to the legacy type label. The
+   teal check tile in the head row takes its role. */
 .td-card-done .td-card-type::before {
   display: none;
 }
@@ -268,18 +393,237 @@
   color: var(--muted);
 }
 
+.td-card-done .td-card-title,
 .td-card-done .td-card-desc {
   text-decoration: line-through;
   text-decoration-color: rgba(196, 186, 168, 0.7);
   text-decoration-thickness: 1px;
 }
 
+/* Dim the type chip when the card is done so the "done" state reads
+   as the dominant visual signal. Border + colour drop back to the
+   muted palette without recolouring per-type. */
+.td-card-done .td-card-type-chip {
+  color: var(--muted);
+  background: rgba(255, 240, 220, 0.04);
+  border-color: var(--border-strong);
+}
+
+/* Approve is omitted from the DOM when done (see _buildTdListCard),
+   but this defensive rule ensures a done card renders as a "closed
+   ticket" if some upstream path ever re-injects the button. */
+.td-card-done .td-card-approve {
+  display: none;
+}
+
 .td-card-why {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  margin: -4px -6px -4px 0;
+  background: transparent;
+  border: none;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 500;
   color: var(--accent);
   cursor: pointer;
   user-select: none;
+  border-radius: 6px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.td-card-why:hover {
+  background: rgba(245, 166, 35, 0.08);
+  color: var(--accent-dark);
+}
+
+.td-card-why:focus-visible {
+  outline: none;
+  background: rgba(245, 166, 35, 0.08);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+.td-card-why-text {
+  line-height: 1;
+}
+
+.td-card-why-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 200ms ease;
+}
+
+.td-card-why-open .td-card-why-chevron {
+  transform: rotate(180deg);
+}
+
+/* ---------------------------------------------
+   Card-bottom action group (Why this? / Approve / Discard)
+   ---------------------------------------------
+   Three inline pill buttons anchored to the bottom-right of every
+   list card. Container is a right-aligned flex row with a generous
+   gap so the buttons never touch. `flex-wrap: wrap` covers the
+   narrow-column edge case (e.g. sidebar-open on a 13" laptop) so
+   the actions collapse onto a second row rather than overflowing
+   the card. */
+.td-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* --- Approve pill --- */
+.td-card-approve {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 999px;
+  color: #7ED07A;
+  background: rgba(126, 208, 122, 0.10);
+  border: 1px solid rgba(126, 208, 122, 0.32);
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.td-card-approve:hover {
+  background: rgba(126, 208, 122, 0.18);
+  border-color: rgba(126, 208, 122, 0.5);
+  color: #93D68F;
+}
+
+.td-card-approve:active {
+  transform: scale(0.97);
+}
+
+.td-card-approve:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(126, 208, 122, 0.35);
+}
+
+.td-card-approve-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.td-card-approve-text {
+  line-height: 1;
+}
+
+/* --- Discard pill --- */
+.td-card-discard {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 999px;
+  color: #D48C8C;
+  background: rgba(231, 107, 107, 0.06);
+  border: 1px solid rgba(231, 107, 107, 0.22);
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.td-card-discard:hover {
+  background: rgba(231, 107, 107, 0.14);
+  border-color: rgba(231, 107, 107, 0.4);
+  color: #E76B6B;
+}
+
+.td-card-discard:active {
+  transform: scale(0.97);
+}
+
+.td-card-discard:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(231, 107, 107, 0.35);
+}
+
+.td-card-discard-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.td-card-discard-text {
+  line-height: 1;
+}
+
+/* --- Approve flash overlay ---
+   Injected into the card as a transient child when the user clicks
+   Approve. Renders a big green check that fades in and back out
+   over 480ms; the parent handler then swaps the card into its done
+   state via _setTaskStatus + _rerenderToday. */
+.td-card-flash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: #7ED07A;
+  background: rgba(126, 208, 122, 0.12);
+  border-radius: var(--radius);
+  animation: td-approve-flash 480ms ease forwards;
+}
+
+.td-card-flash svg {
+  filter: drop-shadow(0 2px 6px rgba(126, 208, 122, 0.35));
+  animation: td-approve-check 480ms ease forwards;
+}
+
+@keyframes td-approve-flash {
+  0%   { opacity: 0; }
+  25%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes td-approve-check {
+  0%   { opacity: 0; transform: scale(0.4); }
+  40%  { opacity: 1; transform: scale(1.08); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* Card locks pointer events while approving so a second click can't
+   fire a duplicate flash / status write. Border pulse is subtle so
+   the eye stays on the overlay check, not the frame. */
+.td-card-approving {
+  pointer-events: none;
+  border-color: rgba(126, 208, 122, 0.45);
+}
+
+/* --- Discard fade-out ---
+   Slides the card slightly left as it fades. The 260ms duration is
+   mirrored by the setTimeout in the JS handler so the fade always
+   completes before the re-render swaps the DOM. */
+.td-card-discarding {
+  animation: td-discard-out 260ms ease forwards;
+  pointer-events: none;
+}
+
+@keyframes td-discard-out {
+  0%   { opacity: 1; transform: translateX(0);     }
+  100% { opacity: 0; transform: translateX(-14px); }
 }
 
 .td-card-reason {
@@ -1076,4 +1420,176 @@
     border-bottom: none;
   }
   .td-insight-drawer-headline { font-size: 24px; }
+}
+
+/* ==========================================
+   Daily insight full-page detail sub-view
+   ------------------------------------------
+   Rendered inside the Today content area (not on document.body) when
+   `concept.today.viewingInsightId` is set. Shares the same 640px
+   reading column as the task-detail sub-view so the two sibling
+   detail views feel like the same product. Layout:
+
+     \u2190 Back to Today                        <- muted back link
+     DAILY INSIGHT                             <- amber kicker
+     Big serif headline                        <- Playfair display
+     Stat body copy                            <- muted, roomy line-height
+     [SOURCE BADGE]                            <- pill
+     \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500          <- divider
+     WHAT THIS MEANS FOR YOU                   <- uppercase label
+       \u2022 bullet 1
+       \u2022 bullet 2
+       \u2022 bullet 3
+   ========================================== */
+
+.td-insight-page {
+  max-width: 720px;
+  padding-top: 24px;
+  animation: cl-init-fade-in 320ms ease;
+}
+
+.td-insight-page-back {
+  background: transparent;
+  border: none;
+  padding: 4px 2px;
+  margin: 0 0 32px -2px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.td-insight-page-back:hover {
+  color: var(--text);
+  transform: translateX(-2px);
+}
+
+.td-insight-page-back:focus-visible {
+  outline: none;
+  color: var(--text);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+  border-radius: 4px;
+}
+
+.td-insight-page-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
+.td-insight-page-headline {
+  margin: 0 0 20px 0;
+  font-family: 'Playfair Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  max-width: 24ch;
+}
+
+.td-insight-page-stat {
+  margin: 0 0 20px 0;
+  font-size: 17px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+  max-width: 62ch;
+}
+
+.td-insight-page-source {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 240, 220, 0.03);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.td-insight-page-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 36px 0 28px;
+}
+
+.td-insight-page-bullets-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.td-insight-page-bullets {
+  list-style: none;
+  margin: 0 0 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.td-insight-page-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.td-insight-page-bullet:hover {
+  background: var(--surface-2);
+  border-color: rgba(245, 166, 35, 0.16);
+}
+
+.td-insight-page-bullet-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  margin-top: 9px;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.4);
+}
+
+.td-insight-page-bullet-text {
+  font-size: 14.5px;
+  color: var(--text);
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+}
+
+/* Tighter typography on smaller viewports so the headline doesn't
+   consume the whole fold. Bullet cards stack tighter too. */
+@media (max-height: 860px) {
+  .td-insight-page { padding-top: 16px; }
+  .td-insight-page-back { margin-bottom: 22px; }
+  .td-insight-page-kicker { margin-bottom: 12px; }
+  .td-insight-page-headline { font-size: 34px; margin-bottom: 16px; }
+  .td-insight-page-stat { font-size: 15px; margin-bottom: 16px; }
+  .td-insight-page-divider { margin: 26px 0 22px; }
+  .td-insight-page-bullets-label { margin-bottom: 16px; }
+  .td-insight-page-bullets { gap: 12px; }
+  .td-insight-page-bullet { padding: 14px 16px; }
+}
+
+@media (max-width: 640px) {
+  .td-insight-page { padding-left: 16px; padding-right: 16px; padding-top: 16px; }
+  .td-insight-page-headline { font-size: 28px; }
+  .td-insight-page-stat { font-size: 14.5px; }
+  .td-insight-page-bullet-text { font-size: 13.5px; }
 }

@@ -417,12 +417,18 @@ function _newConcept(opts) {
     // `viewingTaskId` (string | null) toggles Today into task-detail
     // mode. Cleared by the detail page's Back button, by the concept
     // header's Today tab click, and any time the id no longer resolves.
+    // `viewingInsightId` (string | null) plays the same role for the
+    // Daily Insight full-page detail sub-view: set when the user
+    // clicks the insight card on Today, cleared by the detail page's
+    // Back button. Only one detail sub-view can be active at a time;
+    // if both ids are set, viewingInsightId wins (the router honours
+    // it first).
     // `insights` (array | undefined) holds the day's chosen daily
     // insights when the Today screen has run the seeder \u2014 see
     // clara/insights.js. `insightsDismissedDate` (YYYY-MM-DD | null)
     // is the per-day "Skip for today" flag; cleared automatically the
     // next calendar day so the card reappears with fresh insights.
-    today: { tasks: [], viewingTaskId: null, insights: [], insightsDismissedDate: null },
+    today: { tasks: [], viewingTaskId: null, viewingInsightId: null, insights: [], insightsDismissedDate: null },
     // Daily-insights archive keyed by YYYY-MM-DD. Populated by
     // clara/insights.js at onboarding completion and then lazily on
     // every new day the user visits Today.
@@ -746,14 +752,29 @@ function _normalizeState() {
     }
     c.widgetMerged = true;
     c.today = Object.assign(
-      { tasks: [], viewingTaskId: null, insights: [], insightsDismissedDate: null },
+      { tasks: [], viewingTaskId: null, viewingInsightId: null, insights: [], insightsDismissedDate: null },
       c.today || {}
     );
     if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
+    // Backfill `discarded` on legacy tasks. This flag hides a task from
+    // the Today view only (via _renderTdList / _renderTdKanban filters)
+    // without removing it from the concept. Anything non-true resets
+    // to false so a corrupted persisted value can't accidentally keep
+    // a task hidden forever.
+    for (let ti = 0; ti < c.today.tasks.length; ti++) {
+      const _tk = c.today.tasks[ti];
+      if (_tk && typeof _tk === 'object') {
+        _tk.discarded = _tk.discarded === true;
+      }
+    }
     // viewingTaskId is either a task id string or null. Anything else
     // (undefined, number, corrupted value) resets to null so the Today
     // list opens by default on load.
     if (typeof c.today.viewingTaskId !== 'string') c.today.viewingTaskId = null;
+    // viewingInsightId follows the same contract as viewingTaskId: a
+    // string id or null. Guards against a legacy concept that never
+    // had this field, plus any corrupted persisted value.
+    if (typeof c.today.viewingInsightId !== 'string') c.today.viewingInsightId = null;
     // Daily-insights surface state on the Today screen. The seeder in
     // clara/insights.js lazily repopulates `insights` on the first
     // Today render each day, so a bad shape here just means the seeder

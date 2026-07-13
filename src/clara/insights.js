@@ -741,7 +741,7 @@ function _seedTodayInsightsIfMissing(concept) {
     concept.insights.history = {};
   }
   if (!concept.today || typeof concept.today !== 'object') {
-    concept.today = { tasks: [], viewingTaskId: null };
+    concept.today = { tasks: [], viewingTaskId: null, viewingInsightId: null };
   }
 
   const dateKey = _todayDateKey();
@@ -793,7 +793,7 @@ function _insightsDismissedToday(concept) {
 function _dismissTodayInsights(concept) {
   if (!concept) return false;
   if (!concept.today || typeof concept.today !== 'object') {
-    concept.today = { tasks: [], viewingTaskId: null };
+    concept.today = { tasks: [], viewingTaskId: null, viewingInsightId: null };
   }
   concept.today.insightsDismissedDate = _todayDateKey();
   if (typeof window._saveState === 'function') window._saveState();

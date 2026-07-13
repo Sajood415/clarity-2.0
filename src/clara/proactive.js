@@ -185,11 +185,14 @@ function _claraHandleSuggestTasks(concept, choice) {
 
   // --- Today view / Overview: REPLACE (fresh 3 focus tasks) ---
   if (fresh.length > 0) {
-    if (!concept.today) concept.today = { tasks: [], viewingTaskId: null };
+    if (!concept.today) concept.today = { tasks: [], viewingTaskId: null, viewingInsightId: null };
     concept.today.tasks = fresh.map(function (t) {
       return Object.assign({}, t, { status: 'todo' });
     });
     // Drop any pinned detail id \u2014 the task it pointed at is gone.
+    // Insight-detail pointer is left alone because insight cards live
+    // separately from the task list, so a task refresh shouldn't kick
+    // the user out of a Daily Insight they were mid-read on.
     concept.today.viewingTaskId = null;
   }
 
