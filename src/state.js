@@ -771,6 +771,15 @@ function _normalizeState() {
       if (_tk && typeof _tk === 'object') {
         _tk.discarded = _tk.discarded === true;
         _tk.approved  = _tk.approved  === true;
+        // `thread` is the DISCUSS-WITH-CLARA transcript for this task.
+        // Legacy tasks pre-dating the thread feature have no `thread`
+        // key at all; backfill with an empty array so today.js can
+        // trust `task.thread.length` without a defensive check on
+        // every render. Any non-array value (corrupted persisted
+        // state, malformed migration) also resets to []. Messages
+        // inside the array are validated lazily at render time
+        // rather than here \u2014 keeping the normalizer cheap.
+        if (!Array.isArray(_tk.thread)) _tk.thread = [];
       }
     }
     // viewingTaskId is either a task id string or null. Anything else

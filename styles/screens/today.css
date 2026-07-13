@@ -1492,3 +1492,333 @@
   .td-insight-page-stat { font-size: 14.5px; }
   .td-insight-page-bullet-text { font-size: 13.5px; }
 }
+
+/* =====================================================
+   Task-row: thread message count pill (💬 N)
+
+   Sits inside .td-row-actions, before the hover-reveal
+   × discard button. Only rendered by _buildTdListCard
+   when task.thread.length > 0, so this rule set is only
+   the cosmetics — no display-hiding logic here.
+
+   Style: 12px muted, tabular numerals so a row of tasks
+   with 1 / 3 / 12 messages doesn't jitter horizontally.
+   Icon and number align on the same baseline via inline-
+   flex + `align-items: center`.
+   ===================================================== */
+.td-row-thread-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  margin-right: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 160ms ease, color 160ms ease;
+  pointer-events: none;
+}
+
+.td-row:hover .td-row-thread-count {
+  opacity: 1;
+  color: var(--text);
+}
+
+.td-row-thread-count-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: currentColor;
+}
+
+.td-row-thread-count-num {
+  line-height: 1;
+}
+
+/* =====================================================
+   Task-detail: DISCUSS WITH CLARA thread section
+
+   Layout, top to bottom inside .td-thread-section:
+     [label]                         (uppercase 11px muted amber)
+     [.td-thread-list]               (scroll box, max 320px desktop)
+       [msg]                         (Clara left w/ avatar OR
+       [msg]                          user right no avatar; each
+       ...                           bubble carries a timestamp
+                                      below in 11px muted)
+     [.td-thread-input-row]          (input + amber send button)
+
+   Bubble palette follows the same dark hierarchy as the
+   rest of the detail page: Clara bubbles use --surface
+   (matches the base background), user bubbles use a
+   slightly-lighter rgba tint so the two roles read
+   without needing accent colours on both.
+   ===================================================== */
+
+.td-thread-section {
+  /* Inherits .td-detail-section vertical rhythm; overrides
+     only what's specific to the thread block. */
+  padding-top: 0;
+}
+
+.td-thread-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+  margin-bottom: 16px;
+}
+
+/* --- Message list (scrollable transcript) --- */
+.td-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 4px 12px 4px;
+  margin-bottom: 14px;
+
+  /* Thin scrollbar to match the detail page's minimalist
+     read \u2014 wide scrollbars look loud against the
+     Playfair headline above. Applied via WebKit and
+     Firefox properties for cross-browser coverage. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 240, 220, 0.16) transparent;
+}
+
+.td-thread-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.td-thread-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.td-thread-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 240, 220, 0.14);
+  border-radius: 3px;
+}
+
+.td-thread-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 240, 220, 0.24);
+}
+
+/* --- Empty state (rare: only if opening seed skipped) --- */
+.td-thread-empty {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-secondary);
+  opacity: 0.55;
+  padding: 12px 4px;
+}
+
+/* --- Message row --- */
+.td-thread-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: 100%;
+}
+
+/* Clara: avatar on the LEFT, bubble grows rightward. */
+.td-thread-msg-clara {
+  justify-content: flex-start;
+}
+
+/* User: no avatar, bubble hugs the right edge. */
+.td-thread-msg-user {
+  justify-content: flex-end;
+}
+
+/* Amber "C" avatar circle. Sized to match the row heights so
+   the bubble baseline aligns with the avatar centre. */
+.td-thread-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  color: var(--bg);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(245, 166, 35, 0.2);
+  user-select: none;
+}
+
+.td-thread-msg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 78%;
+  min-width: 0;
+}
+
+.td-thread-msg-user .td-thread-msg-body {
+  align-items: flex-end;
+}
+
+.td-thread-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: -0.002em;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.td-thread-msg-clara .td-thread-bubble {
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+}
+
+/* User bubble: same shape as Clara's, LIGHTER background so
+   the "you vs. Clara" contrast reads at a glance. Tuned bright
+   enough (~11% white) to be clearly a bubble against --bg on
+   any monitor, not a floating string of text. Padding + radius
+   are inherited from the base .td-thread-bubble rule so both
+   sides stay symmetric. */
+.td-thread-msg-user .td-thread-bubble {
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top-right-radius: 4px;
+}
+
+.td-thread-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+}
+
+/* --- "Clara is typing\u2026" indicator --- */
+.td-thread-typing-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 14px;
+  min-height: 14px;
+}
+
+.td-thread-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.35;
+  animation: td-thread-typing 1.1s ease-in-out infinite;
+}
+
+.td-thread-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.td-thread-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes td-thread-typing {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30%            { opacity: 1;    transform: translateY(-3px); }
+}
+
+/* --- Input row --- */
+.td-thread-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.td-thread-input-row:focus-within {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.08);
+}
+
+.td-thread-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  padding: 4px 2px;
+  line-height: 1.4;
+}
+
+.td-thread-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.td-thread-send {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.td-thread-send:hover {
+  background: var(--accent-dark);
+  box-shadow: 0 0 12px rgba(245, 166, 35, 0.25);
+}
+
+.td-thread-send:active {
+  transform: scale(0.96);
+}
+
+.td-thread-send:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.4);
+}
+
+.td-thread-send svg {
+  display: block;
+}
+
+/* Responsive: on narrow viewports let bubbles use more width
+   and shrink the scroll cap so a tall keyboard doesn't push
+   the input off-screen. */
+@media (max-width: 640px) {
+  .td-thread-list { max-height: 260px; }
+  .td-thread-msg-body { max-width: 82%; }
+  .td-thread-bubble { font-size: 13.5px; padding: 9px 12px; }
+  .td-thread-avatar { width: 26px; height: 26px; font-size: 13px; }
+}
+
+/* Tighter thread block on short viewports (13" MBP etc.) so
+   the detail page doesn't need a scroll. Matches the same
+   breakpoint conventions used by .ob-* and .td-insight-page. */
+@media (max-height: 860px) {
+  .td-thread-list { max-height: 260px; gap: 12px; }
+  .td-thread-label { margin-bottom: 12px; }
+  .td-thread-bubble { font-size: 13.5px; padding: 9px 12px; }
+  .td-thread-input-row { padding: 8px 10px; }
+}

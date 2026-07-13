@@ -66,6 +66,26 @@ const TD_DISCARD_ICON = ''
   +   '<path d="M3 3 L9 9 M9 3 L3 9"/>'
   + '</svg>';
 
+// Chat-bubble glyph shown on a task row when task.thread.length > 0.
+// Rendered inside .td-row-thread-count \u2014 count number sits to the
+// right of the bubble at 12px muted. Same 12px viewBox size as the
+// discard icon so both actions read at one visual weight, but the
+// bubble uses stroke instead of fill for a lighter, muted feel.
+const TD_THREAD_ICON = ''
+  + '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" '
+  +   'stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  +   '<path d="M2.5 3.5 h9 a1 1 0 0 1 1 1 v4.5 a1 1 0 0 1 -1 1 h-4 l-2.5 2 v-2 h-2.5 a1 1 0 0 1 -1 -1 v-4.5 a1 1 0 0 1 1 -1 z"/>'
+  + '</svg>';
+
+// Arrow glyph used inside the thread's send button. Amber via
+// currentColor. Same viewBox conventions as TD_DISCARD_ICON so
+// they sit at the same optical weight in the input row.
+const TD_SEND_ICON = ''
+  + '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" '
+  +   'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  +   '<path d="M3 7 L11 7 M7.5 3 L11.5 7 L7.5 11"/>'
+  + '</svg>';
+
 // Status-cycling checkbox icons used in the list view.
 //   todo        \u2014 empty circle (muted)
 //   in_progress \u2014 half-filled amber
@@ -394,10 +414,19 @@ function _seedTodayTasks(c) {
     // `discarded` is stamped on at seed time so downstream code can
     // trust the field exists (list + kanban renderers filter by it).
     // `approved` is the "yes, I want to do this today" flag toggled
-    // by the card's Approve button \u2014 initially false. The state
-    // normalizer backfills both fields for legacy tasks that were
-    // seeded before these flags existed.
-    return Object.assign({}, t, { status: 'todo', discarded: false, approved: false });
+    // by the card's Approve button \u2014 initially false. `thread`
+    // is the DISCUSS-WITH-CLARA transcript for this task; empty at
+    // seed time and populated (a) with an auto-seeded Clara opening
+    // the first time the user opens the detail page, and (b) with
+    // user + Clara turns on each send. The state normalizer
+    // backfills all three fields for legacy tasks that pre-date
+    // them.
+    return Object.assign({}, t, {
+      status: 'todo',
+      discarded: false,
+      approved: false,
+      thread: []
+    });
   });
   c.today.tasks = fresh;
   _saveState();
@@ -557,7 +586,22 @@ function _buildTdListCard(task, idx) {
   //   [3px accent bar] \u2014 absolute, spans full row height
   //   [status circle]  \u2014 24px, cycles todo/in_progress/done
   //   [body]           \u2014 description + meta (TYPE \u00b7 time)
-  //   [actions]        \u2014 \u00d7 discard (hover-reveal)
+  //   [actions]        \u2014 message-count pill (if thread > 0) +
+  //                       \u00d7 discard (hover-reveal)
+  const threadLen = Array.isArray(task.thread) ? task.thread.length : 0;
+  // Count pill is rendered ONLY when there's an actual transcript.
+  // Even 1 message counts (that's the auto-seeded Clara opening the
+  // first time a user opens the detail) \u2014 an intentional cue
+  // that this task has been engaged with.
+  const threadCountHtml = threadLen > 0
+    ? ''
+      + '<span class="td-row-thread-count" data-thread-count="' + threadLen + '" '
+      +   'aria-label="' + threadLen + ' message' + (threadLen === 1 ? '' : 's') + ' with Clara">'
+      +   '<span class="td-row-thread-count-icon" aria-hidden="true">' + TD_THREAD_ICON + '</span>'
+      +   '<span class="td-row-thread-count-num">' + threadLen + '</span>'
+      + '</span>'
+    : '';
+
   row.innerHTML = ''
     + '<span class="td-row-accent" aria-hidden="true"></span>'
     + '<div class="td-row-main">'
@@ -574,6 +618,7 @@ function _buildTdListCard(task, idx) {
     +     '</div>'
     +   '</div>'
     +   '<div class="td-row-actions">'
+    +     threadCountHtml
     +     '<button type="button" class="td-row-discard" data-discard="' + _escape(task.id) + '" aria-label="Discard task \u2014 hide from Today">'
     +       '<span class="td-row-discard-icon" aria-hidden="true">' + TD_DISCARD_ICON + '</span>'
     +     '</button>'
@@ -803,6 +848,27 @@ function _openTaskDetail(task) {
   // both sub-views pinned in state at once.
   c.today.viewingInsightId = null;
   c.today.viewingTaskId = task.id;
+
+  // First-open seed: if this task has never had a thread turn
+  // (fresh from the seeder, or a legacy task the normalizer just
+  // backfilled with an empty array), drop in Clara's opening line
+  // BEFORE the detail renders. That way the transcript is already
+  // populated on first paint \u2014 no empty-state flash. Persisted
+  // via _saveState so subsequent opens read it back from disk
+  // instead of re-seeding.
+  const idx = c.today.tasks.findIndex(function (t) { return t.id === task.id; });
+  if (idx >= 0) {
+    const persisted = c.today.tasks[idx];
+    if (!Array.isArray(persisted.thread)) persisted.thread = [];
+    if (persisted.thread.length === 0 && typeof window._claraThreadOpening === 'function') {
+      persisted.thread.push({
+        role: 'clara',
+        text: window._claraThreadOpening(persisted, c),
+        timestamp: Date.now()
+      });
+    }
+  }
+
   _saveState();
   _rerenderToday();
 }
@@ -813,6 +879,200 @@ function _closeTaskDetail() {
   c.today.viewingTaskId = null;
   _saveState();
   _rerenderToday();
+}
+
+// ---------------------------------------------
+// Thread-section helpers (DISCUSS WITH CLARA)
+// ---------------------------------------------
+//
+// The thread lives BELOW "Clara's Step-by-Step" and ABOVE the
+// action buttons inside every task-detail page. It's a compact,
+// scrollable transcript + input row \u2014 not a modal, not a
+// separate page. All persistence goes through `_saveState`
+// after every user OR clara turn. Responses come from
+// window._claraThreadRespond (loaded from clara/threadRespond.js).
+
+// Format a message timestamp as HH:MM. 24-hour, zero-padded.
+// Kept intentionally simple \u2014 the bubble is compact and
+// relative labels ("just now", "3m ago") would need a re-render
+// tick to stay accurate. Absolute HH:MM never lies.
+function _tdThreadFormatTime(ts) {
+  const d = new Date(Number(ts) || Date.now());
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return hh + ':' + mm;
+}
+
+// Build one bubble's HTML. Uses _escape on the message text so
+// any user-supplied content is safe. Clara messages get an
+// "C" avatar circle on the left; user messages are right-aligned
+// with no avatar.
+function _tdThreadBubbleHtml(msg) {
+  if (!msg || typeof msg !== 'object') return '';
+  const isClara = msg.role === 'clara';
+  const roleClass = isClara ? 'td-thread-msg-clara' : 'td-thread-msg-user';
+  // Avatar is intentionally Clara-only \u2014 user messages sit
+  // flush-right with no avatar. BOTH roles wrap their text in
+  // `.td-thread-bubble` so the CSS can render each side as a
+  // proper bubble (Clara: --surface, user: light rgba white).
+  // Do not skip the .td-thread-bubble div for user messages;
+  // that would collapse the message into unstyled text.
+  const avatarHtml = isClara
+    ? '<span class="td-thread-avatar" aria-hidden="true">C</span>'
+    : '';
+  const timeText = _tdThreadFormatTime(msg.timestamp);
+  return ''
+    + '<div class="td-thread-msg ' + roleClass + '">'
+    +   avatarHtml
+    +   '<div class="td-thread-msg-body">'
+    +     '<div class="td-thread-bubble">' + _escape(String(msg.text || '')) + '</div>'
+    +     '<div class="td-thread-time">' + _escape(timeText) + '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+// Render the entire thread transcript into the scroll container.
+// Called on first mount and after every new turn.
+//
+// Empty-state guard: this should be rare in practice (opening a
+// task auto-seeds Clara's opening message in _openTaskDetail),
+// but a legacy task that somehow lands here with an empty thread
+// gets a muted italic placeholder instead of a blank scroll box.
+function _tdThreadRenderList(listEl, thread) {
+  if (!listEl) return;
+  const messages = Array.isArray(thread) ? thread : [];
+  if (messages.length === 0) {
+    listEl.innerHTML = ''
+      + '<div class="td-thread-empty">Ask Clara anything about this task\u2026</div>';
+    return;
+  }
+  listEl.innerHTML = messages.map(_tdThreadBubbleHtml).join('');
+}
+
+// Scroll the thread list to the newest message. `smooth=true`
+// on new turns, `false` on initial mount (so the user isn't
+// startled by a scroll animation the moment the detail opens).
+function _tdThreadScrollToBottom(listEl, smooth) {
+  if (!listEl) return;
+  try {
+    listEl.scrollTo({ top: listEl.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  } catch (_e) {
+    // Older browsers: fall back to instant assignment.
+    listEl.scrollTop = listEl.scrollHeight;
+  }
+}
+
+// Show the three-dot "Clara is typing\u2026" indicator inside the
+// list. Idempotent \u2014 calling twice reuses the existing node.
+function _tdThreadShowTyping(listEl) {
+  if (!listEl) return;
+  if (listEl.querySelector('.td-thread-typing')) return;
+  const node = document.createElement('div');
+  node.className = 'td-thread-msg td-thread-msg-clara td-thread-typing';
+  node.innerHTML = ''
+    + '<span class="td-thread-avatar" aria-hidden="true">C</span>'
+    + '<div class="td-thread-msg-body">'
+    +   '<div class="td-thread-bubble td-thread-typing-bubble" aria-label="Clara is typing">'
+    +     '<span class="td-thread-typing-dot"></span>'
+    +     '<span class="td-thread-typing-dot"></span>'
+    +     '<span class="td-thread-typing-dot"></span>'
+    +   '</div>'
+    + '</div>';
+  listEl.appendChild(node);
+  _tdThreadScrollToBottom(listEl, true);
+}
+
+function _tdThreadHideTyping(listEl) {
+  if (!listEl) return;
+  const node = listEl.querySelector('.td-thread-typing');
+  if (node && node.parentNode) node.parentNode.removeChild(node);
+}
+
+// Handle a user submission. Idempotent for empty input (whitespace
+// only messages are silently dropped so the input doesn't submit
+// junk when the user hits Enter on an empty field).
+//
+// Flow:
+//   1. Append user turn to task.thread + save + append DOM bubble.
+//   2. Clear + refocus the input.
+//   3. Show "Clara is typing\u2026" indicator, scroll.
+//   4. After 800ms: compute Clara reply, append + save, remove
+//      indicator, scroll.
+//
+// Guards: `_tdThreadState.sending` prevents double-submits during
+// the 800ms typing window (Enter mashed twice, button double-tap).
+// Guard is scoped per detail render \u2014 closing the detail resets
+// the flag naturally because the whole subtree is torn down.
+const _tdThreadState = { sending: false };
+
+function _tdThreadHandleSend(taskId, listEl, inputEl) {
+  if (!listEl || !inputEl) return;
+  if (_tdThreadState.sending) return;
+
+  const raw = String(inputEl.value || '').trim();
+  if (!raw) return;
+
+  const c = getActiveConcept();
+  if (!c || !c.today || !Array.isArray(c.today.tasks)) return;
+  const idx = c.today.tasks.findIndex(function (t) { return t && t.id === taskId; });
+  if (idx < 0) return;
+  const task = c.today.tasks[idx];
+  if (!Array.isArray(task.thread)) task.thread = [];
+
+  _tdThreadState.sending = true;
+
+  // 1. User turn goes on immediately \u2014 no waiting for Clara.
+  const userMsg = { role: 'user', text: raw, timestamp: Date.now() };
+  task.thread.push(userMsg);
+  _saveState();
+
+  // If we were showing the empty-state placeholder, drop it now
+  // that we have a real message to render.
+  const emptyNode = listEl.querySelector('.td-thread-empty');
+  if (emptyNode && emptyNode.parentNode) emptyNode.parentNode.removeChild(emptyNode);
+
+  listEl.insertAdjacentHTML('beforeend', _tdThreadBubbleHtml(userMsg));
+
+  inputEl.value = '';
+  inputEl.focus();
+  _tdThreadScrollToBottom(listEl, true);
+
+  // 2. Typing indicator + scheduled reply. The 800ms delay is
+  // spec-defined (feels like Clara is thinking, not instant).
+  _tdThreadShowTyping(listEl);
+
+  setTimeout(function () {
+    _tdThreadHideTyping(listEl);
+
+    // Re-fetch concept + task inside the timeout: the user could
+    // have switched concepts, deleted this task, or navigated away
+    // during the 800ms window. In any of those cases, silently
+    // abort \u2014 no crash, no stale writes.
+    const c2 = getActiveConcept();
+    if (!c2 || !c2.today || !Array.isArray(c2.today.tasks)) {
+      _tdThreadState.sending = false;
+      return;
+    }
+    const idx2 = c2.today.tasks.findIndex(function (t) { return t && t.id === taskId; });
+    if (idx2 < 0) {
+      _tdThreadState.sending = false;
+      return;
+    }
+    const task2 = c2.today.tasks[idx2];
+    if (!Array.isArray(task2.thread)) task2.thread = [];
+
+    const replyText = (typeof window._claraThreadRespond === 'function')
+      ? window._claraThreadRespond(raw, task2, c2)
+      : 'Got it.';
+    const claraMsg = { role: 'clara', text: replyText, timestamp: Date.now() };
+    task2.thread.push(claraMsg);
+    _saveState();
+
+    listEl.insertAdjacentHTML('beforeend', _tdThreadBubbleHtml(claraMsg));
+    _tdThreadScrollToBottom(listEl, true);
+
+    _tdThreadState.sending = false;
+  }, 800);
 }
 
 // Full-page task detail sub-view. Editorial layout matching the new
@@ -832,6 +1092,15 @@ function _closeTaskDetail() {
 //   [2] step text                           badge + Inter 15 white body;
 //   [3] step text                           1px left accent bar in the
 //                                           task-type colour)
+//   \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+//   DISCUSS WITH CLARA                     (muted uppercase 11px label)
+//   [transcript bubbles]                   (Clara left + amber avatar;
+//                                           user right; timestamps 11px
+//                                           below each bubble; scroll
+//                                           locked to max-height on
+//                                           desktop, unlocked on mobile)
+//   [input | send \u25b8]                     (dark input, amber focus
+//                                           border, arrow send button)
 //   [Open in Create \u2192]                    (amber full-width, POST only)
 //   [Mark as done]                         (outline full-width, always)
 //
@@ -889,6 +1158,20 @@ function _renderTdDetail(container, task, c) {
     +     '<div class="td-detail-steps-head">Clara\u2019s step-by-step</div>'
     +     '<ol class="td-detail-steps">' + stepsHtml + '</ol>'
     +   '</div>'
+    +   '<div class="td-detail-divider" aria-hidden="true"></div>'
+    +   '<div class="td-detail-section td-thread-section">'
+    +     '<div class="td-thread-label">Discuss with Clara</div>'
+    +     '<div class="td-thread-list" id="tdThreadList" data-task-id="' + _escape(task.id) + '"></div>'
+    +     '<form class="td-thread-input-row" id="tdThreadForm" autocomplete="off">'
+    +       '<input type="text" class="td-thread-input" id="tdThreadInput" '
+    +         'placeholder="Ask Clara about this task\u2026" '
+    +         'aria-label="Ask Clara about this task" '
+    +         'maxlength="500" />'
+    +       '<button type="submit" class="td-thread-send" id="tdThreadSend" aria-label="Send message">'
+    +         TD_SEND_ICON
+    +       '</button>'
+    +     '</form>'
+    +   '</div>'
     +   '<div class="td-detail-actions">'
     +     primaryActionHtml
     +     '<button type="button" class="td-detail-action-secondary" id="tdDetailToggleDone">' + secondaryLabel + '</button>'
@@ -897,6 +1180,35 @@ function _renderTdDetail(container, task, c) {
 
   const backBtn = document.getElementById('tdDetailBack');
   if (backBtn) backBtn.addEventListener('click', _closeTaskDetail);
+
+  // ------------------------------------------------------------
+  // Thread wiring \u2014 render the current transcript, then attach
+  // the form handlers. `_tdThreadRenderList` is idempotent so we
+  // can also call it from anywhere else that mutates task.thread
+  // in the future without re-mounting the whole detail page.
+  // ------------------------------------------------------------
+  const threadListEl = document.getElementById('tdThreadList');
+  const threadFormEl = document.getElementById('tdThreadForm');
+  const threadInputEl = document.getElementById('tdThreadInput');
+  if (threadListEl) {
+    _tdThreadRenderList(threadListEl, task.thread);
+    // Initial scroll to bottom is instant \u2014 the user just
+    // opened the detail, so a smooth-scroll would look like the
+    // page is loading. Subsequent scrolls (on new turns) are
+    // smoothed inside _tdThreadHandleSend.
+    _tdThreadScrollToBottom(threadListEl, false);
+  }
+  if (threadFormEl && threadListEl && threadInputEl) {
+    // Reset the send-guard on every re-mount: even if a previous
+    // detail page left the flag stuck (shouldn't happen, but
+    // defensive), a fresh open of the same or another task
+    // always starts unlocked.
+    _tdThreadState.sending = false;
+    threadFormEl.addEventListener('submit', function (e) {
+      e.preventDefault();
+      _tdThreadHandleSend(task.id, threadListEl, threadInputEl);
+    });
+  }
 
   // createBtn will be null for OUTREACH / OFFER (primaryActionHtml is
   // empty). Guard accordingly so we don't attach a phantom handler.
