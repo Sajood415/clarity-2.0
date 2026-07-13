@@ -28,7 +28,13 @@ const CH_VIEW_LABELS = {
   'market-report':     'Market report',
   'customer-report':   'Customer report',
   'competition-report':'Competition report',
-  'plan-report':       'Go-to-market plan'
+  'plan-report':       'Go-to-market plan',
+  // v2 report labels \u2014 shown by the reports.js topbar (report.js
+  // reads these too when it wants a canonical title).
+  'report-market':     'Market Scan',
+  'report-customer':   'Customer Intelligence',
+  'report-competition':'Competition',
+  'report-plan':       'Your Plan'
 };
 
 // Truncate a longer content body to something that fits in the top
@@ -53,6 +59,15 @@ function _chInsightsDetailTitle() {
 function _renderConceptHeader() {
   const view = appState.activeView || 'overview';
   const pageLabel = CH_VIEW_LABELS[view] || _capitalize(view);
+
+  // v2 report views own their own report topbar (the "\u2190 Overview |
+  // Report title | View all" strip in reports.js). Skip the concept
+  // header entirely so a single 48px topbar sits at the top of the
+  // content area, not two stacked ones.
+  if (view === 'report-market' || view === 'report-customer'
+      || view === 'report-competition' || view === 'report-plan') {
+    return '';
+  }
 
   // Concepts-list is a "root" sub-page, not scoped to a single concept.
   // Render just the page label, no concept prefix.

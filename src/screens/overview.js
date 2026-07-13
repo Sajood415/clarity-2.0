@@ -19,6 +19,7 @@ function renderOverview(container) {
 
   const b = concept.business || {};
   const name = (b.name && b.name.trim()) ? b.name.trim() : 'your business';
+  const missingName = !(b.name && b.name.trim());
   const color = concept.color || '#F5A623';
 
   // Read tasks with their live status from the concept's persisted list
@@ -55,7 +56,7 @@ function renderOverview(container) {
 
       <div class="ov-hero">
         <div class="ov-greeting">${_greeting()}</div>
-        <h1 class="ov-heading">${_escape(name)}</h1>
+        ${missingName ? _renderInlineNameForm() : '<h1 class="ov-heading">' + _escape(name) + '</h1>'}
         ${meta ? '<div class="ov-meta">' + _escape(meta) + '</div>' : ''}
       </div>
 
@@ -77,6 +78,64 @@ function renderOverview(container) {
       renderApp();
     });
   });
+
+  // Insight cards open their matching full-page report. Each card
+  // carries a data-report attribute keyed to a v2 report view; the
+  // handler just forwards to setActiveView + renderApp.
+  container.querySelectorAll('[data-report]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      const target = el.getAttribute('data-report');
+      if (!target || target === appState.activeView) return;
+      setActiveView(target);
+      renderApp();
+    });
+  });
+
+  // Inline name capture for legacy concepts that finished onboarding
+  // before the q_name step existed. Shown only when business.name is
+  // empty; committing the input writes it back and re-renders.
+  const nameInput = container.querySelector('#ovNameInput');
+  const nameBtn = container.querySelector('#ovNameSave');
+  if (nameInput && nameBtn) {
+    const commit = function () {
+      const raw = (nameInput.value || '').trim();
+      if (raw.length < 2) return;
+      const active = getActiveConcept();
+      if (!active) return;
+      if (!active.business) active.business = {};
+      active.business.name = raw;
+      _saveState();
+      renderApp();
+    };
+    const sync = function () {
+      nameBtn.disabled = (nameInput.value || '').trim().length < 2;
+    };
+    nameInput.addEventListener('input', sync);
+    nameInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commit();
+      }
+    });
+    nameBtn.addEventListener('click', commit);
+    sync();
+    setTimeout(function () { nameInput.focus(); }, 40);
+  }
+}
+
+// Inline replacement for the h1 greeting when business.name is empty.
+// Small non-obtrusive input + Save button so the user can complete the
+// missing field without going through onboarding again.
+function _renderInlineNameForm() {
+  return ''
+    + '<form class="ov-name-form" onsubmit="return false;" aria-label="Name your business">'
+    +   '<label class="ov-name-label" for="ovNameInput">What\u2019s your business called?</label>'
+    +   '<div class="ov-name-row">'
+    +     '<input type="text" class="ov-name-input" id="ovNameInput" placeholder="e.g. Sourdough & Sons" autocomplete="off" spellcheck="false" maxlength="60">'
+    +     '<button type="button" class="ov-name-save" id="ovNameSave" disabled>Save</button>'
+    +   '</div>'
+    +   '<div class="ov-name-hint">Clara will use this in her suggestions, reports, and greetings.</div>'
+    + '</form>';
 }
 
 function _renderTodayTile(openTasks, allDone) {
@@ -181,23 +240,26 @@ function _renderResultsTile(publishedCount) {
 // concept gives you a different read every time.
 
 function _renderResearchInsights(b) {
+  // Each card carries `report` \u2014 the v2 report view key the card
+  // opens on click. `data-report` on the card element carries this
+  // downstream to the click handler wired in renderOverview.
   const cards = [
-    { label: 'YOUR MARKET',   color: 'var(--accent)',                text: _ovMarketInsight(b) },
-    { label: 'YOUR CUSTOMER', color: 'var(--accent-secondary)',      text: _ovCustomerInsight(b) },
-    { label: 'YOUR EDGE',     color: '#7C6AE8',                      text: _ovEdgeInsight(b) },
-    { label: 'FIRST MOVE',    color: 'rgba(245, 166, 35, 0.7)',      text: _ovFirstMoveInsight(b) }
+    { label: 'YOUR MARKET',   color: 'var(--accent)',           report: 'report-market',      text: _ovMarketInsight(b) },
+    { label: 'YOUR CUSTOMER', color: 'var(--accent-secondary)', report: 'report-customer',    text: _ovCustomerInsight(b) },
+    { label: 'YOUR EDGE',     color: '#7C6AE8',                 report: 'report-competition', text: _ovEdgeInsight(b) },
+    { label: 'FIRST MOVE',    color: 'rgba(245, 166, 35, 0.7)', report: 'report-plan',        text: _ovFirstMoveInsight(b) }
   ];
 
   const cardsHtml = cards.map(function (c) {
     return ''
-      + '<div class="ov-research-card" style="--card-accent:' + c.color + '">'
+      + '<button type="button" class="ov-research-card" data-report="' + c.report + '" style="--card-accent:' + c.color + '" aria-label="Open ' + _escape(c.label) + ' report">'
       +   '<div class="ov-research-eye">' + _escape(c.label) + '</div>'
       +   '<div class="ov-research-text">' + _escape(c.text) + '</div>'
       +   '<div class="ov-research-foot">'
       +     '<span class="ov-research-foot-label">Clara\u2019s read</span>'
       +     '<span class="ov-research-foot-arrow" aria-hidden="true">\u2192</span>'
       +   '</div>'
-      + '</div>';
+      + '</button>';
   }).join('');
 
   return ''

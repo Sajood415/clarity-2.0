@@ -1,0 +1,935 @@
+/* ==========================================
+   Strategic Planning Reports (v2)
+   ==========================================
+   Four full-page reports opened from the Overview insight cards.
+   Every class is namespaced .rp-* so it can't collide with existing
+   screen styles. The screens/reports.js renderer owns the DOM
+   structure; this file owns the visual language.
+*/
+
+/* --- Shell --- */
+
+.rp-shell {
+  flex: 1;
+  min-height: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  animation: rp-shell-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes rp-shell-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* --- Topbar (48px) --- */
+
+.rp-topbar {
+  height: 48px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  background: var(--bg);
+}
+
+.rp-back {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: color 150ms ease, background 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rp-back:hover {
+  color: var(--text);
+  background: rgba(255, 240, 220, 0.04);
+}
+
+.rp-title {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+
+.rp-view-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--accent);
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.rp-view-toggle:hover {
+  background: rgba(245, 166, 35, 0.08);
+}
+
+.rp-view-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- Tab bar --- */
+
+.rp-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+  overflow-x: auto;
+  padding: 0 24px;
+  scrollbar-width: none;
+  background: var(--bg);
+}
+
+.rp-tabs::-webkit-scrollbar { display: none; }
+
+.rp-tab {
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 150ms ease, border-color 150ms ease;
+  margin-bottom: -1px;
+}
+
+.rp-tab:hover {
+  color: var(--text);
+}
+
+.rp-tab-active,
+.rp-tab-active:hover {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+
+.rp-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+/* --- Body / content area --- */
+
+.rp-body {
+  flex: 1;
+  padding: 32px 40px;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* --- Panel (single-tab and stacked view-all) --- */
+
+.rp-panel {
+  animation: rp-panel-fade 220ms ease-out both;
+}
+
+@keyframes rp-panel-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.rp-panel-fade-out {
+  animation: rp-panel-fade-out 180ms ease-out both;
+}
+
+@keyframes rp-panel-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* View-all mode: stack every panel with a divider + section heading. */
+.rp-panel-stacked {
+  margin-top: 40px;
+}
+.rp-panel-stacked:first-child {
+  margin-top: 0;
+}
+
+.rp-panel-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 40px 0 0;
+}
+
+.rp-panel-heading {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 20px;
+  letter-spacing: -0.01em;
+}
+
+/* --- Typography --- */
+
+.rp-heading {
+  color: var(--text);
+  margin: 0 0 16px;
+  line-height: 1.3;
+}
+
+.rp-heading-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.rp-heading-bold {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.rp-subheading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 12px;
+}
+
+.rp-subheading-spaced {
+  margin-top: 32px;
+}
+
+.rp-para {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  margin: 0 0 20px;
+}
+
+.rp-para-muted {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.rp-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rp-bullet {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  padding-left: 20px;
+  position: relative;
+}
+
+.rp-bullet::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.rp-note {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  margin: 12px 0 0;
+  line-height: 1.6;
+}
+
+/* Numbers + percentages in tables/cards get the amber treatment. */
+.rp-num {
+  color: var(--accent);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Tables --- */
+
+.rp-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-family: inherit;
+}
+
+.rp-table th {
+  background: rgba(255, 240, 220, 0.04);
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-transform: uppercase;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.rp-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.rp-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* --- Psychographic trait grid (Market Scan, Who's Buying) --- */
+
+.rp-psycho-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.rp-psycho-card {
+  background: rgba(255, 240, 220, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.rp-psycho-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.rp-psycho-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* --- Key findings (numbered list) --- */
+
+.rp-findings {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rp-finding {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rp-finding:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.rp-finding-num {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--accent);
+  padding-top: 2px;
+}
+
+.rp-finding-head {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.rp-finding-text {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* --- Persona preview (Customer, Who's Buying) --- */
+
+.rp-persona-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.rp-persona-preview {
+  background: rgba(255, 240, 220, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.rp-persona-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.25), rgba(212, 134, 10, 0.15));
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rp-persona-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.rp-persona-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.rp-persona-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* --- Persona full profile (Plan report, Your Customer tab) --- */
+
+.rp-persona-full {
+  background: rgba(255, 240, 220, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  text-align: center;
+  margin-top: 16px;
+}
+
+.rp-persona-full-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F5A623 0%, #D4860A 100%);
+  color: #0F0D0B;
+  font-size: 20px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 20px rgba(245, 166, 35, 0.28);
+}
+
+.rp-persona-full-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.005em;
+}
+
+.rp-persona-full-desc {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 auto 28px;
+  max-width: 460px;
+}
+
+.rp-persona-full-section {
+  margin-top: 20px;
+  text-align: left;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.rp-persona-full-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.rp-persona-full-value {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.rp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rp-chip {
+  background: rgba(245, 166, 35, 0.08);
+  color: var(--accent);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* --- Two-column layout (Drivers / Barriers) --- */
+
+.rp-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 4px;
+}
+
+.rp-col {
+  min-width: 0;
+}
+
+/* --- Segments (Customer, Segments tab) --- */
+
+.rp-segment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.rp-segment-card {
+  background: rgba(255, 240, 220, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.rp-segment-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.rp-segment-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rp-segment-size {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rp-segment-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.rp-segment-triggers-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.rp-segment-triggers {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rp-segment-trigger {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  padding-left: 14px;
+  position: relative;
+}
+
+.rp-segment-trigger::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* --- Player cards (Competition, Key Players tab) --- */
+
+.rp-player-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.rp-player-card {
+  background: rgba(255, 240, 220, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.rp-player-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.rp-player-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rp-player-price {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.rp-player-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.rp-player-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.rp-player-col-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.rp-player-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rp-player-list li {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  padding-left: 14px;
+  position: relative;
+}
+
+.rp-player-list-strengths li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #7ED07A;
+}
+
+.rp-player-list-weaknesses li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #D06B6B;
+}
+
+/* --- Plan report: 3-section market summary --- */
+
+.rp-summary-section {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rp-summary-section:first-child {
+  padding-top: 0;
+}
+
+.rp-summary-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.rp-summary-eye {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+
+.rp-summary-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+.rp-summary-body {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* --- Plan report: First moves cards --- */
+
+.rp-first-moves {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.rp-move-card {
+  background: rgba(255, 240, 220, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  border-left: 3px solid var(--accent);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.rp-move-card:hover {
+  background: rgba(255, 240, 220, 0.06);
+}
+
+.rp-move-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.rp-move-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.rp-move-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+.rp-move-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rp-move-meta-label {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.rp-move-meta-value {
+  color: var(--text);
+}
+
+.rp-move-meta-sep {
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+.rp-priority-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rp-priority-chip-p0 {
+  background: rgba(208, 107, 107, 0.12);
+  color: #E88989;
+  border: 1px solid rgba(208, 107, 107, 0.28);
+}
+
+.rp-priority-chip-p1 {
+  background: rgba(245, 166, 35, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(245, 166, 35, 0.28);
+}
+
+.rp-priority-chip-p2 {
+  background: rgba(255, 240, 220, 0.06);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* --- Sources list --- */
+
+.rp-sources {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  counter-reset: rp-source;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rp-source {
+  padding-left: 28px;
+  position: relative;
+  counter-increment: rp-source;
+}
+
+.rp-source::before {
+  content: counter(rp-source, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 2px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.rp-source-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.rp-source-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* --- Empty state --- */
+
+.rp-empty {
+  padding: 40px 24px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: rgba(255, 240, 220, 0.02);
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 767px) {
+  .rp-body {
+    padding: 24px 20px;
+  }
+  .rp-topbar {
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .rp-tabs {
+    padding: 0 16px;
+  }
+  .rp-psycho-grid,
+  .rp-persona-preview-grid,
+  .rp-segment-grid,
+  .rp-two-col {
+    grid-template-columns: 1fr;
+  }
+  .rp-player-cols {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .rp-table th,
+  .rp-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .rp-heading-serif {
+    font-size: 19px;
+  }
+  .rp-heading-bold,
+  .rp-summary-title {
+    font-size: 17px;
+  }
+  .rp-persona-full-name {
+    font-size: 18px;
+  }
+}

@@ -68,6 +68,81 @@
   word-break: break-word;
 }
 
+/* Inline name-capture form. Only shown when business.name is empty
+   for a completed concept (legacy migration). Sizes down from the h1
+   so the layout doesn't lurch when the user fills it in. */
+.ov-name-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 460px;
+}
+
+.ov-name-label {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.ov-name-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.ov-name-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 240, 220, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.ov-name-input::placeholder {
+  color: rgba(245, 240, 232, 0.28);
+}
+
+.ov-name-input:focus {
+  border-color: var(--accent);
+  background: rgba(245, 166, 35, 0.04);
+}
+
+.ov-name-save {
+  background: var(--accent);
+  color: #0F0D0B;
+  border: none;
+  border-radius: 10px;
+  padding: 0 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, opacity 150ms ease;
+}
+
+.ov-name-save:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+
+.ov-name-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ov-name-hint {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .ov-meta {
   font-size: 14px;
   color: rgba(245, 240, 232, 0.45);
@@ -330,6 +405,18 @@
   justify-content: space-between;
   box-shadow: var(--shadow);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  /* The card became a <button> when the four reports shipped so the
+     insight cards are focusable + click-target. Kill the default button
+     look while keeping the block layout the div variant had. */
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.ov-research-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 /* Lift on hover to signal "this will do something eventually" — same

@@ -78,6 +78,17 @@ const CL_Q1_ACK = {
 const CL_Q1_OTHER_QUESTION = "Got it. Can you tell me a bit more about what you do?";
 const CL_Q1_OTHER_ACK = "Thanks, that gives me the context I need.";
 
+// --- Q_name: business name (free text) ---
+//
+// Sits between Q1 (type) and Q2 (goal). Kept short intentionally \u2014
+// asking for a name mid-flow works best when it feels like a one-line
+// aside, not a heavy form field. business.name is used by Overview
+// greeting, concept header, sidebar badge, and Clara's context-aware
+// responses everywhere they reference "your business".
+const CL_QNAME_QUESTION = "What's your business called?";
+const CL_QNAME_PLACEHOLDER = "e.g. Sourdough & Sons";
+const CL_QNAME_ACK = "Nice \u2014 I'll use that everywhere going forward.";
+
 // --- Q2: goal ---
 
 const CL_Q2_QUESTION = "What do you want Clarity to help you with first?";
@@ -282,6 +293,10 @@ window.CL_Q1_TYPE_MAP = CL_Q1_TYPE_MAP;
 window.CL_Q1_ACK = CL_Q1_ACK;
 window.CL_Q1_OTHER_QUESTION = CL_Q1_OTHER_QUESTION;
 window.CL_Q1_OTHER_ACK = CL_Q1_OTHER_ACK;
+
+window.CL_QNAME_QUESTION = CL_QNAME_QUESTION;
+window.CL_QNAME_PLACEHOLDER = CL_QNAME_PLACEHOLDER;
+window.CL_QNAME_ACK = CL_QNAME_ACK;
 
 window.CL_Q2_QUESTION = CL_Q2_QUESTION;
 window.CL_OPTIONS_Q2 = CL_OPTIONS_Q2;

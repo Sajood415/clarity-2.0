@@ -872,7 +872,11 @@ function setActiveView(view) {
     // Strategic Planning reports. Each opens as a full-screen view
     // (no top-bar page label), routed by the report shell in
     // router.js. Reached from the Overview insight cards.
-    'market-report', 'customer-report', 'competition-report', 'plan-report'
+    'market-report', 'customer-report', 'competition-report', 'plan-report',
+    // Version 2 Strategic Planning reports \u2014 the four full-page
+    // reports the Overview insight cards actually open. Each carries a
+    // 5-6 tab shell with a "View all" stacked-scroll mode.
+    'report-market', 'report-customer', 'report-competition', 'report-plan'
   ];
   if (allowed.indexOf(view) === -1) return;
   appState.activeView = view;
@@ -900,7 +904,12 @@ function _isReportView(view) {
   return view === 'market-report'
       || view === 'customer-report'
       || view === 'competition-report'
-      || view === 'plan-report';
+      || view === 'plan-report'
+      // v2 report keys \u2014 the ones the Overview cards actually route to.
+      || view === 'report-market'
+      || view === 'report-customer'
+      || view === 'report-competition'
+      || view === 'report-plan';
 }
 
 // ---------------------------------------------

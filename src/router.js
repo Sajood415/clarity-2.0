@@ -159,9 +159,21 @@ function _renderActiveView(container) {
     case 'customer-report':
     case 'competition-report':
     case 'plan-report':
-      // Existing report screens still expose global renderers. Kept as
-      // full-screen inside the content area \u2014 same behavior as before.
+      // Legacy report keys \u2014 kept in the switch for state migration
+      // safety, but currently no renderer is registered (renderReport
+      // was never built). Fall through to Overview.
       if (typeof window.renderReport === 'function') window.renderReport(container, view);
+      else renderOverview(container);
+      break;
+    case 'report-market':
+    case 'report-customer':
+    case 'report-competition':
+    case 'report-plan':
+      // v2 Strategic Planning reports (built in screens/reports.js).
+      // Each opens as a full-page report inside the content area with
+      // its own topbar (no concept header \u2014 that's suppressed by
+      // conceptHeader.js for these view keys).
+      if (typeof renderReport === 'function') renderReport(container, view);
       else renderOverview(container);
       break;
     default:

@@ -3,10 +3,10 @@
 // ---------------------------------------------
 //
 // A single full-viewport page (not a modal) that walks the user through
-// Clara's 6 questions. Structure:
+// Clara's 7 questions. Structure:
 //
 //   [ ob-fullscreen ]                fixed inset 0, warm radial bg, z 400
-//     [ ob-topbar ]                  56px row: Clarity | progress | X of 6
+//     [ ob-topbar ]                  56px row: Clarity | progress | X of 7
 //     [ ob-content ]                 flex-1, centered column, max 640
 //       C avatar (32px, amber grad)
 //       question (28/700, centered)
@@ -14,13 +14,19 @@
 //       ob-answer                    chips / textarea / continue
 //     [ ob-back-link ]               fixed bottom-left "← Back"
 //
-// Six questions:
-//   Q1 (single-select), Q2 (single-select), Q3 (free text),
-//   Q4 (multi-select),  Q5 (single-select), Q6 (free text).
+// Seven questions:
+//   Q1 (single-select),  q_name (free text),  Q2 (single-select),
+//   Q3 (free text),      Q4 (multi-select),   Q5 (single-select),
+//   Q6 (free text).
 //
 // Q1 has one branch: picking "Other" routes through q1_other (a
-// free-text follow-up) before Q2. That sub-step's progress index
+// free-text follow-up) before q_name. That sub-step's progress index
 // collapses onto Q1's slot so the bar doesn't jump backwards.
+//
+// q_name was added after the initial 6-question rollout because the
+// Overview greeting, concept header, sidebar badge, and Clara's
+// context-aware responses all reference business.name and were
+// falling back to "your business" without it.
 //
 // State machine + widget renderers are local to this file. Each answer
 // commits to appState.business, then _obGoNext(...) fades the content
@@ -31,10 +37,12 @@
 // Step config
 // ---------------------------------------------
 
-// The six ordered steps that drive the progress bar. Sub-steps
+// The seven ordered steps that drive the progress bar. Sub-steps
 // (q1_other) share the index of their parent so progress doesn't
-// jump around when Clara asks the "Other" follow-up.
-const OB_STEP_ORDER = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+// jump around when Clara asks the "Other" follow-up. q_name sits
+// right after q1 so Clara has the business name in hand before she
+// starts asking about goals / customers.
+const OB_STEP_ORDER = ['q1', 'q_name', 'q2', 'q3', 'q4', 'q5', 'q6'];
 const OB_TOTAL_STEPS = OB_STEP_ORDER.length;
 
 // Per-step subtitle copy. q1_other is a sub-step, not a numbered
@@ -42,6 +50,7 @@ const OB_TOTAL_STEPS = OB_STEP_ORDER.length;
 const OB_SUBTITLES = {
   q1:       'This helps Clara understand how to position your business.',
   q1_other: 'A quick description of what you do helps Clara tailor her suggestions.',
+  q_name:   'Clara will use this in her suggestions, reports, and dashboard greetings.',
   q2:       'Clara will prioritise suggestions around this goal.',
   q3:       'Be as specific as you can. The more detail the better.',
   q4:       'Select everything that applies right now.',
@@ -55,6 +64,7 @@ function _obQuestionCopy(step) {
   switch (step) {
     case 'q1':       return CL_Q1_QUESTION;
     case 'q1_other': return CL_Q1_OTHER_QUESTION;
+    case 'q_name':   return CL_QNAME_QUESTION;
     case 'q2':       return CL_Q2_QUESTION;
     case 'q3':       return CL_Q3_QUESTION;
     case 'q4':       return CL_Q4_QUESTION;
@@ -90,7 +100,7 @@ const _obState = {
 };
 
 function _obKnownStep(step) {
-  return step === 'q1' || step === 'q1_other'
+  return step === 'q1' || step === 'q1_other' || step === 'q_name'
       || step === 'q2' || step === 'q3'
       || step === 'q4' || step === 'q5' || step === 'q6';
 }
@@ -256,6 +266,17 @@ function _obRenderAnswer(step) {
         initialValue: (getBusiness().product || '').trim(),
         multiLine: true,
         onCommit: _obHandleQ1Other
+      });
+      break;
+
+    case 'q_name':
+      _obRenderTextInput({
+        host: host,
+        placeholder: CL_QNAME_PLACEHOLDER,
+        minChars: 2,
+        initialValue: (getBusiness().name || '').trim(),
+        multiLine: false,
+        onCommit: _obHandleQName
       });
       break;
 
@@ -506,13 +527,22 @@ function _obHandleQ1(label) {
   const key = CL_Q1_TYPE_MAP[label] || 'other';
   b.type = key;
   _saveState();
+  // 'Other' routes through the free-text follow-up first; every other
+  // type jumps straight to the name question.
   if (key === 'other') _obGoNext('q1_other');
-  else _obGoNext('q2');
+  else _obGoNext('q_name');
 }
 
 function _obHandleQ1Other(text) {
   const b = getBusiness();
   b.product = text;
+  _saveState();
+  _obGoNext('q_name');
+}
+
+function _obHandleQName(text) {
+  const b = getBusiness();
+  b.name = text;
   _saveState();
   _obGoNext('q2');
 }
@@ -591,7 +621,8 @@ function _obGoBack() {
 function _obPreviousStep(step) {
   switch (step) {
     case 'q1_other': return 'q1';
-    case 'q2':       return _obPreviousQ2Origin();
+    case 'q_name':   return _obPreviousQNameOrigin();
+    case 'q2':       return 'q_name';
     case 'q3':       return 'q2';
     case 'q4':       return 'q3';
     case 'q5':       return 'q4';
@@ -600,9 +631,10 @@ function _obPreviousStep(step) {
   }
 }
 
-// Q2 can be arrived at from either q1 (any non-other type) or q1_other.
-// Rewind honors the actual path the user took, keyed off business.type.
-function _obPreviousQ2Origin() {
+// q_name can be arrived at from either q1 (any non-other type) or
+// q1_other. Rewind honors the actual path the user took, keyed off
+// business.type.
+function _obPreviousQNameOrigin() {
   const t = getBusiness().type;
   return t === 'other' ? 'q1_other' : 'q1';
 }
