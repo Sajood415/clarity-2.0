@@ -2,37 +2,27 @@
 // Clarity 2.0 — Today View
 // ---------------------------------------------
 //
-// Two visual modes sharing the same underlying task data:
-//   \u2022 List (default)  \u2014 flat full-width rows separated by 1px borders,
-//                         each with a 3px accent bar down the left edge
-//                         colour-coded by task type (POST / OUTREACH / OFFER)
-//   \u2022 Kanban          \u2014 three columns (TO DO / IN PROGRESS / DONE)
-//                         with HTML5 drag-and-drop between columns
+// List-only surface: flat full-width rows separated by 1px
+// borders, each with a 3px accent bar down the left edge
+// colour-coded by task type (POST / OUTREACH / OFFER).
 //
-// Task content and copy come from `_todayTasks()` unchanged. On first
-// render for a concept, the generated tasks are seeded into
-// `concept.today.tasks` with `status: 'todo'` and persisted, so any
-// user-driven status changes (list status-circle cycles, kanban drags)
-// survive across renders, tab switches, and reloads.
+// A kanban board used to live inline on this screen. It was
+// removed because it duplicated the full Tasks workspace
+// without adding any Today-specific value. The single entry
+// point to the board is now the board-icon button in the
+// header top-right, which routes to the Tasks screen via
+// setActiveView('tasks').
 //
-// The view choice is a global UI preference (`appState.today.view`)
-// so the user's list-vs-kanban pick sticks across concepts.
+// Task content and copy come from `_todayTasks()` unchanged. On
+// first render for a concept, the generated tasks are seeded
+// into `concept.today.tasks` with `status: 'todo'` and persisted
+// so any user-driven status changes (list status-circle cycles,
+// status-pill clicks) survive across renders, tab switches, and
+// reloads.
 
 // ---------------------------------------------
 // Icons
 // ---------------------------------------------
-
-const TD_LIST_ICON = ''
-  + '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">'
-  +   '<path d="M2 3.5 H12 M2 7 H12 M2 10.5 H12"/>'
-  + '</svg>';
-
-const TD_KANBAN_ICON = ''
-  + '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">'
-  +   '<rect x="1.5" y="2.5" width="3" height="9" rx="0.5"/>'
-  +   '<rect x="5.5" y="2.5" width="3" height="9" rx="0.5"/>'
-  +   '<rect x="9.5" y="2.5" width="3" height="9" rx="0.5"/>'
-  + '</svg>';
 
 const TD_CHECK_ICON = ''
   + '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
@@ -110,12 +100,6 @@ const TD_STATUS_ICON_DONE = ''
   +   '<path d="M4.6 8.2 L7 10.4 L11.4 5.6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
   + '</svg>';
 
-const TD_KANBAN_COLS = [
-  { id: 'todo',        label: 'TO DO' },
-  { id: 'in_progress', label: 'IN PROGRESS' },
-  { id: 'done',        label: 'DONE' }
-];
-
 // ---------------------------------------------
 // Public entry
 // ---------------------------------------------
@@ -166,12 +150,6 @@ function renderToday(container) {
     _saveState();
   }
 
-  const view = _currentTodayView();
-  const isKanban = view === 'kanban';
-
-  const listBtn = _renderTdViewBtn('list', view);
-  const kanbanBtn = _renderTdViewBtn('kanban', view);
-
   // Insight card sits between the greeting/heading and the task list
   // when it hasn't been dismissed for the day AND we actually have
   // insights to render. Otherwise the whole block collapses to zero
@@ -179,32 +157,122 @@ function renderToday(container) {
   const showInsights = _shouldRenderInsights(c);
   const insightMarkup = showInsights ? _renderTdInsightCard(c.today.insights[0]) : '';
 
+  // Header top-right icon cluster: three quiet icon buttons that
+  // form the view-switching surface for the task workspace. On
+  // the Today screen the LIST icon is always the active pick
+  // (Today IS the list view for the AI-curated daily set); the
+  // kanban and calendar icons ship the user into the full Tasks
+  // workspace with `tasks.view` pre-stamped so the destination
+  // renders in the requested mode.
+  //
+  //   tdOpenList     \u2014 active on Today. Click re-renders the
+  //                    list (no-op if unchanged). Icon: 3 rows.
+  //   tdOpenKanban   \u2014 stamps tasks.view = 'board' then
+  //                    setActiveView('tasks'). Icon: 2x2 grid.
+  //   tdOpenCalendar \u2014 stamps tasks.view = 'calendar' then
+  //                    setActiveView('tasks'). Icon: cal frame.
+  //
+  // Icons are inlined here + on the tasks screen so both surfaces
+  // render the SAME SVG source, which keeps the trio recognisable
+  // regardless of which screen you're currently on.
+  const listGlyph = _tdViewIconList();
+  const kanbanGlyph = _tdViewIconKanban();
+  const calendarGlyph = _tdViewIconCalendar();
+
   container.innerHTML = `
-    <section class="td-wrap${isKanban ? ' td-wrap-kanban' : ''}">
+    <section class="td-wrap">
       <div class="td-top">
         <div class="td-top-text">
           <div class="td-greeting">${_greeting()}</div>
           <h1 class="td-heading">Here\u2019s what Clara thinks you should focus on today.</h1>
         </div>
-        <div class="td-view-toggle" role="tablist" aria-label="Today view">
-          ${listBtn}
-          ${kanbanBtn}
+        <div class="td-header-actions">
+          <button
+            type="button"
+            class="td-open-board td-open-board-active"
+            id="tdOpenList"
+            aria-label="List view (current)"
+            aria-pressed="true"
+            title="List view"
+          >${listGlyph}</button>
+          <button
+            type="button"
+            class="td-open-board"
+            id="tdOpenKanban"
+            aria-label="Open kanban view"
+            aria-pressed="false"
+            title="Kanban view"
+          >${kanbanGlyph}</button>
+          <button
+            type="button"
+            class="td-open-board"
+            id="tdOpenCalendar"
+            aria-label="Open calendar view"
+            aria-pressed="false"
+            title="Calendar view"
+          >${calendarGlyph}</button>
         </div>
       </div>
       ${insightMarkup}
       <div id="tdBody"></div>
       <div class="td-footer-note">Clara updates these every day based on what\u2019s working.</div>
-      <a class="td-manage-tasks" id="tdManageTasks" role="button" tabindex="0">Manage all tasks \u2192</a>
     </section>
   `;
 
-  _bindTdViewToggle(container);
-  _bindTdManageTasks(container);
+  _bindTdOpenBoard(container);
   if (showInsights) _bindTdInsightCard(container, c);
 
   const body = container.querySelector('#tdBody');
-  if (isKanban) _renderTdKanban(body, c);
-  else _renderTdList(body, c);
+  _renderTdList(body, c);
+}
+
+// ---------------------------------------------
+// Shared view-toggle glyphs
+// ---------------------------------------------
+//
+// Exposed via window so the Tasks screen can reuse the exact
+// same SVGs on its topbar toggle \u2014 that keeps the trio's
+// visual identity consistent across the Today \u2194 Tasks
+// navigation. Each glyph renders at 16\u00d716 with currentColor,
+// so palette + hover state are driven purely by the parent
+// button's CSS.
+
+function _tdViewIconList() {
+  return ''
+    + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
+    +   'stroke-width="1.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    +   '<path d="M2 4 H14 M2 8 H14 M2 12 H14"/>'
+    + '</svg>';
+}
+
+function _tdViewIconKanban() {
+  return ''
+    + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
+    +   'stroke-width="1.6" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    +   '<rect x="1.25" y="1.25"  width="5.5" height="6"  rx="1"/>'
+    +   '<rect x="9.25" y="1.25"  width="5.5" height="3.5" rx="1"/>'
+    +   '<rect x="1.25" y="8.75"  width="5.5" height="6"  rx="1"/>'
+    +   '<rect x="9.25" y="6.25"  width="5.5" height="8.5" rx="1"/>'
+    + '</svg>';
+}
+
+function _tdViewIconCalendar() {
+  return ''
+    + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" '
+    +   'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" '
+    +   'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    +   '<rect x="1.75" y="3" width="12.5" height="11" rx="1.5"/>'
+    +   '<path d="M1.75 6.75 H14.25"/>'
+    +   '<path d="M5 1.5 V4.25 M11 1.5 V4.25"/>'
+    + '</svg>';
+}
+
+// Exposed to the Tasks screen so its topbar renders the same
+// glyphs without duplicating the SVG source in another file.
+if (typeof window !== 'undefined') {
+  window._tdViewIconList = _tdViewIconList;
+  window._tdViewIconKanban = _tdViewIconKanban;
+  window._tdViewIconCalendar = _tdViewIconCalendar;
 }
 
 // ---------------------------------------------
@@ -387,20 +455,44 @@ function _renderTdInsightDetail(container, insight, c) {
 }
 
 // ---------------------------------------------
-// State helpers
+// List-view status filter
 // ---------------------------------------------
+//
+// Purely session-local: the filter resets to 'all' on every
+// page reload (no persistence to concept state or localStorage).
+// This is intentional \u2014 the filter is a lightweight scan tool,
+// not a preference the user should have to un-set later.
+//
+// The Today screen is list-only, so the filter also applies at
+// exactly one surface (the row list) \u2014 no view-conditional
+// gating needed.
+//
+// Values are the exact status strings from state (`todo`,
+// `in_progress`, `done`) plus `all` for the pass-through case.
+// Anything else (bad querystring, corrupted module state) falls
+// back to 'all' via _tdListFilterCurrent().
 
-function _currentTodayView() {
-  if (!appState.today) appState.today = { view: 'list' };
-  return appState.today.view === 'kanban' ? 'kanban' : 'list';
+const TD_LIST_FILTERS = ['all', 'todo', 'in_progress', 'done'];
+let _tdListFilter = 'all';
+
+function _tdListFilterCurrent() {
+  return TD_LIST_FILTERS.indexOf(_tdListFilter) !== -1 ? _tdListFilter : 'all';
 }
 
-function _setTodayView(next) {
-  if (next !== 'list' && next !== 'kanban') return;
-  if (!appState.today) appState.today = { view: 'list' };
-  if (appState.today.view === next) return;
-  appState.today.view = next;
-  _saveState();
+function _tdListFilterSet(next) {
+  const clean = TD_LIST_FILTERS.indexOf(next) !== -1 ? next : 'all';
+  if (clean === _tdListFilter) return false;
+  _tdListFilter = clean;
+  return true;
+}
+
+// Label shown on the filter pill. Human-readable, matches the
+// row's status-pill copy so the two surfaces feel connected.
+function _tdListFilterLabel(key) {
+  if (key === 'todo')        return 'To Do';
+  if (key === 'in_progress') return 'In Progress';
+  if (key === 'done')        return 'Done';
+  return 'All';
 }
 
 // Seed the concept's persistent task list from the generator, once.
@@ -412,7 +504,7 @@ function _seedTodayTasks(c) {
 
   const fresh = _todayTasks().map(function (t) {
     // `discarded` is stamped on at seed time so downstream code can
-    // trust the field exists (list + kanban renderers filter by it).
+    // trust the field exists (the list renderer filters by it).
     // `approved` is the "yes, I want to do this today" flag toggled
     // by the card's Approve button \u2014 initially false. `thread`
     // is the DISCUSS-WITH-CLARA transcript for this task; empty at
@@ -432,9 +524,9 @@ function _seedTodayTasks(c) {
   _saveState();
 }
 
-// Single source of truth for status writes. Called from the kanban drop
-// handler and from the list-view status checkbox. Returns true if the
-// status actually changed (so callers know whether to re-render).
+// Single source of truth for status writes. Called from the list-view
+// status circle and from the meta-line status pill. Returns true if
+// the status actually changed (so callers know whether to re-render).
 function _setTaskStatus(idx, nextStatus) {
   const c = getActiveConcept();
   if (!c || !c.today || !c.today.tasks[idx]) return false;
@@ -458,9 +550,9 @@ function _cycleTaskStatus(idx) {
   return _setTaskStatus(idx, next);
 }
 
-// Re-render the whole Today view (the shell + toggle + list/kanban).
-// Used after a status change so both views stay in sync regardless
-// of which one the user is looking at.
+// Re-render the whole Today view (shell + insight card + list).
+// Used after any status/filter/thread mutation so the row list
+// picks up the change without needing surgical DOM edits.
 function _rerenderToday() {
   const container = document.getElementById('homeContent');
   if (container) renderToday(container);
@@ -489,54 +581,40 @@ function _renderStatusCheckbox(status, idx) {
     + '>' + icon + '</button>';
 }
 
-// ---------------------------------------------
-// View toggle
-// ---------------------------------------------
-
-function _renderTdViewBtn(view, current) {
-  const active = view === current;
-  const cls = 'td-view-btn' + (active ? ' td-view-btn-active' : '');
-  const icon = view === 'list' ? TD_LIST_ICON : TD_KANBAN_ICON;
-  const label = view === 'list' ? 'List view' : 'Kanban view';
-  return ''
-    + '<button type="button" class="' + cls + '"'
-    +   ' data-td-view="' + view + '"'
-    +   ' aria-label="' + label + '"'
-    +   ' aria-pressed="' + (active ? 'true' : 'false') + '"'
-    + '>' + icon + '</button>';
-}
-
-function _bindTdViewToggle(scope) {
-  const buttons = scope.querySelectorAll('[data-td-view]');
-  buttons.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const next = btn.getAttribute('data-td-view');
-      const current = _currentTodayView();
-      if (next === current) return;
-      _setTodayView(next);
-      renderToday(scope);
-    });
-  });
-}
-
-// "Manage all tasks \u2192" is the only entry point to the full task
-// workspace (Tasks isn't in the sidebar nav). Clicking or Enter/Space
-// activation flips the active view to 'tasks'; the router mounts the
-// Tasks screen inside the existing dashboard shell.
-function _bindTdManageTasks(scope) {
-  const link = scope.querySelector('#tdManageTasks');
-  if (!link) return;
-  const go = function () {
+// Wire up the three header-icon buttons.
+//
+//   List     \u2014 the "you are here" pill. Clicking it just
+//              re-renders Today (a no-op visually but keeps the
+//              click behaviour predictable for the trio).
+//   Kanban   \u2014 stamps tasks.view = 'board' then navigates.
+//   Calendar \u2014 stamps tasks.view = 'calendar' then navigates.
+//
+// Persisting the view via _saveState keeps the choice sticky
+// across reloads, matching how the retired in-screen toggle
+// used to work. Native <button> already handles Enter / Space
+// activation so plain click listeners are enough here.
+function _bindTdOpenBoard(scope) {
+  const openTasksWithView = function (view) {
+    const tasks = (typeof window !== 'undefined' && typeof window.getTasks === 'function')
+      ? window.getTasks()
+      : null;
+    if (tasks && tasks.view !== view) {
+      tasks.view = view;
+      if (typeof window._saveState === 'function') window._saveState();
+    }
     setActiveView('tasks');
     renderApp();
   };
-  link.addEventListener('click', go);
-  link.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      go();
-    }
-  });
+
+  const listBtn     = scope.querySelector('#tdOpenList');
+  const kanbanBtn   = scope.querySelector('#tdOpenKanban');
+  const calendarBtn = scope.querySelector('#tdOpenCalendar');
+
+  if (listBtn) {
+    listBtn.addEventListener('click', function () { _rerenderToday(); });
+  }
+  if (kanbanBtn)   kanbanBtn.addEventListener('click',   function () { openTasksWithView('board'); });
+  if (calendarBtn) calendarBtn.addEventListener('click', function () { openTasksWithView('calendar'); });
 }
 
 // ---------------------------------------------
@@ -544,16 +622,75 @@ function _bindTdManageTasks(scope) {
 // ---------------------------------------------
 
 function _renderTdList(container, c) {
-  container.innerHTML = '<div class="td-rows" id="tdRows"></div>';
+  // Filter bar sits ABOVE the row list, inside the same body so
+  // vertical rhythm stays consistent with the rest of the Today
+  // page. The bar is only rendered when there's at least one
+  // non-discarded task to filter \u2014 an empty task list looks
+  // cleaner without dangling pills.
+  const activeFilter = _tdListFilterCurrent();
+  const hasVisibleTasks = c.today.tasks.some(function (t) {
+    return t && !t.discarded;
+  });
+  const filterBarHtml = hasVisibleTasks
+    ? _tdRenderFilterBar(activeFilter)
+    : '';
+
+  container.innerHTML = ''
+    + filterBarHtml
+    + '<div class="td-rows" id="tdRows"></div>';
+
   const wrap = container.querySelector('#tdRows');
-  // Skip discarded tasks: `task.discarded` hides a row from the Today
-  // view only (the underlying task record stays on the concept). We
-  // keep the *original* idx when building each row so status-cycle
-  // and discard writes still land on the right slot in
-  // `c.today.tasks` after filtering.
+
+  // Skip discarded tasks first (always hidden regardless of the
+  // active filter \u2014 discard is a "not today" verdict, not a
+  // status). Then apply the status filter. Preserve the ORIGINAL
+  // idx into c.today.tasks so status-cycle and discard writes
+  // still land on the right slot after filtering: idx is what
+  // _setTaskStatus / _cycleTaskStatus consume.
   c.today.tasks.forEach(function (task, idx) {
-    if (task && task.discarded) return;
+    if (!task || task.discarded) return;
+    if (activeFilter !== 'all') {
+      const status = _resolveStatus(task.status);
+      if (status !== activeFilter) return;
+    }
     wrap.appendChild(_buildTdListCard(task, idx));
+  });
+
+  // Wire filter-pill clicks after the DOM is mounted. Handlers
+  // just flip the module-level filter and re-render \u2014 no state
+  // save (filter is session-only by design).
+  _tdBindFilterBar(container);
+}
+
+// Filter bar markup: "All | To Do | In Progress | Done" pills.
+// Rendered as buttons for accessibility (focusable, keyboard-
+// activatable) even though they're styled minimally as text-only
+// pills with an amber underline in the active state.
+function _tdRenderFilterBar(activeFilter) {
+  const pills = TD_LIST_FILTERS.map(function (key) {
+    const isActive = key === activeFilter;
+    const cls = 'td-filter' + (isActive ? ' td-filter-active' : '');
+    const pressed = isActive ? 'true' : 'false';
+    return ''
+      + '<button type="button" class="' + cls + '" '
+      +   'data-td-filter="' + key + '" '
+      +   'aria-pressed="' + pressed + '">'
+      +   _escape(_tdListFilterLabel(key))
+      + '</button>';
+  }).join('');
+  return ''
+    + '<div class="td-filters" role="group" aria-label="Filter tasks by status">'
+    +   pills
+    + '</div>';
+}
+
+function _tdBindFilterBar(scope) {
+  const pills = scope.querySelectorAll('[data-td-filter]');
+  pills.forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      const next = pill.getAttribute('data-td-filter');
+      if (_tdListFilterSet(next)) _rerenderToday();
+    });
   });
 }
 
@@ -602,6 +739,23 @@ function _buildTdListCard(task, idx) {
       + '</span>'
     : '';
 
+  // Status pill sits inline in the meta line, right after the
+  // TYPE label. Same click affordance as the circle button on
+  // the left of the row \u2014 both cycle status via
+  // _cycleTaskStatus(idx). Two entry points feels redundant on
+  // paper but reads well in practice: the circle is the "action"
+  // hotspot at the row's start, the pill is a status label the
+  // user is already looking at while scanning the meta line.
+  const statusLabel = status === 'in_progress'
+    ? 'In Progress'
+    : (status === 'done' ? 'Done' : 'To Do');
+  const statusPillHtml = ''
+    + '<button type="button" class="td-row-status" data-status="' + status + '" '
+    +   'data-task-idx="' + idx + '" '
+    +   'aria-label="Status: ' + statusLabel + ' \u2014 click to cycle">'
+    +   _escape(statusLabel.toUpperCase())
+    + '</button>';
+
   row.innerHTML = ''
     + '<span class="td-row-accent" aria-hidden="true"></span>'
     + '<div class="td-row-main">'
@@ -610,6 +764,8 @@ function _buildTdListCard(task, idx) {
     +     '<div class="td-row-desc">' + _escape(task.description) + '</div>'
     +     '<div class="td-row-meta">'
     +       '<span class="td-row-meta-type">' + _escape(type) + '</span>'
+    +       '<span class="td-row-meta-sep" aria-hidden="true">\u00b7</span>'
+    +       statusPillHtml
     +       '<span class="td-row-meta-sep" aria-hidden="true">\u00b7</span>'
     +       '<span class="td-row-meta-time">'
     +         '<span class="td-row-meta-time-icon" aria-hidden="true">' + TD_CLOCK_ICON + '</span>'
@@ -626,6 +782,7 @@ function _buildTdListCard(task, idx) {
     + '</div>';
 
   const statusBtn = row.querySelector('.td-status-btn');
+  const statusPill = row.querySelector('.td-row-status');
   const discardBtn = row.querySelector('.td-row-discard');
 
   // Status circle: cycles todo \u2192 in_progress \u2192 done \u2192 todo.
@@ -638,11 +795,21 @@ function _buildTdListCard(task, idx) {
     });
   }
 
+  // Status pill: same cycling behaviour as the circle, delivered
+  // via the meta line. stopPropagation prevents the row's
+  // click-to-detail handler from also firing.
+  if (statusPill) {
+    statusPill.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (_cycleTaskStatus(idx)) _rerenderToday();
+    });
+  }
+
   // Discard: fade the row out without deleting the underlying task.
   // Flag `task.discarded = true`, persist, then re-render \u2014
-  // _renderTdList / _renderTdKanban both skip discarded rows. The
-  // 240ms delay matches the CSS keyframes so the fade finishes
-  // before the re-render swaps DOM out from under it.
+  // _renderTdList skips discarded rows. The 240ms delay matches
+  // the CSS keyframes so the fade finishes before the re-render
+  // swaps DOM out from under it.
   if (discardBtn) {
     discardBtn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -662,111 +829,6 @@ function _buildTdListCard(task, idx) {
   row.addEventListener('click', function () { _openTaskDetail(task); });
 
   return row;
-}
-
-// ---------------------------------------------
-// Kanban view
-// ---------------------------------------------
-
-function _renderTdKanban(container, c) {
-  container.innerHTML = '<div class="td-kanban">'
-    + TD_KANBAN_COLS.map(function (col) {
-      return ''
-        + '<div class="td-kanban-col" data-td-col="' + col.id + '">'
-        +   '<div class="td-kanban-col-header">' + col.label + '</div>'
-        +   '<div class="td-kanban-col-body" data-td-col-body="' + col.id + '"></div>'
-        + '</div>';
-    }).join('')
-    + '</div>';
-
-  // Populate columns based on each task's current status. Fall back to
-  // 'todo' for any task missing / with an unknown status. Discarded
-  // tasks are skipped here for parity with the list view \u2014 the flag
-  // hides the task from all Today surfaces, not just the list.
-  c.today.tasks.forEach(function (task, idx) {
-    if (task && task.discarded) return;
-    const status = _resolveStatus(task.status);
-    const body = container.querySelector('[data-td-col-body="' + status + '"]');
-    if (!body) return;
-    body.appendChild(_buildTdKanbanCard(task, idx));
-  });
-
-  // Column drop targets
-  const cols = container.querySelectorAll('[data-td-col]');
-  cols.forEach(function (col) {
-    col.addEventListener('dragover', function (e) {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-      col.classList.add('td-kanban-col-hover');
-    });
-    col.addEventListener('dragenter', function (e) {
-      e.preventDefault();
-      col.classList.add('td-kanban-col-hover');
-    });
-    col.addEventListener('dragleave', function (e) {
-      // Only clear the hover state when leaving the column itself, not
-      // when the cursor crosses into a child element.
-      if (col.contains(e.relatedTarget)) return;
-      col.classList.remove('td-kanban-col-hover');
-    });
-    col.addEventListener('drop', function (e) {
-      e.preventDefault();
-      col.classList.remove('td-kanban-col-hover');
-
-      const raw = e.dataTransfer ? e.dataTransfer.getData('text/plain') : '';
-      const idx = parseInt(raw, 10);
-      if (isNaN(idx)) return;
-
-      const nextStatus = col.getAttribute('data-td-col');
-      if (!_setTaskStatus(idx, nextStatus)) return;
-
-      const active = getActiveConcept();
-      if (active) _renderTdKanban(container, active);
-    });
-  });
-}
-
-function _buildTdKanbanCard(task, idx) {
-  const status = _resolveStatus(task.status);
-  const done = status === 'done';
-
-  const card = document.createElement('div');
-  card.className = 'td-kanban-card' + (done ? ' td-kanban-card-done' : '');
-  card.setAttribute('draggable', 'true');
-  card.setAttribute('data-task-idx', String(idx));
-
-  card.innerHTML = ''
-    + '<div class="td-kanban-card-top">'
-    +   '<div class="td-type-chip" data-type="' + task.type + '">' + task.type + '</div>'
-    +   (done ? '<span class="td-kanban-check" aria-hidden="true">' + TD_CHECK_ICON + '</span>' : '')
-    + '</div>'
-    + '<div class="td-kanban-card-desc">' + _escape(task.description) + '</div>'
-    + '<div class="td-kanban-card-time">' + _escape(task.time) + '</div>';
-
-  // Track whether the current pointer interaction was a drag so a
-  // stray `click` right after `dragend` doesn't hijack us into Create.
-  let dragged = false;
-
-  card.addEventListener('dragstart', function (e) {
-    dragged = true;
-    if (e.dataTransfer) {
-      e.dataTransfer.setData('text/plain', String(idx));
-      e.dataTransfer.effectAllowed = 'move';
-    }
-    card.classList.add('td-kanban-card-dragging');
-  });
-  card.addEventListener('dragend', function () {
-    card.classList.remove('td-kanban-card-dragging');
-    // Reset on the next tick so the ensuing `click` (if any) is ignored.
-    setTimeout(function () { dragged = false; }, 0);
-  });
-
-  card.addEventListener('click', function () {
-    if (dragged) return;
-    _openTaskDetail(task);
-  });
-
-  return card;
 }
 
 function _resolveStatus(s) {

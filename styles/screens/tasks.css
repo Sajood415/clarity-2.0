@@ -10,16 +10,17 @@
 
 .tk-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 1fr;
   min-height: calc(100vh - 48px);
   background: var(--bg);
   animation: tk-fade-in 220ms ease;
 }
 
-/* When the detail panel is open, insert a third column at the right
-   (360px). The main workspace column shrinks to accommodate. */
+/* When the detail panel is open the workspace column shrinks and a
+   360px detail column slides in on the right. Single-column base
+   layout means only one split is needed. */
 .tk-layout-detail-open {
-  grid-template-columns: 220px 1fr 360px;
+  grid-template-columns: 1fr 360px;
 }
 
 @keyframes tk-fade-in {
@@ -283,28 +284,76 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 20px;
-  padding: 10px 24px;
+  gap: 10px 14px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--border);
   background: rgba(255, 240, 220, 0.02);
   flex-shrink: 0;
 }
 
-.tk-filter-bar-group {
-  display: flex;
-  flex-wrap: wrap;
+/* --- Single filter field: label + <select> dropdown ---
+   Each `.tk-filter-field` groups the muted uppercase label with
+   its dropdown so the pair wraps together on narrow viewports.
+   The <select> is fully styled with a custom chevron background
+   so it matches the dark theme instead of the platform-default
+   grey OS control. */
+.tk-filter-field {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  min-width: 0;
 }
 
-.tk-filter-bar-label {
+.tk-filter-field-label {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(245, 240, 232, 0.35);
+  color: rgba(245, 240, 232, 0.5);
   font-weight: 600;
-  margin-right: 4px;
   user-select: none;
+  white-space: nowrap;
+}
+
+.tk-filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 26px 6px 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  min-width: 120px;
+  /* Custom amber chevron so the caret matches the accent palette
+     and survives OS-level select restyling. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23F5A623' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 L6 7.5 L9 4.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px 12px;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.tk-filter-select:hover {
+  border-color: var(--border-strong);
+}
+
+.tk-filter-select:focus,
+.tk-filter-select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.14);
+}
+
+/* Native <option>s inherit OS chrome inside the popup, but we can
+   at least colour them for the closed control's dropdown list. */
+.tk-filter-select option {
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* Inline variant of "Clear filters" \u2014 sits at the far right of the
@@ -1722,10 +1771,11 @@
    Responsive
    ========================================== */
 
-/* Tighter side padding + narrower detail panel on medium screens. */
+/* Tighter side padding + narrower detail panel on medium screens.
+   Base layout is already 1fr; the detail-open variant just shrinks
+   the sidebar-detail column a bit for medium viewports. */
 @media (max-width: 1279px) {
-  .tk-layout { grid-template-columns: 200px 1fr; }
-  .tk-layout-detail-open { grid-template-columns: 200px 1fr 320px; }
+  .tk-layout-detail-open { grid-template-columns: 1fr 320px; }
   .tk-search-input { width: 180px; }
 }
 
@@ -1736,19 +1786,12 @@
   }
 }
 
-/* On narrow viewports, stack the left column above the workspace.
-   Keeping this graceful matters for smaller tablets \u2014 the dashboard
-   supports mobile layouts elsewhere. */
+/* On narrow viewports the detail panel floats over the workspace
+   instead of taking a grid column, so the main content keeps its
+   full width even while the detail is open. */
 @media (max-width: 899px) {
-  .tk-layout,
   .tk-layout-detail-open {
     grid-template-columns: 1fr;
-  }
-  .tk-left-col {
-    max-height: 220px;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    overflow-y: auto;
   }
   .tk-detail-panel {
     position: fixed;

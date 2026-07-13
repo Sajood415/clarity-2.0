@@ -7,17 +7,23 @@
 // `_defaultTasks()` for the full shape). No API \u2014 everything is
 // mutated in place and persisted via `_saveState()` on every change.
 //
-// Layout:
+// Layout (single-column right col fills the whole screen):
 //
-//   \u250c\u2500 left col (220px) \u2500\u2500\u2500\u2500\u2500\u252c\u2500 right col (fills) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510
-//   \u2502 Tasks               \u2502  active board \u2502 search \u2502 views \u2502+Add \u2502
-//   \u2502 BOARDS               \u2502 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2502
-//   \u2502   My Tasks (12)      \u2502                                    \u2502
-//   \u2502   Marketing (5)      \u2502  Board \u2502 List \u2502 Calendar view       \u2502
-//   \u2502 + New board          \u2502                                    \u2502
-//   \u2502 FILTERS              \u2502                                    \u2502
-//   \u2502   Status  P  Type  Sr \u2502                                    \u2502
-//   \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518
+//   \u250c\u2500 topbar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510
+//   \u2502 My Tasks              \u2502 search       \u2502 +Add task           \u2502
+//   \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524
+//   \u2502 Status \u25be   Priority \u25be   Type \u25be   Source \u25be     Clear \u2502
+//   \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524
+//   \u2502  Board / List / Calendar view body                       \u2502
+//   \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518
+//
+// The old left-side "Boards" panel and per-screen view toggle were
+// retired: only the default "My Tasks" board ever exists, and the
+// list / board / calendar view is now selected upstream via the
+// Today screen's kanban + calendar buttons (which stamp
+// `tasks.view` before navigating here). Filters live inline in a
+// single row of dropdowns above the view body \u2014 same
+// `tasks.filters[dim]` model as before, just a lighter UI.
 //
 // When a task is opened, a 360px detail panel slides in from the
 // right and the main workspace shrinks to accommodate it. There's
@@ -99,15 +105,19 @@ function renderTasks(container) {
   const tasks = getTasks();
   const detailOpen = !!tasks.detailId && _tkFindTask(tasks, tasks.detailId);
 
+  // Single-column layout: the left-side "Boards" panel was retired
+  // (the app only ever ships with the default "My Tasks" board, so
+  // the board-switching UI carried its own weight for no gain).
+  // The right column now owns the entire screen; when the detail
+  // panel is open .tk-layout-detail-open swaps in a 1fr + 360px
+  // grid to insert the detail column on the right.
   container.innerHTML = ''
     + '<div class="tk-layout' + (detailOpen ? ' tk-layout-detail-open' : '') + '">'
-    +   _tkRenderLeftCol()
     +   _tkRenderRightCol()
     +   (detailOpen ? _tkRenderDetailPanel(_tkFindTask(tasks, tasks.detailId)) : '')
     + '</div>'
     + (tasks.addModalOpen ? _tkRenderAddModal() : '');
 
-  _tkBindLeftCol();
   _tkBindRightCol();
   if (detailOpen) _tkBindDetailPanel();
   if (tasks.addModalOpen) _tkBindAddModal();
@@ -136,94 +146,42 @@ function _tkFindBoard(tasks, id) {
 }
 
 // ---------------------------------------------
-// Left column: boards + filters
+// Filter bar (single row above the view body)
 // ---------------------------------------------
-
-function _tkRenderLeftCol() {
-  const tasks = getTasks();
-  const activeBoard = tasks.activeBoard;
-
-  const boardRows = tasks.boards.map(function (b) {
-    const isActive = b.id === activeBoard;
-    const count = tasks.items.filter(function (t) { return t.boardId === b.id; }).length;
-    return ''
-      + '<button type="button" class="tk-board-row' + (isActive ? ' tk-board-row-active' : '') + '" data-board="' + _escape(b.id) + '">'
-      +   '<span class="tk-board-dot" style="background:' + _escape(b.color) + '"></span>'
-      +   '<span class="tk-board-name">' + _escape(b.name) + '</span>'
-      +   '<span class="tk-board-count">' + count + '</span>'
-      + '</button>';
-  }).join('');
-
-  const newBoardBlock = tasks.newBoardOpen
-    ? _tkRenderNewBoardForm()
-    : '<button type="button" class="tk-new-board-link" id="tkNewBoardOpen">' + TK_ICONS.plus + '<span>New board</span></button>';
-
-  // Filters no longer live in the sidebar \u2014 they render as a
-  // horizontal bar above the kanban board (see _tkRenderFilterBar in
-  // the right column). The left col is now boards-only.
-  return ''
-    + '<aside class="tk-left-col">'
-    +   '<h1 class="tk-title">Tasks</h1>'
-    +   '<div class="tk-boards-section">'
-    +     '<div class="tk-section-label">Boards</div>'
-    +     '<div class="tk-board-list">' + boardRows + '</div>'
-    +     newBoardBlock
-    +   '</div>'
-    + '</aside>';
-}
-
-function _tkRenderNewBoardForm() {
-  return ''
-    + '<div class="tk-new-board-form" id="tkNewBoardForm">'
-    +   '<input type="text" class="tk-new-board-input" id="tkNewBoardName" placeholder="Board name" maxlength="40" autofocus>'
-    +   '<div class="tk-color-picker" id="tkNewBoardColors">'
-    +     TASK_BOARD_COLORS.map(function (c, i) {
-          return '<button type="button" class="tk-color-swatch' + (i === 0 ? ' tk-color-swatch-active' : '') + '" data-color="' + _escape(c) + '" style="background:' + _escape(c) + '" aria-label="Pick ' + _escape(c) + '"></button>';
-        }).join('')
-    +   '</div>'
-    +   '<div class="tk-new-board-actions">'
-    +     '<button type="button" class="tk-new-board-create" id="tkNewBoardCreate">Create</button>'
-    +     '<button type="button" class="tk-new-board-cancel" id="tkNewBoardCancel">Cancel</button>'
-    +   '</div>'
-    + '</div>';
-}
-
-// Renders the horizontal filter bar that sits above the kanban board
-// (between the topbar and the view body). Each dimension is a small
-// inline group: a muted "Status/Priority/Type/Source" label followed
-// by its chips. The bar wraps to a second line on narrow widths.
-// Clear-filters button pinned to the right when any filter is active.
+//
+// The old sidebar-mounted / chip-driven filter UI was replaced by a
+// row of four clean single-select dropdowns: Status, Priority, Type,
+// Source. Underlying model unchanged \u2014 `tasks.filters[dim]` is
+// still an array so the existing filter engine downstream keeps
+// working without touching a single line of task-visibility logic.
+// Each dropdown maps its selection back to the array like so:
+//
+//     value === 'all'  \u2192 filters[dim] = []       (no filter)
+//     otherwise        \u2192 filters[dim] = [value]  (single filter)
+//
+// A "Clear filters" text button sits at the right of the row and
+// appears only when at least one dimension is filtered. Rendering
+// order + label copy match the earlier chip layout so the surface
+// still feels familiar.
 function _tkRenderFilterBar(tasks) {
   const filters = tasks.filters;
   const hasFiltersActive = _tkHasAnyFilterActive();
 
-  const group = function (label, chipsHtml) {
+  const dropdown = function (dim, label, order, labels) {
+    const selected = (filters[dim] && filters[dim].length > 0) ? filters[dim][0] : 'all';
+    const options = ['<option value="all"' + (selected === 'all' ? ' selected' : '') + '>All</option>']
+      .concat(order.map(function (val) {
+        return '<option value="' + _escape(val) + '"' + (selected === val ? ' selected' : '') + '>'
+          + _escape(labels[val] || val) + '</option>';
+      }))
+      .join('');
+
     return ''
-      + '<div class="tk-filter-bar-group">'
-      +   '<span class="tk-filter-bar-label">' + label + '</span>'
-      +   chipsHtml
-      + '</div>';
+      + '<label class="tk-filter-field">'
+      +   '<span class="tk-filter-field-label">' + label + '</span>'
+      +   '<select class="tk-filter-select" data-filter-dim="' + dim + '">' + options + '</select>'
+      + '</label>';
   };
-
-  const statusChips = TK_STATUS_ORDER.map(function (s) {
-    const on = filters.status.indexOf(s) !== -1;
-    return '<button type="button" class="tk-filter-chip' + (on ? ' tk-filter-chip-active' : '') + '" data-filter-status="' + s + '">' + _escape(TK_STATUS_LABELS[s]) + '</button>';
-  }).join('');
-
-  const priorityChips = TK_PRIORITY_ORDER.map(function (p) {
-    const on = filters.priority.indexOf(p) !== -1;
-    return '<button type="button" class="tk-filter-chip tk-filter-chip-' + p + (on ? ' tk-filter-chip-active' : '') + '" data-filter-priority="' + p + '">' + _escape(TK_PRIORITY_LABELS[p]) + '</button>';
-  }).join('');
-
-  const typeChips = TK_TYPE_ORDER.map(function (t) {
-    const on = filters.type.indexOf(t) !== -1;
-    return '<button type="button" class="tk-filter-chip' + (on ? ' tk-filter-chip-active' : '') + '" data-filter-type="' + t + '">' + _escape(TK_TYPE_LABELS[t]) + '</button>';
-  }).join('');
-
-  const sourceChips = TK_SOURCE_ORDER.map(function (s) {
-    const on = filters.source.indexOf(s) !== -1;
-    return '<button type="button" class="tk-filter-chip' + (on ? ' tk-filter-chip-active' : '') + '" data-filter-source="' + s + '">' + _escape(TK_SOURCE_LABELS[s]) + '</button>';
-  }).join('');
 
   const clearBtn = hasFiltersActive
     ? '<button type="button" class="tk-clear-filters tk-clear-filters-inline" id="tkClearFilters">Clear filters</button>'
@@ -231,10 +189,10 @@ function _tkRenderFilterBar(tasks) {
 
   return ''
     + '<div class="tk-filter-bar">'
-    +   group('Status',   statusChips)
-    +   group('Priority', priorityChips)
-    +   group('Type',     typeChips)
-    +   group('Source',   sourceChips)
+    +   dropdown('status',   'Status',   TK_STATUS_ORDER,   TK_STATUS_LABELS)
+    +   dropdown('priority', 'Priority', TK_PRIORITY_ORDER, TK_PRIORITY_LABELS)
+    +   dropdown('type',     'Type',     TK_TYPE_ORDER,     TK_TYPE_LABELS)
+    +   dropdown('source',   'Source',   TK_SOURCE_ORDER,   TK_SOURCE_LABELS)
     +   clearBtn
     + '</div>';
 }
@@ -244,99 +202,21 @@ function _tkHasAnyFilterActive() {
   return (f.status.length + f.priority.length + f.type.length + f.source.length) > 0;
 }
 
-// ---------------------------------------------
-// Left column bindings
-// ---------------------------------------------
-
-function _tkBindLeftCol() {
-  // Board rows
-  document.querySelectorAll('[data-board]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const id = btn.getAttribute('data-board');
-      const tasks = getTasks();
-      if (tasks.activeBoard === id) return;
-      tasks.activeBoard = id;
-      tasks.detailId = null;
-      tasks.calendarSelectedDate = null;
+// Wire the dropdowns + Clear filters button. Called from
+// _tkBindRightCol on every render because the filter bar lives
+// inside .tk-right-col and gets swapped out with it.
+function _tkBindFilterBar() {
+  document.querySelectorAll('[data-filter-dim]').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      const dim = sel.getAttribute('data-filter-dim');
+      const val = sel.value;
+      const filters = getTasks().filters;
+      // Map dropdown selection to the multi-select array shape
+      // that the visibility engine downstream expects: an empty
+      // array means "no filter for this dimension".
+      filters[dim] = (val === 'all') ? [] : [val];
       _saveState();
       renderTasks(document.getElementById('homeContent'));
-    });
-  });
-
-  const openNew = document.getElementById('tkNewBoardOpen');
-  if (openNew) {
-    openNew.addEventListener('click', function () {
-      getTasks().newBoardOpen = true;
-      _saveState();
-      renderTasks(document.getElementById('homeContent'));
-      requestAnimationFrame(function () {
-        const inp = document.getElementById('tkNewBoardName');
-        if (inp) inp.focus();
-      });
-    });
-  }
-
-  const nameInput = document.getElementById('tkNewBoardName');
-  const swatches = document.querySelectorAll('[data-color]');
-  let pickedColor = TASK_BOARD_COLORS[0];
-  swatches.forEach(function (sw) {
-    sw.addEventListener('click', function () {
-      pickedColor = sw.getAttribute('data-color');
-      swatches.forEach(function (s) { s.classList.remove('tk-color-swatch-active'); });
-      sw.classList.add('tk-color-swatch-active');
-    });
-  });
-
-  const createBtn = document.getElementById('tkNewBoardCreate');
-  if (createBtn && nameInput) {
-    const submit = function () {
-      const name = String(nameInput.value || '').trim();
-      if (!name) {
-        nameInput.classList.add('tk-input-error');
-        nameInput.focus();
-        return;
-      }
-      const tasks = getTasks();
-      const activePick = document.querySelector('.tk-color-swatch-active');
-      const finalColor = activePick ? activePick.getAttribute('data-color') : pickedColor;
-      const board = {
-        id: _newBoardId(),
-        name: name,
-        color: finalColor,
-        isDefault: false
-      };
-      tasks.boards.push(board);
-      tasks.activeBoard = board.id;
-      tasks.newBoardOpen = false;
-      _saveState();
-      renderTasks(document.getElementById('homeContent'));
-    };
-    createBtn.addEventListener('click', submit);
-    nameInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); submit(); }
-      if (e.key === 'Escape') { getTasks().newBoardOpen = false; _saveState(); renderTasks(document.getElementById('homeContent')); }
-    });
-  }
-  const cancelBtn = document.getElementById('tkNewBoardCancel');
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', function () {
-      getTasks().newBoardOpen = false;
-      _saveState();
-      renderTasks(document.getElementById('homeContent'));
-    });
-  }
-
-  // Filter chips \u2014 same toggle behaviour across all four groups.
-  ['status', 'priority', 'type', 'source'].forEach(function (dim) {
-    document.querySelectorAll('[data-filter-' + dim + ']').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        const val = btn.getAttribute('data-filter-' + dim);
-        const arr = getTasks().filters[dim];
-        const idx = arr.indexOf(val);
-        if (idx === -1) arr.push(val); else arr.splice(idx, 1);
-        _saveState();
-        renderTasks(document.getElementById('homeContent'));
-      });
     });
   });
 
@@ -360,13 +240,6 @@ function _tkRenderRightCol() {
   const board = _tkFindBoard(tasks, tasks.activeBoard) || _tkFindBoard(tasks, 'default');
   const view = tasks.view;
 
-  const viewToggle = ''
-    + '<div class="tk-view-toggle" role="tablist">'
-    +   '<button type="button" class="tk-view-btn' + (view === 'board' ? ' tk-view-btn-active' : '') + '" data-view="board" title="Board view" aria-label="Board view">' + TK_ICONS.boardView + '</button>'
-    +   '<button type="button" class="tk-view-btn' + (view === 'list' ? ' tk-view-btn-active' : '') + '" data-view="list" title="List view" aria-label="List view">' + TK_ICONS.listView + '</button>'
-    +   '<button type="button" class="tk-view-btn' + (view === 'calendar' ? ' tk-view-btn-active' : '') + '" data-view="calendar" title="Calendar view" aria-label="Calendar view">' + TK_ICONS.calendarView + '</button>'
-    + '</div>';
-
   const searchInput = ''
     + '<div class="tk-search">'
     +   '<span class="tk-search-icon">' + TK_ICONS.search + '</span>'
@@ -381,10 +254,45 @@ function _tkRenderRightCol() {
                  : view === 'calendar' ? _tkRenderCalendarView(tasks)
                  :                       _tkRenderBoardView(tasks);
 
+  // "\u2190 Today" back-nav lives on the topbar left, visible in all
+  // three views. Sole affordance for returning to the Today screen
+  // from the Tasks workspace (Tasks isn't in the sidebar nav).
+  const backLink = ''
+    + '<button type="button" class="td-back-to-today" id="tkBackToToday" '
+    +   'aria-label="Back to Today">\u2190 Today</button>';
+
+  // Same three view-toggle icons as the Today screen header (list
+  // / kanban / calendar). SVG source lives in today.js so the trio
+  // renders identically on both surfaces. On this screen:
+  //   list     \u2014 navigates back to Today (list is Today's mode)
+  //   kanban   \u2014 switches this screen to the 'board' view
+  //   calendar \u2014 switches this screen to the 'calendar' view
+  // Active pill is amber-tinted; kanban wins when tasks.view ==
+  // 'board', calendar wins when tasks.view == 'calendar'. The
+  // list button is never marked active here \u2014 it's a
+  // navigation affordance, not a view selector on this screen.
+  const iconList     = (typeof window._tdViewIconList     === 'function') ? window._tdViewIconList()     : '';
+  const iconKanban   = (typeof window._tdViewIconKanban   === 'function') ? window._tdViewIconKanban()   : '';
+  const iconCalendar = (typeof window._tdViewIconCalendar === 'function') ? window._tdViewIconCalendar() : '';
+  const kanbanActiveCls   = view === 'board'    ? ' td-open-board-active' : '';
+  const calendarActiveCls = view === 'calendar' ? ' td-open-board-active' : '';
+  const viewToggle = ''
+    + '<div class="td-header-actions" role="group" aria-label="Task view">'
+    +   '<button type="button" class="td-open-board" id="tkViewList" '
+    +     'aria-label="Back to Today (list view)" title="List view">' + iconList + '</button>'
+    +   '<button type="button" class="td-open-board' + kanbanActiveCls + '" id="tkViewKanban" '
+    +     'aria-label="Kanban view" aria-pressed="' + (view === 'board' ? 'true' : 'false') + '" '
+    +     'title="Kanban view">' + iconKanban + '</button>'
+    +   '<button type="button" class="td-open-board' + calendarActiveCls + '" id="tkViewCalendar" '
+    +     'aria-label="Calendar view" aria-pressed="' + (view === 'calendar' ? 'true' : 'false') + '" '
+    +     'title="Calendar view">' + iconCalendar + '</button>'
+    + '</div>';
+
   return ''
     + '<section class="tk-right-col">'
     +   '<div class="tk-topbar">'
     +     '<div class="tk-topbar-left">'
+    +       backLink
     +       '<span class="tk-topbar-board-dot" style="background:' + _escape(boardColor) + '"></span>'
     +       '<h2 class="tk-topbar-title">' + _escape(boardName) + '</h2>'
     +     '</div>'
@@ -400,17 +308,49 @@ function _tkRenderRightCol() {
 }
 
 function _tkBindRightCol() {
-  // View toggle
-  document.querySelectorAll('[data-view]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const v = btn.getAttribute('data-view');
+  // Back-nav to Today \u2014 sole return path from Tasks.
+  const backBtn = document.getElementById('tkBackToToday');
+  if (backBtn) {
+    backBtn.addEventListener('click', function () {
+      setActiveView('today');
+      renderApp();
+    });
+  }
+
+  // View toggle icons (list / kanban / calendar) on the topbar.
+  // List routes back to Today (Today IS the list view); kanban
+  // and calendar switch the current tasks.view in place.
+  const viewList = document.getElementById('tkViewList');
+  if (viewList) {
+    viewList.addEventListener('click', function () {
+      setActiveView('today');
+      renderApp();
+    });
+  }
+  const viewKanban = document.getElementById('tkViewKanban');
+  if (viewKanban) {
+    viewKanban.addEventListener('click', function () {
       const tasks = getTasks();
-      if (tasks.view === v) return;
-      tasks.view = v;
+      if (tasks.view === 'board') return;
+      tasks.view = 'board';
       _saveState();
       renderTasks(document.getElementById('homeContent'));
     });
-  });
+  }
+  const viewCalendar = document.getElementById('tkViewCalendar');
+  if (viewCalendar) {
+    viewCalendar.addEventListener('click', function () {
+      const tasks = getTasks();
+      if (tasks.view === 'calendar') return;
+      tasks.view = 'calendar';
+      _saveState();
+      renderTasks(document.getElementById('homeContent'));
+    });
+  }
+
+  // Filter dropdowns + Clear filters (previously bound inside
+  // _tkBindLeftCol before the left column was retired).
+  _tkBindFilterBar();
 
   const search = document.getElementById('tkSearch');
   if (search) {

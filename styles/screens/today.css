@@ -38,6 +38,110 @@
   min-width: 0;
 }
 
+/* Header icon-button cluster (top-right of the Today shell).
+   Three quiet icon buttons all routing to the Tasks screen:
+     \u2022 tdOpenBoard    \u2014 generic "open Tasks" (keeps last view)
+     \u2022 tdOpenKanban   \u2014 forces board / kanban view first
+     \u2022 tdOpenCalendar \u2014 forces calendar view first
+   The cluster is right-aligned inside .td-top's flex row via
+   flex-shrink: 0 + a small gap so the icons never wrap under
+   the heading text on narrow viewports. */
+.td-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* View-toggle icon button. Shared class across the three header
+   buttons (list / kanban / calendar) AND across both surfaces
+   that use the trio: the Today header and the Tasks topbar.
+   Cross-screen reuse is why the class name reads slightly Today-
+   biased but the rules stay screen-agnostic \u2014 no Today-
+   specific spacing or positioning here. .td-header-actions on
+   Today and .tk-topbar-view-toggle on Tasks handle wrapper
+   layout separately.
+   Palette:
+     idle    \u2014 transparent bg, muted-secondary text, faint border
+     hover   \u2014 pure white text (kept per spec), amber border
+     active  \u2014 amber text + border, subtle amber tint bg */
+.td-open-board {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 7px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.td-open-board:hover {
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.td-open-board:focus-visible {
+  outline: none;
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+/* Active state \u2014 the icon whose view the user is currently
+   looking at. Amber survives the hover rule via specificity
+   (single class + :hover matches this too) so the "you are
+   here" cue is stable while pointing at it. */
+.td-open-board-active,
+.td-open-board-active:hover,
+.td-open-board-active:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(245, 166, 35, 0.08);
+}
+
+.td-open-board svg {
+  display: block;
+}
+
+/* "\u2190 Today" text link that lives on the Tasks topbar (left
+   side) as the sole back-navigation affordance from the Tasks
+   workspace to the Today screen. Placed here in today.css
+   rather than tasks.css because it's a Today-related affordance
+   and shares the palette rules of the view-toggle cluster
+   above. Muted by default, amber on hover \u2014 no borders,
+   reads as a simple text link. */
+.td-back-to-today {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 6px;
+  margin: 0 4px 0 -6px;
+  border-radius: 6px;
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.td-back-to-today:hover {
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.05);
+}
+
+.td-back-to-today:focus-visible {
+  outline: none;
+  color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
 /* "GOOD MORNING" style eyebrow: small, uppercase, muted. */
 .td-greeting {
   font-size: 13px;
@@ -266,6 +370,70 @@
 
 .td-row-meta-time-text {
   font-variant-numeric: tabular-nums;
+}
+
+/* --- Status pill inside the meta line (POST \u00b7 [STATUS] \u00b7 5 min) ---
+   Same cycling affordance as the status circle on the left of
+   the row; both trigger _cycleTaskStatus(idx). Palette is scoped
+   per data-status:
+     todo         \u2014 muted grey (uses --text-secondary at low alpha)
+     in_progress  \u2014 blue tint (#4A90D9 at 15%)
+     done         \u2014 green tint (#4CAF82 at 15%)
+   All three share the same shape: 10px uppercase, 0.08em tracking,
+   2px 8px padding, 4px radius. Rendered as a <button> so the
+   status-cycle action is keyboard-accessible. */
+.td-row-status {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.td-row-status[data-status="todo"] {
+  background: rgba(196, 186, 168, 0.1);
+  color: var(--text-secondary);
+}
+
+.td-row-status[data-status="todo"]:hover {
+  background: rgba(196, 186, 168, 0.16);
+  color: var(--text);
+}
+
+.td-row-status[data-status="in_progress"] {
+  background: rgba(74, 144, 217, 0.15);
+  color: #7CB4EA;
+}
+
+.td-row-status[data-status="in_progress"]:hover {
+  background: rgba(74, 144, 217, 0.24);
+  color: #A9CEF1;
+}
+
+.td-row-status[data-status="done"] {
+  background: rgba(76, 175, 130, 0.15);
+  color: #7ED2A4;
+}
+
+.td-row-status[data-status="done"]:hover {
+  background: rgba(76, 175, 130, 0.24);
+  color: #A9E1BF;
+}
+
+.td-row-status:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.4);
 }
 
 /* --- Right-side actions: Why this? + \u00d7 discard (hover-reveal) --- */
@@ -1821,4 +1989,75 @@
   .td-thread-label { margin-bottom: 12px; }
   .td-thread-bubble { font-size: 13.5px; padding: 9px 12px; }
   .td-thread-input-row { padding: 8px 10px; }
+}
+
+/* =====================================================
+   List-view filter bar (All | To Do | In Progress | Done)
+
+   Sits directly above .td-rows inside #tdBody, so it's
+   between the insight card and the first task row. Kept
+   deliberately minimal \u2014 no background, no borders, just
+   text-styled pills with an amber underline on the active
+   one. Session-only state (resets on reload) driven by
+   _tdListFilter in today.js.
+   ===================================================== */
+.td-filters {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 0;
+  /* Pull the row up flush against the insight-card gap so
+     the filter bar reads as part of the list, not floating
+     between two blocks. */
+  margin-top: -8px;
+}
+
+.td-filter {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  cursor: pointer;
+  border-radius: 6px;
+  letter-spacing: -0.002em;
+  transition: color 140ms ease, opacity 140ms ease, background 140ms ease;
+}
+
+.td-filter:hover {
+  color: var(--text);
+  opacity: 0.9;
+}
+
+.td-filter:focus-visible {
+  outline: none;
+  color: var(--text);
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+/* Active state: pill toggle \u2014 amber text on a subtle amber
+   tint. No underline, no border. Weight stays at 500 across
+   states so the pill width doesn\u2019t reflow when the active
+   filter changes. */
+.td-filter-active,
+.td-filter-active:hover {
+  color: var(--accent);
+  opacity: 1;
+  background: rgba(245, 166, 35, 0.08);
+}
+
+/* Tighter on short viewports so the filter bar doesn\u2019t push
+   the first row off-screen on a 13" laptop. */
+@media (max-height: 860px) {
+  .td-filters { margin-bottom: 12px; }
+  .td-filter { font-size: 12.5px; height: 24px; padding: 0 8px; }
 }
