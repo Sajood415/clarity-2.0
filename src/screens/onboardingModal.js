@@ -749,39 +749,62 @@ function _obStartBuilding() {
 }
 
 function _obCompleteFlow() {
+  // Order matters. Pin the app-level routing state FIRST so a throw in
+  // any downstream call (message push, task seeding, greeter, etc.)
+  // can't strand the user on the "building" screen with no way out.
+  // The 5 canonical steps from the spec, in this exact order:
+  //   1. appState.mode = 'home'                (defensive: already home
+  //      by the time we get here, but pins it against any stale value)
+  //   2. appState.activeView = 'overview'       (this is our routing key
+  //      \u2014 the same idea as appState.nav in the spec; the router
+  //      switches on activeView, not `nav`)
+  //   3. appState.onboardingOverlayOpen = false (dismount the overlay)
+  //   4. _saveState()                           (persist BEFORE any
+  //      async re-render so a reload lands here too)
+  //   5. renderApp()                            (paint the dashboard)
+  appState.mode = 'home';
+  appState.activeView = 'overview';
+  appState.onboardingOverlayOpen = false;
+
+  // Flip the concept out of onboarding. Wrapped defensively \u2014
+  // if chat is somehow missing, we still fall through to the dashboard
+  // rather than short-circuiting the whole completion path.
   const chat = getChat();
-  if (!chat) return;
-  chat.onboardingComplete = true;
-  chat.onboardingStep = 'done';
-  // Post-completion: seed one Clara message into the Chat nav history
-  // so the first visit to Chat isn't an empty state.
-  chat.messages.push({
-    role: 'clara',
-    text: "Your workspace is ready. I'll be here in the Chat tab whenever you want to talk."
-  });
+  if (chat) {
+    chat.onboardingComplete = true;
+    chat.onboardingStep = 'done';
+    if (!Array.isArray(chat.messages)) chat.messages = [];
+    chat.messages.push({
+      role: 'clara',
+      text: "Your workspace is ready. I'll be here in the Chat tab whenever you want to talk."
+    });
+  }
+
   // Seed the Tasks board with Clara's GTM suggestions so the new user's
   // first visit to Tasks isn't an empty state. Safe to call more than
-  // once — _seedClaraTasksIfMissing bails when items already exist.
-  if (typeof window._seedClaraTasksIfMissing === 'function') {
-    const active = getActiveConcept();
-    if (active) window._seedClaraTasksIfMissing(active);
+  // once \u2014 _seedClaraTasksIfMissing bails when items already exist.
+  // try/catch so a seed failure never blocks the dashboard render.
+  try {
+    if (typeof window._seedClaraTasksIfMissing === 'function') {
+      const active = getActiveConcept();
+      if (active) window._seedClaraTasksIfMissing(active);
+    }
+  } catch (err) {
+    console.error('Clara task seed failed during onboarding complete:', err);
   }
+
   // Legacy flag consumed by the old concept header (harmless now).
   window._justUnlockedConcept = true;
 
-  appState.activeView = 'overview';
-  appState.onboardingOverlayOpen = false;
   _saveState();
-
   _obUnbindGlobalKeys();
 
   // Fade the entire onboarding screen out before the dashboard shell
-  // takes over.
+  // takes over. The setTimeout render is unconditional \u2014 fade
+  // classes are cosmetic; the dashboard paints either way after 280ms.
   const screen = document.getElementById('obFullscreen');
   if (screen) screen.classList.add('ob-fullscreen-out');
-  setTimeout(function () {
-    renderApp();
-  }, 280);
+  setTimeout(function () { renderApp(); }, 280);
 }
 
 // ---------------------------------------------

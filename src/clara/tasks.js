@@ -2,73 +2,115 @@
 // Clarity 2.0 — Today's tasks generator
 // ---------------------------------------------
 //
-// Given the active concept's business context, produces the 3 daily tasks:
-// POST (content), OUTREACH, OFFER. Every branch references the extracted
-// business fields so the copy feels specific, not generic.
+// Given the active concept's business context, produces the 3 daily
+// tasks: POST (content), OUTREACH, OFFER. Every branch is keyed on the
+// specific combination of business fields the user actually gave us,
+// so the copy names their business, targets their goal, and grounds
+// the "why" in their real context.
 //
-// Reads from the post-rebuild business shape:
-//   type      — 'small' | 'ecommerce' | 'service' | 'tech' | 'creator'
-//              | 'agency' | 'nonprofit' | 'other'
-//   goal      — one of CL_OPTIONS_Q2 labels (raw text)
-//   customer  — Q3 free text (currently unused in copy; kept for future)
-//   product   — extracted noun phrase from Q3
-//   channels  — Q4 multi-select array
-//   reach     — inferred 'local' | 'online' | 'mixed' | ''
-//   budget    — Q5 machine key: 'zero' | 'low' | 'medium' | 'high'
-//               | 'enterprise' | 'unknown'
-//   location  — Q6 free text ("Lahore, Pakistan" etc.)
+// Fields read from business (all optional, all defended):
+//   name              \u2014 the business name (from Q_name)
+//   type              \u2014 'small' | 'ecommerce' | 'service' | 'tech' |
+//                       'creator' | 'agency' | 'nonprofit' | 'other'
+//                       ('food' is treated as an alias of 'small' per spec)
+//   product           \u2014 noun phrase extracted from Q3 (Q3 free text)
+//   goal              \u2014 raw Q2 label (case-insensitive match on
+//                       "lead", "sale", "retention", "content"...)
+//   channels          \u2014 Q4 multi-select array
+//   budget            \u2014 Q5 machine key: 'zero'|'low'|'medium'|'high'|
+//                       'enterprise'|'unknown'
+//   location          \u2014 Q6 free text ("Lahore, Pakistan" etc.)
+//   customer          \u2014 Q3 free text (used as a fallback subject)
+//   generatedPersona  \u2014 { name, age, desc, traits[], trigger }
+//                       (aspirational; not yet populated by any code path,
+//                       but respected here so the moment it exists the
+//                       outreach branch picks it up)
 //
-// Budget × channels cross-check (paid-suggestion gate):
-//   `effectiveBudget` below downgrades medium/high/enterprise to `low`
-//   when the user's Q4 channels list contains NEITHER 'Google Ads' NOR
-//   'Meta Ads'. The rule: paid task suggestions are only safe when the
-//   user has BOTH the dollars AND a paid channel they've already
-//   committed to. `unknown` also collapses to `low` \u2014 we never surface
-//   paid options against a budget the user hasn't confirmed. Task
-//   branches should key off `ctx.effectiveBudget`, never `b.budget`.
-//
-// Copy always degrades gracefully: if a field is missing we substitute
-// safe fallbacks (name → "your business", product → "your services",
-// etc.) so a partially-onboarded concept still gets usable tasks.
+// Budget \u00d7 channels cross-check (paid-suggestion gate):
+//   `effectiveBudget` downgrades medium/high/enterprise to `low` when
+//   the user's channels list contains NEITHER 'Google Ads' NOR
+//   'Meta Ads'. Task branches key off `effectiveBudget`, never `budget`
+//   directly, so we never surface paid options against a channel mix
+//   the user hasn't committed to.
 
-// Paid channel labels come straight from CL_OPTIONS_Q4. Keeping them
-// as a local set (not importing) avoids a load-order coupling with
-// responses.js \u2014 tasks.js can be evaluated before responses.js in some
-// bundlers and this file has no other reason to depend on it.
+// Paid channel labels from CL_OPTIONS_Q4. Kept local (not imported)
+// so tasks.js has no load-order dependency on responses.js.
 const TASKS_PAID_CHANNELS = ['Google Ads', 'Meta Ads'];
 
 function _effectiveBudget(budget, channels) {
   const list = Array.isArray(channels) ? channels : [];
   const hasPaidChannel = TASKS_PAID_CHANNELS.some(function (p) { return list.indexOf(p) !== -1; });
   const raw = String(budget || 'unknown');
-  // Only medium+ budgets can unlock paid suggestions. Without a paid
-  // channel commitment, downgrade so paid branches stay gated.
   if ((raw === 'medium' || raw === 'high' || raw === 'enterprise') && !hasPaidChannel) {
     return 'low';
   }
   return raw;
 }
 
+// True only when it's safe to surface a paid suggestion. Never key off
+// ctx.budget directly \u2014 use this so the channels cross-check is
+// honored in one place.
+function _canSuggestPaid(ctx) {
+  const eff = ctx && ctx.effectiveBudget;
+  return eff === 'medium' || eff === 'high' || eff === 'enterprise';
+}
+
 function _todayTasks() {
   const b = getBusiness();
-  const name     = b.name || 'your business';
-  const type     = b.type || 'other';
-  const product  = b.product || 'your ' + _productFallback(type);
-  const goal     = b.goal || '';
-  const channels = Array.isArray(b.channels) ? b.channels : [];
-  const reach    = b.reach || '';
-  const location = (b.location || '').trim();
-  const budget   = b.budget || 'unknown';
-  const effectiveBudget = _effectiveBudget(budget, channels);
 
-  const hasChannel = function (label) { return channels.indexOf(label) !== -1; };
-  const audienceLine = location ? 'People in ' + location + ' ' : 'Your audience ';
+  const name = (b.name && b.name.trim()) ? b.name.trim() : 'your business';
+  // Normalize type. 'food' is treated as an alias of 'small' per the
+  // spec \u2014 our onboarding never produces 'food', so this only
+  // matters if a caller sets it directly.
+  const rawType = String(b.type || 'other').toLowerCase();
+  const type = rawType === 'food' ? 'small' : rawType;
+
+  // Bare product noun, no "your " prefix, so templates can read
+  // naturally as "your <product>" without doubling the possessive.
+  const product = (b.product && b.product.trim())
+    ? b.product.trim()
+    : _productFallback(type);
+
+  const goal = String(b.goal || '').trim();
+  const goalLC = goal.toLowerCase();
+
+  const location = (b.location || '').trim();
+  const channels = Array.isArray(b.channels) ? b.channels : [];
+
+  const rawBudget = String(b.budget || 'unknown').toLowerCase();
+  const effectiveBudget = _effectiveBudget(rawBudget, channels);
+
+  const persona = b.generatedPersona || null;
+  const personaName = (persona && persona.name && String(persona.name).trim())
+    ? String(persona.name).trim()
+    : '';
+
+  // Case-insensitive intent flags. "understand my customer" maps to
+  // retention because that goal is where retention outreach lands
+  // best; explicit "retention" also fires the same branch if a future
+  // goal label uses that word directly.
+  const wantsLeads     = goalLC.indexOf('lead') !== -1;
+  const wantsSales     = goalLC.indexOf('sale') !== -1;
+  const wantsRetention = goalLC.indexOf('retention') !== -1
+                      || goalLC.indexOf('understand my customer') !== -1;
 
   const ctx = {
-    name: name, type: type, product: product, goal: goal,
-    channels: channels, reach: reach, audienceLine: audienceLine,
-    hasChannel: hasChannel,
-    budget: budget, effectiveBudget: effectiveBudget
+    name: name,
+    type: type,
+    rawType: rawType,
+    product: product,
+    goal: goal,
+    goalLC: goalLC,
+    location: location,
+    channels: channels,
+    budget: rawBudget,
+    effectiveBudget: effectiveBudget,
+    persona: persona,
+    personaName: personaName,
+    wantsLeads: wantsLeads,
+    wantsSales: wantsSales,
+    wantsRetention: wantsRetention,
+    hasChannel: function (label) { return channels.indexOf(label) !== -1; }
   };
 
   return [
@@ -78,183 +120,175 @@ function _todayTasks() {
   ];
 }
 
-// Small helper for downstream branches: true only when it's safe to
-// surface a paid suggestion. Never key off ctx.budget directly \u2014 use
-// this so the channels cross\u2011check is honored in one place.
-function _canSuggestPaid(ctx) {
-  const eff = ctx && ctx.effectiveBudget;
-  return eff === 'medium' || eff === 'high' || eff === 'enterprise';
-}
-
 // ---------------------------------------------
 // Task 1: POST / content
 // ---------------------------------------------
+//
+// Priority order (highest signal first):
+//   food/small + leads      \u2192 BTS video, tag location
+//   food/small + sales      \u2192 limited-batch announcement
+//   tech + leads            \u2192 pain-first post
+//   tech + sales            \u2192 user metric
+//   service + leads         \u2192 client result
+//   service + retention     \u2192 check-in 5 clients
+//   creator (any goal)      \u2192 origin story
+//   ecommerce + sales       \u2192 best seller + real customer photo
+//   agency + leads          \u2192 numbered case study
+//   default                 \u2192 one-line differentiator on top platform
 
 function _postTask(ctx) {
   const name = ctx.name;
   const type = ctx.type;
   const product = ctx.product;
-  const audienceLine = ctx.audienceLine;
-  const hasChannel = ctx.hasChannel;
+  const location = ctx.location;
+  const goal = ctx.goal;
+  const personaName = ctx.personaName;
 
-  // Prefer the highest-signal branch: type + a concrete channel the user
-  // actually said they were on. Falls through to type-only branches, and
-  // finally a universal "one-line differentiator" prompt.
-  let post;
+  let description, reason;
 
-  if (type === 'small' && hasChannel('Instagram')) {
-    post = {
-      description: 'Post a behind the scenes video of making your ' + product + ' today. ' + audienceLine + 'respond to real process content.',
-      reason: 'Local audiences reward the makers they can watch working. One authentic clip beats a week of polished copy.'
-    };
-  } else if (type === 'ecommerce' && (hasChannel('Instagram') || hasChannel('TikTok'))) {
-    post = {
-      description: 'Film a 15 second unboxing or product-in-use clip today. Short vertical video is where most ' + name + ' discovery is happening right now.',
-      reason: 'Static product photos plateau fast. Motion + real hands using ' + product + ' still converts scrollers to buyers.'
-    };
-  } else if (type === 'service') {
-    post = {
-      description: 'Share one result you got for a client this week. Specific outcomes build trust faster than anything else.',
-      reason: 'For service work, one real outcome cuts through where any amount of "we help you grow" copy does not.'
-    };
-  } else if (type === 'tech') {
-    post = {
-      description: 'Post one line about the exact problem ' + product + ' solves. Lead with the pain, not the feature list.',
-      reason: 'People buy relief, not features. Naming the pain qualifies the right buyers for ' + name + ' instantly.'
-    };
+  if (type === 'small' && ctx.wantsLeads) {
+    const loc = location || 'your city';
+    description = 'Post a behind the scenes video of making your ' + product + ' today. Tag your location in ' + loc + ' so locals can find you.';
+    reason = (location ? 'People in ' + location + ' ' : 'Local audiences ')
+           + 'reward the makers they can watch working. Location-tagged posts also surface for anyone actively searching nearby.';
+  } else if (type === 'small' && ctx.wantsSales) {
+    description = 'Share a limited batch announcement for ' + name + '. Scarcity drives decisions faster than any discount.';
+    reason = 'Your regulars need a reason to act this week, not next month. A "this week only" hook converts the on-the-fence '
+           + (location ? 'audience around ' + location + '.' : 'audience without eroding your margins.');
+  } else if (type === 'tech' && ctx.wantsLeads) {
+    description = 'Write one post about the exact problem ' + name + ' solves. Lead with the pain not the solution.';
+    reason = 'Buyers search for the pain, not the product. Naming the problem qualifies the right prospects for ' + name + ' instantly and filters out everyone else.';
+  } else if (type === 'tech' && ctx.wantsSales) {
+    description = 'Share a specific metric a user achieved with ' + name + '. Numbers convert better than claims.';
+    reason = 'One real number ("cut onboarding time by 62%") outperforms a page of copy about "faster onboarding". Sales-stage buyers want proof, not promises.';
+  } else if (type === 'service' && ctx.wantsLeads) {
+    description = 'Post one client result from ' + name + ' this week. Use their words if possible.';
+    reason = 'For service work, one concrete outcome earns more calls than any amount of "we help you grow" copy. Real results travel; adjectives don\u2019t.';
+  } else if (type === 'service' && ctx.wantsRetention) {
+    description = 'Send a personal check-in to your last 5 clients from ' + name + '. One message can rebook a customer.';
+    reason = 'Existing clients cost nothing to reactivate. A single "how\u2019s it going" pulls back more revenue than a week of cold-lead content.';
   } else if (type === 'creator') {
-    post = {
-      description: 'Share the story of why you started ' + name + '. Personal brands are built on the "why", not the "what".',
-      reason: 'A creator brand is only as strong as the reason people follow it. Reintroducing yourself compounds every other post.'
-    };
-  } else if (type === 'agency') {
-    post = {
-      description: 'Post one client win with the exact numbers. Agency pipelines are built on proof, not process.',
-      reason: 'Prospects hire agencies for outcomes, not methodology. Concrete numbers earn calls, decks do not.'
-    };
-  } else if (type === 'nonprofit') {
-    post = {
-      description: 'Share one specific person or moment your work impacted this month. Faces move more than stats.',
-      reason: 'Missions get funded when the impact feels personal. One story does more than a dozen infographics.'
-    };
+    description = 'Share something personal about why you started ' + name + '. Authenticity beats production every time.';
+    reason = 'Creator brands are built on the "why", not the "what". Reintroducing yourself compounds every post that comes after it.';
+  } else if (type === 'ecommerce' && ctx.wantsSales) {
+    description = 'Feature your best seller from ' + name + ' with a real customer photo. Social proof at the point of sale.';
+    reason = 'Buyers trust other buyers more than any brand copy. One real photo lifts conversion where a polished shoot won\u2019t.';
+  } else if (type === 'agency' && ctx.wantsLeads) {
+    description = 'Post a case study result from ' + name + '. Be specific about the outcome and the timeline.';
+    reason = 'Agency prospects hire outcomes, not process. "Grew X from Y to Z in 90 days" earns the call \u2014 decks and testimonials don\u2019t.';
   } else {
-    post = {
-      description: 'Share what makes ' + name + ' different in one sentence. Post it on your best platform today.',
-      reason: 'If people cannot say what ' + name + ' does in one line, they will not refer you. Clarity of message beats volume.'
-    };
+    description = 'Share one specific thing that makes ' + name + ' different. One sentence, your best platform, today.';
+    // Reach for the most specific "why" available in this order:
+    // persona name > explicit goal > business name only.
+    if (personaName) {
+      reason = 'If ' + personaName + ' can\u2019t explain ' + name + ' in one line, they won\u2019t remember you tomorrow. Clarity of message beats volume of posts.';
+    } else if (goal) {
+      reason = 'To ' + goal.toLowerCase() + ', your prospects need to understand ' + name + ' in one sentence. Clarity of message beats volume of posts.';
+    } else {
+      reason = 'If people can\u2019t explain ' + name + ' in one line, they won\u2019t refer you. Clarity of message beats volume of posts.';
+    }
   }
 
-  return { id: 'post-1', type: 'POST', description: post.description, time: '5 min', reason: post.reason };
+  return {
+    id: 'post-1',
+    type: 'POST',
+    description: description,
+    time: '5 min',
+    reason: reason
+  };
 }
 
 // ---------------------------------------------
 // Task 2: OUTREACH
 // ---------------------------------------------
+//
+// Priority order:
+//   generatedPersona present  \u2192 reach out to 3 matching that persona
+//   goal wants retention      \u2192 message top 5 existing customers
+//   default                   \u2192 talk to 3 potential customers directly
 
 function _outreachTask(ctx) {
   const name = ctx.name;
-  const product = ctx.product;
-  const goal = ctx.goal;
+  const personaName = ctx.personaName;
+  const location = ctx.location;
 
-  let outreach;
+  let description, reason;
 
-  if (goal === 'Get more leads') {
-    outreach = {
-      description: 'Reach out to 3 people who have enquired about ' + product + ' but never converted. A follow up message closes more than any ad.',
-      reason: 'Warm interest cools fast. The people who almost bought from ' + name + ' are your highest leverage list.'
-    };
-  } else if (goal === 'Increase sales') {
-    outreach = {
-      description: 'Message your top 5 customers and offer them something exclusive this week.',
-      reason: 'Existing buyers are cheaper to grow than new ones. A personal offer to your best customers reactivates revenue in days.'
-    };
-  } else if (goal === 'Understand my customers better') {
-    outreach = {
-      description: 'Message 3 recent customers and ask one question: what almost stopped them from buying from ' + name + '?',
-      reason: 'The reason people almost said no is the fastest way to fix the reasons they still do.'
-    };
-  } else if (goal === 'Keep up with competitors') {
-    outreach = {
-      description: 'Pick your 3 closest competitors and screenshot one thing each is doing this week that ' + name + ' is not.',
-      reason: 'You cannot out-position a market you do not track. 10 minutes of watching beats a week of guessing.'
-    };
-  } else if (goal === 'Test ideas before I spend money' || goal === 'Launch a new product or service') {
-    outreach = {
-      description: 'DM 5 people who fit your ideal customer and pitch the idea in one paragraph. Ask if they would pre-order.',
-      reason: 'Real feedback comes from real wallets. 5 direct conversations tell you more than 500 poll votes.'
-    };
+  if (personaName) {
+    description = 'Reach out to 3 people who match the profile of ' + personaName + ' but haven\u2019t bought from ' + name + ' yet. A direct personal message converts better than any ad.';
+    reason = 'You already know exactly who ' + personaName + ' is. Reaching out beats waiting for the algorithm to introduce you \u2014 and personal messages get read where ads get scrolled past.';
+  } else if (ctx.wantsRetention) {
+    description = 'Message your top 5 customers from ' + name + ' this week. A thank you or exclusive offer goes a long way.';
+    reason = 'Your best customers cost the least to grow. One personal note reactivates revenue in days and often generates the referral you weren\u2019t asking for.';
   } else {
-    outreach = {
-      description: 'Reach out to 3 potential customers for ' + name + ' directly. No pitch, just start a conversation.',
-      reason: 'You control who you talk to. Direct outreach beats waiting for an algorithm to bring you customers.'
-    };
+    description = 'Reach out to 3 potential customers for ' + name + ' directly. No pitch, just start a conversation.';
+    reason = (location ? 'In ' + location + ', direct outreach ' : 'Direct outreach ')
+           + 'beats waiting for an algorithm to bring you customers. You control who you talk to and when.';
   }
 
-  return { id: 'outreach-1', type: 'OUTREACH', description: outreach.description, time: '10 min', reason: outreach.reason };
+  return {
+    id: 'outreach-1',
+    type: 'OUTREACH',
+    description: description,
+    time: '10 min',
+    reason: reason
+  };
 }
 
 // ---------------------------------------------
 // Task 3: OFFER / action
 // ---------------------------------------------
+//
+// Priority order:
+//   effBudget low/zero/unknown + food/small  \u2192 this-week-only special
+//   effBudget medium/high + tech             \u2192 free trial / demo
+//   service/agency                           \u2192 fixed-price package
+//   ecommerce                                \u2192 bundle best sellers
+//   default                                  \u2192 first-time buyer offer
+//
+// Note: budget branches key off effectiveBudget so paid-only options
+// (like "run ads") never fire without a committed paid channel.
 
 function _offerTask(ctx) {
   const name = ctx.name;
   const type = ctx.type;
-  const product = ctx.product;
-  const goal = ctx.goal;
+  const effBudget = ctx.effectiveBudget;
+  const personaName = ctx.personaName;
+  const location = ctx.location;
 
-  // Goal-driven branches take priority — they're the more specific
-  // signal ("Launch something new" beats "you sell products").
-  let offer;
+  const isLowBudget = effBudget === 'zero' || effBudget === 'low' || effBudget === 'unknown';
+  const isHighBudget = effBudget === 'medium' || effBudget === 'high' || effBudget === 'enterprise';
 
-  if (goal === 'Launch a new product or service') {
-    offer = {
-      description: 'Create a waitlist for your upcoming launch. Even 20 signups creates momentum you can point at.',
-      reason: 'Launches without pre-committed interest die on day one. A waitlist turns the launch into a delivery, not a gamble.'
-    };
-  } else if (goal === 'Build a growth plan from scratch') {
-    offer = {
-      description: 'Pick the ONE metric ' + name + ' will move this month. Write it on your wall.',
-      reason: 'Growth plans fail when they optimize five things at once. A single visible number kills the wobble.'
-    };
-  } else if (type === 'ecommerce') {
-    offer = {
-      description: 'Bundle your two best products into one deal for the next 48 hours. Bundles increase order value without cutting margin.',
-      reason: 'Bundles raise ticket size without lowering perceived value. Your top sellers can carry weaker items along for the ride.'
-    };
+  let description, reason;
+
+  if (isLowBudget && type === 'small') {
+    description = 'Create a this week only special at ' + name + '. Limited offers create urgency without discounting your core menu.';
+    reason = 'Regulars '
+           + (location ? 'in ' + location + ' ' : '')
+           + 'need a reason to come back this week, not just this month. A rotating hook gives them one without eroding your margins.';
+  } else if (isHighBudget && type === 'tech') {
+    description = 'Set up a free trial or demo for ' + name + '. Letting people experience the product removes the biggest buying barrier.';
+    reason = 'You have the budget to remove the biggest tech buying friction: "will this actually work for me?" A trial answers that in a way no ad or landing page can.';
   } else if (type === 'service' || type === 'agency') {
-    offer = {
-      description: 'Package one of your services into a fixed price offer. Clarity on price removes the biggest buying barrier.',
-      reason: 'Buyers do not fear the work, they fear the price. Packaging removes their biggest reason to delay.'
-    };
-  } else if (type === 'tech') {
-    offer = {
-      description: 'Add one line to your ' + name + ' homepage about who it is for. Specific beats clever every time.',
-      reason: 'The homepage is your best salesperson. One clear line about who ' + name + ' is for outperforms every other tweak.'
-    };
-  } else if (type === 'creator') {
-    offer = {
-      description: 'Create one lead magnet from your best content and put it behind an email signup this week.',
-      reason: 'Attention without an owned channel evaporates on algorithm changes. Email turns followers into an actual audience.'
-    };
-  } else if (type === 'nonprofit') {
-    offer = {
-      description: 'Turn your most compelling story into a one-page appeal and send it to your 10 warmest supporters.',
-      reason: 'Warm asks convert 10x cold ones. Your existing supporters are the fundraising engine you already own.'
-    };
-  } else if (type === 'small') {
-    offer = {
-      description: 'Create a this week only special for ' + name + '. Limited offers create urgency without discounting your core menu.',
-      reason: 'Regulars need a reason to come back this week, not just this month. A rotating hook gives them one.'
-    };
+    description = 'Package one service from ' + name + ' into a fixed price offer. Clarity on price removes hesitation.';
+    reason = personaName
+      ? personaName + ' fears the price more than the work. A packaged, publicly priced offer compresses the ' + name + ' sales cycle by weeks.'
+      : 'Buyers don\u2019t fear the work, they fear the price. A packaged, publicly priced offer compresses the ' + name + ' sales cycle by weeks.';
+  } else if (type === 'ecommerce') {
+    description = 'Bundle your two best sellers from ' + name + ' into one deal. Bundles increase order value without cutting margin.';
+    reason = 'Bundling raises ticket size without lowering perceived value. Your top sellers can carry a slower mover along for the ride.';
   } else {
-    offer = {
-      description: 'Create a simple first time offer for ' + name + '. Even a small incentive changes the decision for someone on the fence.',
-      reason: 'The first purchase is the hardest. Lowering the barrier once is cheaper than convincing them forever.'
-    };
+    description = 'Create a simple first time offer for ' + name + '. Even a small incentive changes the decision for someone on the fence.';
+    reason = 'The first purchase is the hardest. Lowering the barrier once is cheaper than convincing someone forever.';
   }
 
-  return { id: 'offer-1', type: 'OFFER', description: offer.description, time: '15 min', reason: offer.reason };
+  return {
+    id: 'offer-1',
+    type: 'OFFER',
+    description: description,
+    time: '15 min',
+    reason: reason
+  };
 }
 
 // ---------------------------------------------
@@ -262,8 +296,8 @@ function _offerTask(ctx) {
 // ---------------------------------------------
 
 function _productFallback(type) {
-  // Used only when Q3's product extractor pulled nothing. Keeps the
-  // task copy grammatical ("your services" reads better than "your ").
+  // Bare noun (no "your " prefix) so templates can read "your <product>"
+  // without doubling up on the possessive.
   switch (type) {
     case 'ecommerce': return 'products';
     case 'service':   return 'services';

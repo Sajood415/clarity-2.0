@@ -63,7 +63,21 @@ function renderApp() {
     case 'loading':  renderLoading(root);  break;
     case 'welcome':  renderWelcome(root);  break;
     case 'home':     _renderHome(root);    break;
-    default:         root.innerHTML = ''; break;
+    default:
+      // Never render a blank page. If appState.mode is corrupt or
+      // unrecognized, drop a lightweight "Loading\u2026" state so the
+      // app has something visible on screen while state settles (or
+      // while the developer notices in the console). This also
+      // guarantees the onboarding \u2192 dashboard transition can never
+      // land the user on an empty viewport even if state.mode is
+      // between values mid-write.
+      console.warn('renderApp: unknown appState.mode "' + appState.mode + '" \u2014 showing fallback.');
+      root.innerHTML = ''
+        + '<div style="position:fixed;inset:0;display:flex;align-items:center;'
+        +   'justify-content:center;background:#0F0D0B;color:#8A7F72;'
+        +   'font-family:Inter,system-ui,-apple-system,sans-serif;font-size:14px;'
+        +   'letter-spacing:0.02em;">Loading\u2026</div>';
+      break;
   }
 }
 

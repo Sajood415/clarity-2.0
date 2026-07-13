@@ -1095,17 +1095,64 @@ function _rpMockSources(reportKey) {
 // ---------------------------------------------
 // Data builder
 // ---------------------------------------------
+//
+// Priority is always real data first, mock fallback second. Every
+// concept.research.* leaf is checked individually so a partially
+// populated research payload still fills gaps from the type-keyed
+// mock \u2014 an empty string or an empty array in research is treated
+// as "missing", not "override with blank".
+//
+// Right now concept.research is always the null scaffold (_generateResearch
+// isn't in the codebase yet), so in practice every report reads the
+// mock. But the moment research lands, the reports pick it up
+// per-field with no additional wiring.
+
+function _rpPickReal(mockValue, realValue) {
+  if (realValue == null) return mockValue;
+  if (typeof realValue === 'string' && realValue.trim() === '') return mockValue;
+  if (Array.isArray(realValue) && realValue.length === 0) return mockValue;
+  if (typeof realValue === 'object' && !Array.isArray(realValue)
+      && Object.keys(realValue).length === 0) return mockValue;
+  return realValue;
+}
+
+// Merge a full mock section with its (possibly partial, possibly null)
+// real counterpart. Every mock key is preserved; only keys that exist
+// AND are meaningfully populated on the real side override the mock.
+function _rpMergeReal(mock, real) {
+  const out = Object.assign({}, mock);
+  if (!real || typeof real !== 'object') return out;
+  Object.keys(mock).forEach(function (key) {
+    out[key] = _rpPickReal(mock[key], real[key]);
+  });
+  // Also carry over any keys real has that mock doesn't \u2014 forward
+  // compatibility for research payloads that add fields the mocks
+  // don't yet know about.
+  Object.keys(real).forEach(function (key) {
+    if (!(key in out)) out[key] = real[key];
+  });
+  return out;
+}
 
 function _rpBuildData(view, concept) {
   const business = (concept && concept.business) || {};
   const research = (concept && concept.research) || {};
   const type = business.type || 'other';
 
-  const market = Object.assign({}, _rpMockMarket(type), (research.marketScan || {}));
-  const customer = Object.assign({}, _rpMockCustomer(type), (research.customerIntelligence || {}));
-  const competition = Object.assign({}, _rpMockCompetition(type), (research.competition || {}));
-  const persona = business.generatedPersona || _rpMockPersona(type);
-  const sources = _rpMockSources(view);
+  // Real research first, then mock fills the gaps. Per the spec:
+  //   marketScan.gapHeadline / gapText / marketTable        (Market Tab 1)
+  //   customerIntelligence.jtbd                              (Customer Tab 2)
+  //   customerIntelligence.decisionJourney                   (Customer Tab 3)
+  //   customerIntelligence.drivers + barriers                (Customer Tab 4)
+  //   competition.whitespace                                 (Competition Tab 1)
+  //   competition.players                                    (Competition Tab 2)
+  //   competition.riskTable                                  (Competition Tab 4)
+  // Every other field remains type-keyed via the mock generators.
+  const market      = _rpMergeReal(_rpMockMarket(type),      research.marketScan);
+  const customer    = _rpMergeReal(_rpMockCustomer(type),    research.customerIntelligence);
+  const competition = _rpMergeReal(_rpMockCompetition(type), research.competition);
+  const persona     = _rpPickReal(_rpMockPersona(type),      business.generatedPersona);
+  const sources     = _rpMockSources(view);
 
   return {
     view: view,
