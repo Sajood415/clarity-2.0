@@ -1480,6 +1480,17 @@ function _crPushResultItem(status) {
     status: status
   };
   getResults().items.push(item);
+  // Clara proactive trigger: only fires when this push takes results
+  // from 0 \u2192 1 items AND the concept hasn't been congratulated yet.
+  // Drafts count too \u2014 the intent is "you made something", not just
+  // "you published". The check itself is idempotent via
+  // concept.claraTriggers.firstResultFired.
+  if (typeof window._claraCheckFirstResult === 'function') {
+    const concept = getActiveConcept();
+    if (concept) {
+      try { window._claraCheckFirstResult(concept); } catch (err) { console.error('Clara first-result check failed:', err); }
+    }
+  }
 }
 
 function _crShowDraftToast() {

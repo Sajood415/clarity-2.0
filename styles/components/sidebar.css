@@ -286,6 +286,7 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 }
 
 .sb-nav-item {
+  position: relative;
   height: 40px;
   display: flex;
   align-items: center;
@@ -300,6 +301,53 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   color: var(--muted);
   text-align: left;
   transition: background 120ms ease, color 120ms ease;
+}
+
+/* Unread proactive-message badge on the Chat nav item. */
+.tk-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: #FF3B30;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  padding: 0 4px;
+  box-shadow: 0 0 0 2px #0D0B09;
+  animation: tk-badge-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* When there's exactly one unread message we render a dot with no
+   number so the notification stays quiet until things pile up. */
+.tk-badge-dot {
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  padding: 0;
+  top: 8px;
+  right: 10px;
+}
+
+@keyframes tk-badge-in {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* Collapsed rail: badge nudges toward the icon so it doesn't clip
+   the 40px-square nav button on the right edge. */
+.sb-sidebar-collapsed .tk-badge {
+  top: 4px;
+  right: 4px;
+}
+.sb-sidebar-collapsed .tk-badge-dot {
+  top: 6px;
+  right: 6px;
 }
 
 .sb-nav-item:hover {

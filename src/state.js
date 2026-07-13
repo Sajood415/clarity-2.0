@@ -84,6 +84,11 @@ function _defaultState() {
     // showing. Persisted so a reload on the detail view can restore
     // context. Cleared when the user navigates back to /insights.
     insightsDetailId: null,
+    // Unread proactive Clara messages while the user isn't on the Chat
+    // nav. Incremented by _claraNotifyUnread() whenever Clara pushes a
+    // message and appState.activeView !== 'chat'. Cleared on Chat nav
+    // click (sidebar) and by renderChat as a defensive fallback.
+    chatUnread: 0,
     concepts: {}
   };
 }
@@ -360,7 +365,29 @@ function _newConcept(opts) {
     lastWorkspaceView: 'overview',
     // Legacy: was true once the retired floating "C" widget had popped
     // for this concept. Kept as an inert field to avoid a migration.
-    hasSeenWorkspaceIntro: false
+    hasSeenWorkspaceIntro: false,
+    // Timestamp (ms since epoch) of the concept's last mutation \u2014
+    // updated inside _saveState so it tracks any real user action. Read
+    // by the returning-user proactive check on boot; if this value was
+    // set more than CL_RETURNING_MS ago, Clara nudges the user with a
+    // welcome-back message.
+    lastActive: 0,
+    // Persistent flags for Clara's proactive triggers so each one fires
+    // at most once per relevant "cycle" and survives reloads.
+    //   allDoneFired \u2014 map of boardId \u2192 true. Cleared for a board
+    //     whenever any task on it moves back to non-done, so the "all
+    //     done" prompt can fire again the next time the board clears.
+    //   firstResultFired \u2014 true after the first-published-content
+    //     prompt has fired. One-shot; never re-fires.
+    //   welcomeBackFired \u2014 transient guard, flipped true when the
+    //     welcome-back message is pushed on boot. Reset by main.js on
+    //     the next return-worthy gap; the check itself is idempotent
+    //     within a single session.
+    claraTriggers: {
+      allDoneFired: {},
+      firstResultFired: false,
+      welcomeBackFired: false
+    }
   };
 }
 
@@ -369,11 +396,36 @@ function _newConcept(opts) {
 // ---------------------------------------------
 
 function _saveState() {
+  // Touch the active concept's lastActive on every persist so the
+  // returning-user proactive check on next boot has an accurate "last
+  // seen" stamp without every mutation site needing to remember. Skipped
+  // when there's no active concept (fresh install pre-welcome).
+  const active = getActiveConcept();
+  if (active) active.lastActive = Date.now();
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(appState));
   } catch (err) {
     console.error('Failed to save state:', err);
   }
+}
+
+// Helper for proactive Clara messages: bump the unread counter when the
+// user isn't currently looking at the Chat view. Callers must have
+// already appended their message to concept.chat.messages; this only
+// touches the counter + persists. Returns the new count.
+function _claraNotifyUnread() {
+  if (appState.activeView === 'chat') return appState.chatUnread;
+  appState.chatUnread = Math.min(99, (appState.chatUnread || 0) + 1);
+  _saveState();
+  return appState.chatUnread;
+}
+
+// Symmetric clearer. Called from the sidebar Chat click and defensively
+// from renderChat so any nav path lands with a fresh badge state.
+function _claraClearUnread() {
+  if (!appState.chatUnread) return;
+  appState.chatUnread = 0;
+  _saveState();
 }
 
 function _restoreState() {
@@ -486,6 +538,16 @@ function _normalizeState() {
   // the parent list so we don't render an empty detail shell.
   if (appState.activeView === 'insights-detail' && !appState.insightsDetailId) {
     appState.activeView = 'insights';
+  }
+  // Unread proactive-message counter. Defensive normalisation: any
+  // non-integer or negative value collapses to 0. Never persisted above
+  // 99 (the badge can't render more than that anyway).
+  if (typeof appState.chatUnread !== 'number'
+      || !isFinite(appState.chatUnread)
+      || appState.chatUnread < 0) {
+    appState.chatUnread = 0;
+  } else {
+    appState.chatUnread = Math.min(99, Math.floor(appState.chatUnread));
   }
   if (!appState.concepts || typeof appState.concepts !== 'object') appState.concepts = {};
 
@@ -694,6 +756,24 @@ function _normalizeState() {
       c.lastWorkspaceView = 'overview';
     }
     if (typeof c.hasSeenWorkspaceIntro !== 'boolean') c.hasSeenWorkspaceIntro = false;
+
+    // Concept-level proactive Clara metadata (added in the Chat-advisor
+    // rebuild). lastActive tracks the last real mutation timestamp so
+    // the returning-user check can fire on boot; claraTriggers is a
+    // small dictionary of one-shot flags.
+    if (typeof c.lastActive !== 'number' || !isFinite(c.lastActive) || c.lastActive < 0) {
+      c.lastActive = 0;
+    }
+    if (!c.claraTriggers || typeof c.claraTriggers !== 'object') {
+      c.claraTriggers = { allDoneFired: {}, firstResultFired: false, welcomeBackFired: false };
+    }
+    if (!c.claraTriggers.allDoneFired || typeof c.claraTriggers.allDoneFired !== 'object') {
+      c.claraTriggers.allDoneFired = {};
+    }
+    if (typeof c.claraTriggers.firstResultFired !== 'boolean') c.claraTriggers.firstResultFired = false;
+    // welcomeBackFired is a per-session guard: force back to false on
+    // load so the boot check gets one clean shot per app open.
+    c.claraTriggers.welcomeBackFired = false;
   });
 
   // Ensure active concept id is valid
@@ -832,6 +912,8 @@ window.CONCEPT_COLORS = CONCEPT_COLORS;
 window.appState = appState;
 window._saveState = _saveState;
 window._restoreState = _restoreState;
+window._claraNotifyUnread = _claraNotifyUnread;
+window._claraClearUnread = _claraClearUnread;
 window.getActiveConcept = getActiveConcept;
 window.getBusiness = getBusiness;
 window.getChat = getChat;

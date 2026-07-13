@@ -209,16 +209,31 @@ function _renderNavItems(collapsed) {
   let activeView = rawView;
   if (activeView === 'insights-detail') activeView = 'insights';
   else if (activeView === 'tasks')      activeView = 'today';
+  const unread = (appState && typeof appState.chatUnread === 'number') ? appState.chatUnread : 0;
+
   return SB_NAV_ITEMS.map(function (item) {
     const isActive = activeView === item.key;
     const icon = (VIEW_ICONS && VIEW_ICONS[item.icon]) || '';
     // Native title attribute is our tooltip in collapsed mode so users
     // can still identify a rail icon without a label.
     const titleAttr = collapsed ? (' title="' + _escape(item.label) + '" aria-label="' + _escape(item.label) + '"') : '';
+    // Unread badge on the Chat item only. Exact-1 renders as a small
+    // dot (no number) per spec; 2+ renders the count. Anything above
+    // 99 is capped upstream in the state normalizer.
+    let badge = '';
+    if (item.key === 'chat' && unread > 0) {
+      if (unread === 1) {
+        badge = '<span class="tk-badge tk-badge-dot" aria-label="1 unread message"></span>';
+      } else {
+        const displayCount = unread > 99 ? '99+' : String(unread);
+        badge = '<span class="tk-badge" aria-label="' + unread + ' unread messages">' + displayCount + '</span>';
+      }
+    }
     return (
       '<button type="button" class="sb-nav-item' + (isActive ? ' sb-nav-item-active' : '') + '" data-nav="' + item.key + '"' + titleAttr + '>'
       +   '<span class="sb-nav-icon" aria-hidden="true">' + icon + '</span>'
       +   '<span class="sb-nav-label-text">' + _escape(item.label) + '</span>'
+      +   badge
       + '</button>'
     );
   }).join('');
@@ -366,6 +381,12 @@ function _bindSidebarEvents() {
       // Guard: don't let the user navigate away mid-onboarding.
       const c = getActiveConcept();
       if (c && c.chat && !c.chat.onboardingComplete) return;
+      // Clear the unread badge BEFORE setActiveView so the sidebar's
+      // subsequent re-render inside renderApp doesn't briefly flash the
+      // old count. Idempotent via the state helper.
+      if (next === 'chat' && typeof _claraClearUnread === 'function') {
+        _claraClearUnread();
+      }
       setActiveView(next);
       renderApp();
     });

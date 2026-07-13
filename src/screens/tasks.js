@@ -1448,6 +1448,15 @@ function _tkUpdateTask(id, mutator, silent) {
   if (!changed) return;
   t.updatedAt = Date.now();
   _saveState();
+  // Clara proactive trigger: whenever a task's status changes, check
+  // if every task on the active board is now 'done'. The check itself
+  // guards against firing more than once per clear cycle.
+  if (typeof window._claraCheckAllTasksDone === 'function') {
+    const concept = getActiveConcept();
+    if (concept) {
+      try { window._claraCheckAllTasksDone(concept); } catch (err) { console.error('Clara all-done check failed:', err); }
+    }
+  }
   if (!silent) renderTasks(document.getElementById('homeContent'));
 }
 

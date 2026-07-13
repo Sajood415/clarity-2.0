@@ -107,6 +107,18 @@ function renderChat(container) {
     chat.onboardingStep = chat.onboardingComplete ? 'done' : 'opening';
   }
 
+  // Clear the sidebar's unread badge whenever the Chat view mounts.
+  // The sidebar click already clears it on the primary path; this is a
+  // defensive fallback for reloads (badge persisted, sidebar rendered
+  // with the stale count above renderChat in the router order). Re-sync
+  // the sidebar right after clearing so the red dot goes away in the
+  // same frame the chat log paints.
+  if (typeof _claraClearUnread === 'function') {
+    const hadUnread = appState.chatUnread > 0;
+    _claraClearUnread();
+    if (hadUnread && typeof _syncSidebar === 'function') _syncSidebar();
+  }
+
   _renderChatShell(container);
   _paintExistingMessages();
 
@@ -184,8 +196,16 @@ function _paintExistingMessages() {
   const messages = getChat().messages || [];
   messages.forEach(function (m, i) {
     const continued = i > 0 && messages[i - 1].role === m.role;
-    chatArea.appendChild(_buildMessageEl(m.role, m.text, false, { continued: continued }));
+    chatArea.appendChild(_buildMessageEl(m.role, m.text, false, {
+      continued: continued,
+      insightCard: m.insightCard || null,
+      messageIndex: i
+    }));
   });
+  // Proactive-message options only render on the LAST Clara message
+  // that still carries them. Painted after the message loop so the
+  // option row sits below its parent bubble in DOM order.
+  _renderProactiveOptionsForLast();
   _scrollChatToBottom();
 }
 
@@ -633,8 +653,191 @@ function _handleSend() {
     return;
   }
 
-  // Any other step (post-onboarding 'done'): message is captured, but
-  // Clara has no follow-up logic yet — matches pre-rebuild behavior.
+  // Post-onboarding free chat ('done' step, customer validated). Clara
+  // runs the context-aware response engine: cycling thinking bubble
+  // for 1500ms, then _claraRespond(...) which returns { text,
+  // insightCard? }.
+  if (step === 'done') {
+    _claraFreeChatReply(text);
+    return;
+  }
+}
+
+// ---------------------------------------------
+// Free-chat: thinking \u2192 context-aware reply
+// ---------------------------------------------
+
+// Phrases the thinking bubble cycles through while Clara "thinks" for
+// 1500ms. Not persisted \u2014 purely visual.
+const CL_THINKING_PHRASES = [
+  'Looking into your business...',
+  'Checking your insights...',
+  'Reviewing your tasks...',
+  'Thinking about this...'
+];
+const CL_THINKING_TICK_MS = 800;
+const CL_THINKING_DURATION_MS = 1500;
+
+function _claraFreeChatReply(userText) {
+  if (typeof window._claraRespond !== 'function') {
+    // Defensive: if respond.js failed to load, fall back to a canned
+    // acknowledgment so the user never sees a silent chat.
+    setTimeout(function () {
+      if (!_chatStillMounted()) return;
+      _claraSay('Got it. Let me think on that.');
+    }, 600);
+    return;
+  }
+  _showCyclingThinking();
+  setTimeout(function () {
+    _hideCyclingThinking();
+    if (!_chatStillMounted()) return;
+    const concept = getActiveConcept();
+    const reply = window._claraRespond(userText, concept);
+    _claraSay(reply.text, { insightCard: reply.insightCard || null });
+  }, CL_THINKING_DURATION_MS);
+}
+
+function _showCyclingThinking() {
+  const chatArea = document.getElementById('clChatArea');
+  if (!chatArea) return;
+  _hideCyclingThinking();
+
+  const group = document.createElement('div');
+  group.className = 'cl-msg-group cl-msg-clara';
+  group.id = 'clCyclingThinking';
+  const continued = _prevGroupIsSameRole('clara');
+  group.setAttribute('style', CL_GROUP_CLARA_STYLE + (continued ? 'margin-top:-10px;margin-bottom:6px;' : ''));
+
+  const avatar = document.createElement('div');
+  avatar.className = 'cl-avatar';
+  avatar.setAttribute('style', CL_AVATAR_STYLE + (continued ? 'visibility:hidden;' : ''));
+  avatar.textContent = 'C';
+  group.appendChild(avatar);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'cl-thinking-bubble';
+
+  const label = document.createElement('span');
+  label.className = 'cl-thinking-bubble-text';
+  label.textContent = CL_THINKING_PHRASES[0];
+  bubble.appendChild(label);
+
+  const dots = document.createElement('span');
+  dots.className = 'cl-thinking-bubble-dots';
+  dots.setAttribute('aria-hidden', 'true');
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  bubble.appendChild(dots);
+
+  group.appendChild(bubble);
+  chatArea.appendChild(group);
+  _scrollChatToBottom();
+
+  // Cycle phrase every CL_THINKING_TICK_MS. Interval id is stashed on
+  // the element so _hideCyclingThinking can clean it up.
+  let idx = 0;
+  const timer = setInterval(function () {
+    idx = (idx + 1) % CL_THINKING_PHRASES.length;
+    if (!document.getElementById('clCyclingThinking')) {
+      clearInterval(timer);
+      return;
+    }
+    label.textContent = CL_THINKING_PHRASES[idx];
+  }, CL_THINKING_TICK_MS);
+  group._clTimer = timer;
+}
+
+function _hideCyclingThinking() {
+  const el = document.getElementById('clCyclingThinking');
+  if (!el) return;
+  if (el._clTimer) clearInterval(el._clTimer);
+  if (el.parentNode) el.parentNode.removeChild(el);
+}
+
+// ---------------------------------------------
+// Proactive option chips (attached to a specific Clara message)
+// ---------------------------------------------
+//
+// Clara's proactive messages carry an `options` payload on the message
+// itself so they survive reloads. We only render chips for the LAST
+// message in the log that still has options \u2014 once the user picks,
+// we strip the options and let the chat move on.
+
+function _renderProactiveOptionsForLast() {
+  // Nuke any stale row so we never end up with two.
+  const stale = document.getElementById('clProactiveOptions');
+  if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
+
+  const chatArea = document.getElementById('clChatArea');
+  if (!chatArea) return;
+  const chat = getChat();
+  const messages = chat.messages || [];
+  if (messages.length === 0) return;
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== 'clara' || !last.options || !Array.isArray(last.options.labels)) return;
+  if (last.options.labels.length === 0) return;
+
+  const row = document.createElement('div');
+  row.className = 'cl-options-row cl-proactive-options';
+  row.id = 'clProactiveOptions';
+  row.setAttribute('data-action', last.options.action || '');
+
+  last.options.labels.forEach(function (label) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cl-option-btn';
+    btn.setAttribute('data-label', label);
+    btn.textContent = label;
+    btn.addEventListener('click', function () {
+      _handleProactiveOptionTap(last, label);
+    });
+    row.appendChild(btn);
+  });
+  chatArea.appendChild(row);
+  _scrollChatToBottom();
+}
+
+function _handleProactiveOptionTap(message, label) {
+  const chat = getChat();
+  const concept = getActiveConcept();
+  // Snapshot the action BEFORE clearing options \u2014 dispatch happens
+  // below and needs the action name.
+  const dispatchAction = message && message.options ? message.options.action : null;
+
+  // Consume the options on the source message so it can't be tapped twice
+  // (and so a reload doesn't re-render the chips).
+  message.options = null;
+  _saveState();
+
+  // Echo the user's pick as a plain user bubble.
+  chat.messages.push({ role: 'user', text: label });
+  _saveState();
+  _appendMessage('user', label);
+
+  let result;
+  if (dispatchAction === 'suggest-tasks' && typeof window._claraHandleSuggestTasks === 'function') {
+    result = window._claraHandleSuggestTasks(concept, label);
+  } else if (dispatchAction === 'next-content' && typeof window._claraHandleNextContent === 'function') {
+    result = window._claraHandleNextContent(concept);
+  } else if (dispatchAction === 'welcome-back' && typeof window._claraHandleWelcomeBack === 'function') {
+    result = window._claraHandleWelcomeBack(concept, label);
+  } else {
+    result = { follow: null };
+  }
+
+  _saveState(); // handler may have mutated concept.tasks.items etc.
+
+  if (result && result.follow && _chatStillMounted()) {
+    // Route Clara's follow-up through the same cycling-thinking beat as
+    // regular free chat so proactive follow-ups feel consistent with
+    // her other replies.
+    _showCyclingThinking();
+    setTimeout(function () {
+      _hideCyclingThinking();
+      if (!_chatStillMounted()) return;
+      _claraSay(result.follow);
+    }, CL_THINKING_DURATION_MS);
+  }
 }
 
 // ---------------------------------------------
@@ -737,8 +940,11 @@ function _completeOnboardingNow() {
 
 function _buildMessageEl(role, text, animate, opts) {
   const continued = !!(opts && opts.continued);
+  const insightCard = opts && opts.insightCard ? opts.insightCard : null;
+  const messageIndex = (opts && typeof opts.messageIndex === 'number') ? opts.messageIndex : -1;
   const group = document.createElement('div');
   group.className = 'cl-msg-group cl-msg-' + role + (continued ? ' cl-msg-continued' : '');
+  if (messageIndex >= 0) group.setAttribute('data-msg-idx', String(messageIndex));
   // Continued messages sit close under the previous one (6px gap vs 18px)
   // and — for Clara — hide the avatar so the text column flows under a
   // single head. This is how Claude/GPT/Linear render bursts.
@@ -755,11 +961,33 @@ function _buildMessageEl(role, text, animate, opts) {
     avatar.textContent = 'C';
     group.appendChild(avatar);
 
+    // Wrap the text + optional insight card in a column so the card
+    // sits directly under the message and shares the same left gutter.
+    const column = document.createElement('div');
+    column.className = 'cl-clara-column';
+    column.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;';
+
     const textEl = document.createElement('div');
     textEl.className = 'cl-clara-text';
     textEl.setAttribute('style', CL_CLARA_TEXT_STYLE);
     textEl.textContent = text;
-    group.appendChild(textEl);
+    column.appendChild(textEl);
+
+    if (insightCard && insightCard.label && insightCard.text) {
+      const card = document.createElement('div');
+      card.className = 'cl-insight-reference';
+      const eye = document.createElement('div');
+      eye.className = 'cl-insight-reference-eye';
+      eye.textContent = insightCard.label;
+      const body = document.createElement('div');
+      body.className = 'cl-insight-reference-text';
+      body.textContent = insightCard.text;
+      card.appendChild(eye);
+      card.appendChild(body);
+      column.appendChild(card);
+    }
+
+    group.appendChild(column);
   } else {
     const textEl = document.createElement('div');
     textEl.className = 'cl-user-text';
@@ -781,10 +1009,13 @@ function _prevGroupIsSameRole(role) {
   const chat = document.getElementById('clChatArea');
   if (!chat) return false;
   const groups = chat.querySelectorAll('.cl-msg-group');
-  // Walk backwards skipping the thinking bubble if it's the tail.
+  // Walk backwards skipping any transient thinking bubbles at the tail
+  // (both the onboarding-era clThinkingBubble and the free-chat cycling
+  // clCyclingThinking). They're Clara-styled groups but shouldn't be
+  // treated as real prior messages for continuation purposes.
   for (let i = groups.length - 1; i >= 0; i--) {
     const g = groups[i];
-    if (g.id === 'clThinkingBubble') continue;
+    if (g.id === 'clThinkingBubble' || g.id === 'clCyclingThinking') continue;
     return g.classList.contains('cl-msg-' + role);
   }
   return false;
@@ -871,24 +1102,40 @@ function _flashInputError(hint) {
   }, 2200);
 }
 
-function _appendMessage(role, text) {
+function _appendMessage(role, text, opts) {
   const chat = document.getElementById('clChatArea');
   if (!chat) return;
   // Insert new messages BEFORE the options row so the log stays in
   // chronological order (user reply above, options remain anchored to
   // the most recent Clara question below).
   const options = document.getElementById('clOptionsRow');
-  const el = _buildMessageEl(role, text, true, { continued: _prevGroupIsSameRole(role) });
+  const proactive = document.getElementById('clProactiveOptions');
+  const messages = getChat().messages || [];
+  const messageIndex = messages.length > 0 ? messages.length - 1 : -1;
+  const el = _buildMessageEl(role, text, true, {
+    continued: _prevGroupIsSameRole(role),
+    insightCard: opts && opts.insightCard ? opts.insightCard : null,
+    messageIndex: messageIndex
+  });
+  // If a proactive-option row is currently visible, tear it down first
+  // so the new message drops in above where it used to sit; the caller
+  // decides whether the new message deserves fresh options.
+  if (proactive && proactive.parentNode) proactive.parentNode.removeChild(proactive);
   if (options) chat.insertBefore(el, options);
   else chat.appendChild(el);
+  // Re-render proactive options for the (possibly new) last message.
+  _renderProactiveOptionsForLast();
   _scrollChatToBottom();
 }
 
-function _claraSay(text) {
+function _claraSay(text, opts) {
   const chat = getChat();
-  chat.messages.push({ role: 'clara', text: text });
+  const message = { role: 'clara', text: text };
+  if (opts && opts.insightCard) message.insightCard = opts.insightCard;
+  if (opts && opts.options) message.options = opts.options;
+  chat.messages.push(message);
   _saveState();
-  _appendMessage('clara', text);
+  _appendMessage('clara', text, { insightCard: message.insightCard || null });
 }
 
 window.renderChat = renderChat;

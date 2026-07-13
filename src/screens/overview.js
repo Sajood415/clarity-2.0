@@ -304,3 +304,13 @@ function _ovFirstMoveInsight(b) {
 }
 
 window.renderOverview = renderOverview;
+// The four insight-card generators are pure functions of the business
+// context, so Clara can reuse them verbatim when a chat message asks
+// about "market", "customer", "edge" or "first move". Exposed as an
+// object so the caller doesn't need to hard-code four separate globals.
+window._ovInsights = {
+  market:    _ovMarketInsight,
+  customer:  _ovCustomerInsight,
+  edge:      _ovEdgeInsight,
+  firstMove: _ovFirstMoveInsight
+};
