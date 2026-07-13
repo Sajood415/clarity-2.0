@@ -107,7 +107,14 @@ function _defaultBusiness() {
   //   budget           — Q5 monthly-budget machine key:
   //                      'zero' | 'low' | 'medium' | 'high' |
   //                      'enterprise' | 'unknown'
-  //   location         — Q6 free text
+  //   locations        — Q6 array of { country, city } pairs (new
+  //                      structured source of truth for where the
+  //                      business operates)
+  //   location         — Q6 legacy derived string ("City, Country" or
+  //                      "City, Country · City2, Country2") kept in
+  //                      sync with `locations` so today.js, tasks.js,
+  //                      results.js, conceptsList.js, and reports.js
+  //                      keep working without per-file changes.
   // The pre-rebuild fields (name, type, product, goal, reach, challenge)
   // stay so downstream code (sidebar, create.js, task generator) and any
   // legacy concepts on disk keep working.
@@ -120,6 +127,7 @@ function _defaultBusiness() {
     customer: '',
     channels: [],
     budget: '',
+    locations: [],
     location: '',
     reach: '',
     challenge: '',
@@ -128,6 +136,54 @@ function _defaultBusiness() {
     // the validation prompt from ever asking twice for the same concept.
     customerValidated: false
   };
+}
+
+// Renders the array of { country, city } location pairs into the legacy
+// string form. Kept module-scoped so state normalization and the
+// onboarding Q6 handler can both produce the exact same string. Empty
+// input returns empty string; individual missing pieces fall back
+// gracefully so "Peshawar" alone renders as "Peshawar" rather than
+// "Peshawar, ".
+function _formatLocationsString(locations) {
+  if (!Array.isArray(locations) || locations.length === 0) return '';
+  const parts = [];
+  for (let i = 0; i < locations.length; i++) {
+    const loc = locations[i] || {};
+    const city = (loc.city || '').trim();
+    const country = (loc.country || '').trim();
+    if (city && country) parts.push(city + ', ' + country);
+    else if (city) parts.push(city);
+    else if (country) parts.push(country);
+  }
+  return parts.join(' \u00b7 ');
+}
+
+// Backfills business.locations from a legacy business.location string.
+// Called from _normalizeState when a persisted concept has the old
+// single-string field but no structured pairs. Best-effort parse:
+//   "City, Country"   → [{ city, country }]
+//   "City"            → [{ city, country: '' }]
+//   "City1, Country1 · City2, Country2" (already-derived string) is
+//   also parsed on the interpunct so we don't create duplicates when
+//   the user re-enters the flow.
+function _parseLegacyLocation(str) {
+  const raw = (str || '').trim();
+  if (!raw) return [];
+  const chunks = raw.split(/\s*\u00b7\s*|\s*\|\s*/);
+  const out = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const piece = chunks[i].trim();
+    if (!piece) continue;
+    const commaIdx = piece.indexOf(',');
+    if (commaIdx !== -1) {
+      const city = piece.slice(0, commaIdx).trim();
+      const country = piece.slice(commaIdx + 1).trim();
+      if (city || country) out.push({ city: city, country: country });
+    } else {
+      out.push({ city: piece, country: '' });
+    }
+  }
+  return out;
 }
 
 function _defaultCreate() {
@@ -312,6 +368,18 @@ function _defaultResearch() {
   };
 }
 
+// Daily-insights archive. `history` maps a local-time YYYY-MM-DD date
+// key to that day's 3 chosen insights (see clara/insights.js for the
+// materialised shape). Kept as an open dictionary rather than an array
+// so a returning user's calendar-based recap view can look up any day
+// in O(1). The active-day copy (with mutable `seen` flags and the
+// dismiss timestamp) lives on `concept.today.insights` /
+// `concept.today.insightsDismissedDate` \u2014 not here \u2014 so
+// today.js can read the surface state without walking history.
+function _defaultInsights() {
+  return { history: {} };
+}
+
 function _newConceptId() {
   return 'ck_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 }
@@ -345,7 +413,16 @@ function _newConcept(opts) {
     // `viewingTaskId` (string | null) toggles Today into task-detail
     // mode. Cleared by the detail page's Back button, by the concept
     // header's Today tab click, and any time the id no longer resolves.
-    today: { tasks: [], viewingTaskId: null },
+    // `insights` (array | undefined) holds the day's chosen daily
+    // insights when the Today screen has run the seeder \u2014 see
+    // clara/insights.js. `insightsDismissedDate` (YYYY-MM-DD | null)
+    // is the per-day "Skip for today" flag; cleared automatically the
+    // next calendar day so the card reappears with fresh insights.
+    today: { tasks: [], viewingTaskId: null, insights: [], insightsDismissedDate: null },
+    // Daily-insights archive keyed by YYYY-MM-DD. Populated by
+    // clara/insights.js at onboarding completion and then lazily on
+    // every new day the user visits Today.
+    insights: _defaultInsights(),
     // Full task-management workspace (Jira-style boards, filters,
     // views). Populated with Clara's GTM suggestions when the concept
     // finishes onboarding; manual tasks are added at any time via the
@@ -561,6 +638,22 @@ function _normalizeState() {
     if (!c.color) c.color = CONCEPT_COLORS[i % CONCEPT_COLORS.length];
     c.business = Object.assign(_defaultBusiness(), c.business || {});
     if (!Array.isArray(c.business.channels)) c.business.channels = [];
+    // Q6 restructure: business.locations replaces the single free-text
+    // business.location field. Legacy concepts have `locations` unset
+    // OR left at the default empty array from the Object.assign above,
+    // but may still have `location` populated \u2014 backfill the
+    // structured form from the string so returning users don't lose
+    // their Q6 answer, then re-derive the string so both fields stay in
+    // lockstep for downstream consumers that still read business.location
+    // (today.js, tasks.js, results.js, conceptsList.js, reports.js).
+    if (!Array.isArray(c.business.locations)) c.business.locations = [];
+    if (c.business.locations.length === 0 && c.business.location) {
+      c.business.locations = _parseLegacyLocation(c.business.location);
+    }
+    // Rewrite the derived string from whatever locations we now have.
+    // Safe when locations is empty \u2014 produces '' and clears any
+    // stale legacy string.
+    c.business.location = _formatLocationsString(c.business.locations);
     // Legacy concepts that finished onboarding before this flag existed
     // are grandfathered as already-validated so returning users don't get
     // a fresh "does that sound right?" popup on their next Chat visit.
@@ -631,12 +724,38 @@ function _normalizeState() {
       });
     }
     c.widgetMerged = true;
-    c.today = Object.assign({ tasks: [], viewingTaskId: null }, c.today || {});
+    c.today = Object.assign(
+      { tasks: [], viewingTaskId: null, insights: [], insightsDismissedDate: null },
+      c.today || {}
+    );
     if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
     // viewingTaskId is either a task id string or null. Anything else
     // (undefined, number, corrupted value) resets to null so the Today
     // list opens by default on load.
     if (typeof c.today.viewingTaskId !== 'string') c.today.viewingTaskId = null;
+    // Daily-insights surface state on the Today screen. The seeder in
+    // clara/insights.js lazily repopulates `insights` on the first
+    // Today render each day, so a bad shape here just means the seeder
+    // has to run one extra time \u2014 no functional loss.
+    if (!Array.isArray(c.today.insights)) c.today.insights = [];
+    if (typeof c.today.insightsDismissedDate !== 'string' || !c.today.insightsDismissedDate) {
+      c.today.insightsDismissedDate = null;
+    }
+
+    // Insights history archive. Kept as an open dictionary keyed by
+    // local-time YYYY-MM-DD. Any stray non-array value under a key is
+    // scrubbed so downstream code can trust the shape.
+    c.insights = Object.assign(_defaultInsights(), c.insights || {});
+    if (!c.insights.history || typeof c.insights.history !== 'object') {
+      c.insights.history = {};
+    } else {
+      const histKeys = Object.keys(c.insights.history);
+      for (let hk = 0; hk < histKeys.length; hk++) {
+        if (!Array.isArray(c.insights.history[histKeys[hk]])) {
+          delete c.insights.history[histKeys[hk]];
+        }
+      }
+    }
 
     // Task management workspace normalization. Legacy concepts (no
     // `tasks` block at all) get a fresh default and, if they've already
@@ -934,6 +1053,9 @@ window.switchConcept = switchConcept;
 window.setActiveView = setActiveView;
 window._isReportView = _isReportView;
 window._defaultResearch = _defaultResearch;
+window._defaultInsights = _defaultInsights;
+window._formatLocationsString = _formatLocationsString;
+window._parseLegacyLocation = _parseLegacyLocation;
 window._defaultTaskBoard = _defaultTaskBoard;
 window._newTaskId = _newTaskId;
 window._newBoardId = _newBoardId;

@@ -75,7 +75,20 @@ function renderToday(container) {
   const c = getActiveConcept();
   if (!c) return;
 
+  // Defensive: if a Daily Insight drawer is still mounted from a
+  // previous render (e.g. concept switch mid-drawer), tear it down so
+  // it doesn't linger on top of the new render's content.
+  _closeTdInsightDrawer();
+
   _seedTodayTasks(c);
+  // Ensure today's insights are populated before we decide whether to
+  // render the card. Idempotent \u2014 the seeder bails cleanly if
+  // today.insights[0].date already matches the current calendar day.
+  if (typeof window._seedTodayInsightsIfMissing === 'function') {
+    try { window._seedTodayInsightsIfMissing(c); } catch (err) {
+      console.error('Daily insights seed failed on Today render:', err);
+    }
+  }
 
   // Task-detail sub-view. If the user has tapped a task, render Clara's
   // step-by-step guide for that task instead of the list/kanban shell.
@@ -97,6 +110,13 @@ function renderToday(container) {
   const listBtn = _renderTdViewBtn('list', view);
   const kanbanBtn = _renderTdViewBtn('kanban', view);
 
+  // Insight card sits between the greeting/heading and the task list
+  // when it hasn't been dismissed for the day AND we actually have
+  // insights to render. Otherwise the whole block collapses to zero
+  // height and the tasks slide up as if nothing was there.
+  const showInsights = _shouldRenderInsights(c);
+  const insightMarkup = showInsights ? _renderTdInsightCard(c.today.insights[0]) : '';
+
   container.innerHTML = `
     <section class="td-wrap${isKanban ? ' td-wrap-kanban' : ''}">
       <div class="td-top">
@@ -109,6 +129,7 @@ function renderToday(container) {
           ${kanbanBtn}
         </div>
       </div>
+      ${insightMarkup}
       <div id="tdBody"></div>
       <div class="td-footer-note">Clara updates these every day based on what\u2019s working.</div>
       <a class="td-manage-tasks" id="tdManageTasks" role="button" tabindex="0">Manage all tasks \u2192</a>
@@ -117,10 +138,193 @@ function renderToday(container) {
 
   _bindTdViewToggle(container);
   _bindTdManageTasks(container);
+  if (showInsights) _bindTdInsightCard(container, c);
 
   const body = container.querySelector('#tdBody');
   if (isKanban) _renderTdKanban(body, c);
   else _renderTdList(body, c);
+}
+
+// ---------------------------------------------
+// Daily insight card + detail drawer
+// ---------------------------------------------
+//
+// The card mounts above the task list on the main Today view (not on
+// the task-detail sub-view). Clicking anywhere on the card body opens
+// a drawer with the full stat, source, and 3 "what this means for
+// you" bullets. Clicking "Skip for today \u2192" dismisses just for the
+// current calendar day; next day the card reappears with fresh
+// insights via the seeder in clara/insights.js.
+
+// Right-arrow SVG used as the hover affordance on the card. Matches
+// the muted \u2192 glyph style used elsewhere in the today view.
+const TD_INSIGHT_ARROW_SVG = ''
+  + '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" '
+  +   'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" '
+  +   'stroke-linejoin="round">'
+  +   '<path d="M2.5 7 H11 M7.5 3.5 L11 7 L7.5 10.5"/>'
+  + '</svg>';
+
+// X close icon for the drawer.
+const TD_INSIGHT_CLOSE_SVG = ''
+  + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" '
+  +   'stroke="currentColor" stroke-width="1.5" stroke-linecap="round">'
+  +   '<path d="M4 4 L12 12 M12 4 L4 12"/>'
+  + '</svg>';
+
+// True when we should surface the insight card on this render: the
+// concept has today's insights populated, and the user hasn't skipped
+// it yet for the current calendar day. Also short-circuits gracefully
+// if the insights module never loaded (defensive).
+function _shouldRenderInsights(c) {
+  if (!c || !c.today) return false;
+  if (!Array.isArray(c.today.insights) || c.today.insights.length === 0) return false;
+  if (typeof window._insightsDismissedToday === 'function'
+      && window._insightsDismissedToday(c)) return false;
+  return true;
+}
+
+function _renderTdInsightCard(insight) {
+  if (!insight) return '';
+  return ''
+    + '<div class="td-insight-card" id="tdInsightCard" role="button" tabindex="0"'
+    +   ' aria-label="Read today\u2019s Daily Insight">'
+    +   '<div class="td-insight-card-inner">'
+    +     '<div class="td-insight-eyebrow">'
+    +       '<span class="td-insight-kicker">DAILY INSIGHT</span>'
+    +       '<span class="td-insight-arrow" aria-hidden="true">' + TD_INSIGHT_ARROW_SVG + '</span>'
+    +     '</div>'
+    +     '<h2 class="td-insight-headline">' + _escape(insight.headline || '') + '</h2>'
+    +     '<p class="td-insight-stat">' + _escape(insight.stat || '') + '</p>'
+    +     '<div class="td-insight-footer">'
+    +       '<button type="button" class="td-insight-skip" id="tdInsightSkip">Skip for today \u2192</button>'
+    +       '<span class="td-insight-source" aria-hidden="true">' + _escape(insight.source || '') + '</span>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+// Binds card-open, skip-for-today, and keyboard-activation handlers.
+// Skip is an inline text button; clicks on it must NOT bubble up to
+// the card and open the drawer.
+function _bindTdInsightCard(scope, c) {
+  const card = scope.querySelector('#tdInsightCard');
+  const skip = scope.querySelector('#tdInsightSkip');
+  if (!card) return;
+
+  const openDrawer = function () {
+    const insight = c && c.today && Array.isArray(c.today.insights)
+      ? c.today.insights[0]
+      : null;
+    if (!insight) return;
+    // Flip seen=true the first time the user opens the detail. Idempotent
+    // \u2014 the helper no-ops when the flag is already set.
+    if (typeof window._markInsightSeen === 'function') {
+      try { window._markInsightSeen(c, insight.id); } catch (_err) { /* ignore */ }
+    }
+    _openTdInsightDrawer(insight);
+  };
+
+  card.addEventListener('click', openDrawer);
+  card.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openDrawer();
+    }
+  });
+
+  if (skip) {
+    skip.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (typeof window._dismissTodayInsights === 'function') {
+        window._dismissTodayInsights(c);
+      }
+      _rerenderToday();
+    });
+  }
+}
+
+// Renders the detail drawer for a single insight. Mounts into the
+// document body (not the today container) so its fixed-position
+// backdrop can cover the whole viewport regardless of scroll state.
+// Also traps focus loosely by moving focus to the drawer container on
+// open and returning it to the trigger on close.
+function _openTdInsightDrawer(insight) {
+  _closeTdInsightDrawer();
+  if (!insight) return;
+
+  const bullets = Array.isArray(insight.bullets) ? insight.bullets : [];
+  const bulletsHtml = bullets.map(function (b) {
+    return ''
+      + '<li class="td-insight-drawer-bullet">'
+      +   '<span class="td-insight-drawer-bullet-dot" aria-hidden="true"></span>'
+      +   '<span class="td-insight-drawer-bullet-text">' + _escape(b) + '</span>'
+      + '</li>';
+  }).join('');
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'td-insight-drawer-backdrop';
+  backdrop.id = 'tdInsightDrawer';
+  backdrop.setAttribute('role', 'dialog');
+  backdrop.setAttribute('aria-modal', 'true');
+  backdrop.setAttribute('aria-label', 'Daily Insight detail');
+  backdrop.innerHTML = ''
+    + '<div class="td-insight-drawer" tabindex="-1">'
+    +   '<button type="button" class="td-insight-drawer-close" aria-label="Close" id="tdInsightDrawerClose">'
+    +     TD_INSIGHT_CLOSE_SVG
+    +   '</button>'
+    +   '<div class="td-insight-drawer-kicker">DAILY INSIGHT</div>'
+    +   '<h2 class="td-insight-drawer-headline">' + _escape(insight.headline || '') + '</h2>'
+    +   '<p class="td-insight-drawer-stat">' + _escape(insight.stat || '') + '</p>'
+    +   '<div class="td-insight-drawer-source">' + _escape(insight.source || '') + '</div>'
+    +   '<div class="td-insight-drawer-divider" aria-hidden="true"></div>'
+    +   '<div class="td-insight-drawer-bullets-label">What this means for you</div>'
+    +   '<ul class="td-insight-drawer-bullets">' + bulletsHtml + '</ul>'
+    + '</div>';
+  document.body.appendChild(backdrop);
+
+  // Trigger the slide-up + fade-in on the next frame so the initial
+  // "hidden" state gets committed to layout first \u2014 otherwise
+  // browsers may skip the animation entirely.
+  requestAnimationFrame(function () {
+    backdrop.classList.add('td-insight-drawer-open');
+  });
+
+  // Focus the drawer for keyboard users so Tab / Escape land here.
+  const inner = backdrop.querySelector('.td-insight-drawer');
+  if (inner) inner.focus();
+
+  // Backdrop click (outside the drawer body) closes.
+  backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) _closeTdInsightDrawer();
+  });
+  const closeBtn = backdrop.querySelector('#tdInsightDrawerClose');
+  if (closeBtn) closeBtn.addEventListener('click', _closeTdInsightDrawer);
+
+  // Escape-to-close. Removed on drawer close so no dangling listeners.
+  const keyHandler = function (e) {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      _closeTdInsightDrawer();
+    }
+  };
+  document.addEventListener('keydown', keyHandler);
+  backdrop.__tdKeyHandler = keyHandler;
+}
+
+function _closeTdInsightDrawer() {
+  const existing = document.getElementById('tdInsightDrawer');
+  if (!existing) return;
+  if (existing.__tdKeyHandler) {
+    document.removeEventListener('keydown', existing.__tdKeyHandler);
+    existing.__tdKeyHandler = null;
+  }
+  existing.classList.remove('td-insight-drawer-open');
+  // Match the CSS transition duration so the removal happens after
+  // the fade completes. Kept as a bare setTimeout \u2014 the drawer
+  // is short-lived so we don't need to track the handle for teardown.
+  setTimeout(function () {
+    if (existing.parentNode) existing.parentNode.removeChild(existing);
+  }, 220);
 }
 
 // ---------------------------------------------
