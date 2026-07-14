@@ -1443,22 +1443,18 @@ const _obQNameState = {
   savedLabel: ''
 };
 
-// Returns true when there's enough business context to produce a
-// meaningful suggestion. `business.type` alone isn't enough \u2014 the
-// templates need a product token to be interesting. Q1_other stores
-// its free-text description on business.product (confusingly, since
-// the schema also has typeDescription), so both fields count. Q3's
-// customer field also unlocks the button, on the theory that a
-// re-edit pass through q_name will have the whole customer paragraph
-// available and we can still generate something reasonable off type
-// + goal even without an explicit product token.
+// Returns true when we have enough business context to produce a
+// suggestion. The bar is intentionally low \u2014 just Q1 (business
+// type) is enough: _claraGenerateName's {product} token falls back
+// to "Your" when neither business.product nor business.typeDescription
+// is populated ("Your Store", "Your Studio", "Your Foundation" all
+// still read fine), and Q3 hasn't been asked yet at q_name in the
+// linear flow. Blank-page anxiety is the problem we're solving here,
+// so the button should show on the primary fresh-onboarding path
+// (any Q1 type, no Q3 yet). Only true fresh installs where the user
+// has answered nothing yet keep the button hidden.
 function _obQNameShouldShow(business) {
-  if (!business || !business.type) return false;
-  const hasCustomer = !!String(business.customer || '').trim();
-  const hasDesc =
-    !!String(business.typeDescription || '').trim()
-    || !!String(business.product || '').trim();
-  return hasCustomer || hasDesc;
+  return !!(business && business.type);
 }
 
 function _obMountQNameAIExtras(host) {
