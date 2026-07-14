@@ -86,6 +86,16 @@ const VIEW_ICONS = {
   `
 };
 
+// Clarity brandmark \u2014 a four-point spark used as the amber logo
+// glyph beside "Clarity" in the sidebar (and available anywhere else
+// we want a small brand accent). Simple SVG, uses currentColor so
+// the CSS class controls hue/opacity. 20x20 viewBox.
+const SB_BRAND_MARK_SVG = `
+  <svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor" aria-hidden="true">
+    <path d="M10 1 L11.4 8.6 L19 10 L11.4 11.4 L10 19 L8.6 11.4 L1 10 L8.6 8.6 Z"/>
+  </svg>
+`;
+
 // Small utility icons used by the dashboard sidebar.
 const SB_CHEVRON_DOWN_SVG = `
   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -282,4 +292,5 @@ window.SB_TRASH_ICON_SVG = SB_TRASH_ICON_SVG;
 window.SB_CHEVRON_DOWN_SVG = SB_CHEVRON_DOWN_SVG;
 window.SB_GRID_ICON_SVG = SB_GRID_ICON_SVG;
 window.SB_COLLAPSE_ICON_SVG = SB_COLLAPSE_ICON_SVG;
+window.SB_BRAND_MARK_SVG = SB_BRAND_MARK_SVG;
 window.TK_ICONS = TK_ICONS;

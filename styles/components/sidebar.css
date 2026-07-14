@@ -14,8 +14,16 @@
   top: 0;
   bottom: 0;
   width: var(--sidebar-w);
-  background: #0D0B09;
-  border-right: 1px solid var(--border);
+  /* Base slab + a very subtle top-down highlight gradient so the
+     top of the rail catches a little light. Layers stack top-to-
+     bottom in CSS gradient order; the solid #0D0B09 fill sits
+     behind the gradient. */
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%),
+    #0D0B09;
+  /* Border reads at roughly 60% of the default --border alpha so
+     the seam between rail and canvas is felt but not seen. */
+  border-right: 1px solid rgba(255, 240, 220, 0.042);
   display: flex;
   flex-direction: column;
   z-index: 50;
@@ -46,11 +54,33 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   flex-shrink: 0;
 }
 
+/* Wraps the amber spark mark + the "Clarity" wordmark on one row.
+   flex + gap keeps the two elements aligned even when the mark
+   swaps in from icons.js at a different height. */
+.sb-brand-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sb-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.sb-brand-mark svg { display: block; width: 20px; height: 20px; }
+
 .sb-brand {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.015em;
+  letter-spacing: 0.02em;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -60,8 +90,8 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 /* --- Collapse toggle --- */
 
 .sb-collapse-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 8px;
   background: transparent;
   border: none;
@@ -69,14 +99,16 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(245, 240, 232, 0.4);
-  transition: background 150ms ease, color 150ms ease, transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  color: var(--muted);
+  opacity: 0.75;
+  transition: background 150ms ease, color 150ms ease, opacity 150ms ease, transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
   flex-shrink: 0;
 }
 
 .sb-collapse-btn:hover {
   background: rgba(255, 240, 220, 0.05);
-  color: rgba(245, 240, 232, 0.9);
+  color: var(--text-secondary);
+  opacity: 1;
 }
 
 .sb-collapse-btn:focus-visible {
@@ -99,29 +131,51 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   background: rgba(255, 240, 220, 0.04);
   border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  padding: 8px 10px 8px 8px;
   cursor: pointer;
   color: var(--text);
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   text-align: left;
   letter-spacing: -0.005em;
   transition: background 150ms ease, border-color 150ms ease;
 }
 
+/* Amber-tinted hover so the concept row picks up the brand accent
+   instead of the generic warm-white lift used elsewhere. */
 .sb-concept-trigger:hover {
-  background: rgba(255, 240, 220, 0.07);
+  background: rgba(245, 166, 35, 0.08);
 }
 
 .sb-concept-picker-open .sb-concept-trigger {
-  background: rgba(255, 240, 220, 0.07);
+  background: rgba(245, 166, 35, 0.10);
   border-color: rgba(245, 166, 35, 0.28);
+}
+
+/* Colored initial chip. Amber base with dark text so it reads as a
+   branded avatar rather than a UI badge. Playfair display letter
+   matches the collapsed-rail concept chip below for consistency. */
+.sb-concept-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  color: var(--bg);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(245, 166, 35, 0.25);
 }
 
 .sb-concept-trigger-name {
@@ -136,10 +190,15 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 12px;
+  height: 12px;
   color: var(--muted);
-  transition: transform 180ms ease, color 150ms ease;
+  opacity: 0.8;
+  transition: transform 180ms ease, color 150ms ease, opacity 150ms ease;
   flex-shrink: 0;
 }
+
+.sb-concept-trigger-chev svg { width: 10px; height: 10px; }
 
 .sb-concept-picker-open .sb-concept-trigger-chev {
   transform: rotate(180deg);
@@ -287,20 +346,20 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 
 .sb-nav-item {
   position: relative;
-  height: 40px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px;
+  gap: 12px;
+  padding: 10px 16px;
   border-radius: 8px;
   background: transparent;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 400;
   color: var(--muted);
   text-align: left;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background 150ms ease, color 150ms ease;
 }
 
 /* Unread proactive-message badge on the Chat nav item. */
@@ -350,16 +409,43 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   right: 6px;
 }
 
+/* Inactive hover: warm-neutral lift + icon picks up the amber accent
+   so the row telegraphs "this is interactive and branded" without
+   committing to the full active treatment. Label stays bright. */
 .sb-nav-item:hover {
-  background: rgba(255, 240, 220, 0.04);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
 }
 
+.sb-nav-item:hover .sb-nav-icon {
+  color: var(--accent);
+}
+
+/* Active row: amber tint background + 3px full-height amber accent
+   bar flush to the left edge of the row (rendered via ::before so
+   it participates in the row's rounded corners without needing an
+   extra element). Label goes to weight 500 for the subtle emphasis
+   step-up. */
 .sb-nav-item-active,
 .sb-nav-item-active:hover {
   background: rgba(245, 166, 35, 0.08);
   color: var(--text);
   font-weight: 500;
+}
+
+.sb-nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+
+.sb-nav-item-active .sb-nav-icon {
+  color: var(--accent);
 }
 
 .sb-nav-icon {
@@ -370,7 +456,10 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   height: 18px;
   flex-shrink: 0;
   color: currentColor;
+  transition: color 150ms ease;
 }
+
+.sb-nav-icon svg { width: 18px; height: 18px; }
 
 .sb-nav-label-text {
   flex: 1;
@@ -394,16 +483,16 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 }
 
 .sb-user-avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #F5A623 0%, #D4860A 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #000;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(245, 166, 35, 0.22);
 }
@@ -413,13 +502,13 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .sb-user-name {
   font-size: 13px;
-  font-weight: 600;
-  color: rgba(245, 240, 232, 0.9);
+  font-weight: 500;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -428,7 +517,7 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 
 .sb-user-sub {
   font-size: 11px;
-  color: rgba(245, 240, 232, 0.4);
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -444,14 +533,17 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(245, 240, 232, 0.35);
+  color: var(--muted);
   transition: background 150ms ease, color 150ms ease;
   flex-shrink: 0;
 }
 
+/* Logout icon reveals a warm danger red on hover so the destructive
+   intent is telegraphed before the user hits it. Kept muted at rest
+   so the footer doesn't shout. */
 .sb-settings-btn:hover {
-  background: rgba(255, 240, 220, 0.05);
-  color: rgba(245, 240, 232, 0.8);
+  background: rgba(255, 107, 107, 0.08);
+  color: #E76B6B;
 }
 
 /* --- Inline logout confirmation --- */
@@ -521,10 +613,32 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   gap: 12px;
 }
 
-.sb-sidebar-collapsed .sb-brand {
-  font-size: 15px;
-  text-align: center;
+/* Collapsed rail: hide the wordmark, center the brand mark. The
+   spark alone reads as the app icon at this width. */
+.sb-sidebar-collapsed .sb-brand-wrap {
+  justify-content: center;
+  gap: 0;
   width: 100%;
+}
+
+.sb-sidebar-collapsed .sb-brand {
+  display: none;
+}
+
+.sb-sidebar-collapsed .sb-brand-mark {
+  width: 22px;
+  height: 22px;
+}
+
+.sb-sidebar-collapsed .sb-brand-mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Left accent bar makes no sense on a 40x40 centered icon tile \u2014
+   the amber background tint alone signals the active state. */
+.sb-sidebar-collapsed .sb-nav-item-active::before {
+  display: none;
 }
 
 /* Concept rail (collapsed alternative to the picker). */

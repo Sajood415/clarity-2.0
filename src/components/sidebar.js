@@ -109,9 +109,17 @@ function _buildSidebarHtml() {
 
   const collapseTitle = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
   const collapseIcon = (typeof SB_COLLAPSE_ICON_SVG !== 'undefined') ? SB_COLLAPSE_ICON_SVG : '';
+  const brandMark = (typeof SB_BRAND_MARK_SVG !== 'undefined') ? SB_BRAND_MARK_SVG : '';
+  // Brand row: amber spark mark + "Clarity" wordmark. Collapsed rail
+  // shows only the mark \u2014 it doubles as the app icon in that
+  // width. Wordmark is hidden via CSS in the collapsed variant so we
+  // don't need a separate markup branch.
   const topBar = `
     <div class="sb-top">
-      <div class="sb-brand">${collapsed ? 'C' : 'Clarity'}</div>
+      <div class="sb-brand-wrap">
+        <span class="sb-brand-mark" aria-hidden="true">${brandMark}</span>
+        <span class="sb-brand">Clarity</span>
+      </div>
       <button
         type="button"
         class="sb-collapse-btn"
@@ -123,11 +131,18 @@ function _buildSidebarHtml() {
     </div>
   `;
 
+  // Initial letter for the concept avatar chip. Falls back to "C"
+  // (Clarity) when the active concept has no readable name yet \u2014
+  // avoids an empty circle while onboarding is still filling in
+  // business.name.
+  const conceptInitial = (activeName || 'C').trim().charAt(0).toUpperCase() || 'C';
+
   const conceptSection = collapsed
     ? _renderConceptRail(active)
     : `
       <div class="sb-concept-picker ${dropdownOpen ? 'sb-concept-picker-open' : ''}">
         <button type="button" class="sb-concept-trigger" id="sbConceptTrigger" aria-haspopup="listbox" aria-expanded="${dropdownOpen}">
+          <span class="sb-concept-avatar" aria-hidden="true">${_escape(conceptInitial)}</span>
           <span class="sb-concept-trigger-name">${_escape(activeName)}</span>
           <span class="sb-concept-trigger-chev" aria-hidden="true">${SB_CHEVRON_DOWN_SVG}</span>
         </button>
