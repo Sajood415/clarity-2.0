@@ -1500,9 +1500,31 @@ function _crShowDraftToast() {
 
   const toast = document.createElement('div');
   toast.id = 'crDraftToast';
-  toast.className = 'cr-draft-toast';
-  toast.textContent = 'Saved as draft';
+  // The clickable modifier flips pointer-events back on (the base
+  // class disables them so the toast doesn't intercept during
+  // fade-out) and adds the hover / cursor affordances.
+  toast.className = 'cr-draft-toast cr-draft-toast-clickable';
+  toast.setAttribute('role', 'button');
+  toast.setAttribute('tabindex', '0');
+  toast.innerHTML = 'Saved as draft \u2014 <span class="cr-draft-toast-cta">view in Results</span>';
   document.body.appendChild(toast);
+
+  // Explicit teardown on click so the toast disappears immediately
+  // rather than lingering over the Results screen for the tail of
+  // its auto-hide timer. The later setTimeout is a no-op then
+  // because the element is already off the DOM.
+  const goToResults = function () {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+    if (typeof setActiveView === 'function') setActiveView('results');
+    if (typeof renderApp === 'function') renderApp();
+  };
+  toast.addEventListener('click', goToResults);
+  toast.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goToResults();
+    }
+  });
 
   requestAnimationFrame(function () {
     toast.classList.add('cr-draft-toast-show');

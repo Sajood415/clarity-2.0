@@ -1442,6 +1442,38 @@
   transform: translateX(-50%) translateY(0);
 }
 
+/* Clickable variant \u2014 flips pointer-events back on and adds a
+   subtle hover lift so users read the toast as tappable. The base
+   .cr-draft-toast rule keeps pointer-events off so fade-out
+   states never intercept clicks. */
+.cr-draft-toast-clickable {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 200ms ease, transform 200ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.cr-draft-toast-clickable:hover {
+  border-color: rgba(245, 166, 35, 0.55);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.cr-draft-toast-clickable:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Amber inline call-to-action fragment inside the toast. Reads as
+   the tappable target without the whole toast having to look like
+   a button. */
+.cr-draft-toast-cta {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(245, 166, 35, 0.4);
+  text-underline-offset: 3px;
+}
+
 /* ==========================================
    Publishing success overlay (Step 4 \u2192 Insights)
    ==========================================

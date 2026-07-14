@@ -467,6 +467,35 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   letter-spacing: -0.005em;
 }
 
+/* Amber pill count next to a nav label. Currently only used by the
+   Results row when the active concept has drafts, but the class is
+   generic so any future nav item can opt in with a matching span
+   in _renderNavItems. Hidden in the collapsed rail below \u2014 the
+   icon-only view has no room for a numeric badge. */
+.sb-nav-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.14);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+/* Slightly firmer background on the active nav row so the badge
+   still reads against the amber tint. */
+.sb-nav-item-active .sb-nav-count-badge {
+  background: rgba(245, 166, 35, 0.22);
+}
+
 /* --- Flex spacer pushes footer to the bottom --- */
 
 .sb-spacer { flex: 1; min-height: 0; }
@@ -701,6 +730,13 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 }
 
 .sb-sidebar-collapsed .sb-nav-label-text {
+  display: none;
+}
+
+/* No numeric badge in the collapsed rail \u2014 the icon-only tile
+   has no space and a dot alone is ambiguous. Users see the count
+   the moment they expand the rail. */
+.sb-sidebar-collapsed .sb-nav-count-badge {
   display: none;
 }
 
