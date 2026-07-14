@@ -2350,7 +2350,11 @@ function _obLocRenderGlobe() {
 }
 
 // City suggestions appear once a country is picked so users can commit
-// a "Karachi" or "Berlin" in one tap without typing.
+// a "Karachi" or "Berlin" in one tap without typing. Already-committed
+// (country, city) pairs are filtered out so a repeat click never
+// silently dedupes \u2014 the user gets clear feedback that a city was
+// added (it disappears) and the remaining pills are always net-new
+// additions.
 function _obLocRenderCitySuggestions() {
   const wrap = document.getElementById('obLocCitySuggestions');
   if (!wrap) return;
@@ -2360,10 +2364,33 @@ function _obLocRenderCitySuggestions() {
   if (!country || !country.cities || country.cities.length === 0) {
     wrap.setAttribute('hidden', ''); wrap.innerHTML = ''; return;
   }
+
+  // Build a case-insensitive set of the cities already committed
+  // under this country so we can filter them out of the pill row.
+  const takenKeys = {};
+  const nameLower = name.toLowerCase();
+  const entries = _obLocationPicker.entries || [];
+  for (let i = 0; i < entries.length; i++) {
+    const eCountry = String(entries[i].country || '').trim().toLowerCase();
+    const eCity = String(entries[i].city || '').trim().toLowerCase();
+    if (eCountry === nameLower && eCity) takenKeys[eCity] = true;
+  }
+  const remaining = country.cities.filter(function (c) {
+    return !takenKeys[String(c.name || '').trim().toLowerCase()];
+  });
+
+  // If every popular city for this country has already been added,
+  // hide the whole row rather than showing an empty label.
+  if (remaining.length === 0) {
+    wrap.setAttribute('hidden', '');
+    wrap.innerHTML = '';
+    return;
+  }
+
   wrap.removeAttribute('hidden');
   wrap.innerHTML = '<div class="ob-loc-city-suggestions-label">Popular cities</div>'
     + '<div class="ob-loc-city-suggestions-row">'
-    + country.cities.map(function (c) {
+    + remaining.map(function (c) {
         return '<button type="button" class="ob-loc-city-suggestion" data-city="' + _escape(c.name) + '">' + _escape(c.name) + '</button>';
       }).join('')
     + '</div>';
@@ -2384,9 +2411,20 @@ function _obLocSyncAddBtn() {
 }
 
 // Adds the current draft (pendingCountry + pendingCity) to the entries
-// list, guarding against duplicates. Clears the city input but keeps
-// the country selected so users can quickly add multiple cities in the
-// same country.
+// list, guarding against duplicates via _obNormalizeLocations (dedupes
+// on the (country|city) pair, so two cities under the SAME country
+// land as two separate entries). Multi-city-per-country flow:
+//   1. pick a country \u2192 pendingCountry set, city input revealed
+//   2. type "Lahore" \u2192 Enter \u2192 entry {Pakistan, Lahore} added
+//      \u2192 city input cleared, pendingCountry preserved, focus back
+//        on the city input
+//   3. type "Karachi" \u2192 Enter \u2192 entry {Pakistan, Karachi} added
+//      \u2192 same country, another distinct entry
+// The country selection is intentionally sticky across adds; it only
+// clears when the user picks a different country from the dropdown.
+// Suggestions are re-rendered so any city the user just committed
+// disappears from the "Popular cities" pill row (removes the silent-
+// dedup UX trap where a repeat click looked like a no-op).
 function _obLocAddEntry() {
   const country = String(_obLocationPicker.pendingCountry || '').trim();
   const city = String(_obLocationPicker.pendingCity || '').trim();
@@ -2396,6 +2434,8 @@ function _obLocAddEntry() {
   );
   _obLocationPicker.entries = merged;
   _obLocationPicker.pendingCity = '';
+  // pendingCountry deliberately NOT touched \u2014 sticky so repeated
+  // Enter adds pile up under the same country.
   // Flag which entry was just committed so _obLocRenderGlobe can add
   // the ob-map-pin-new class for the one-shot spotlight animation.
   _obLocationPicker.justAddedKey = country + '||' + city;
@@ -2408,6 +2448,7 @@ function _obLocAddEntry() {
   _obLocSyncAddBtn();
   _obLocRenderTags();
   _obLocRenderGlobe();
+  _obLocRenderCitySuggestions();
   _obLocSyncContinueBtn();
 }
 
@@ -2416,6 +2457,10 @@ function _obLocRemoveEntry(idx) {
   _obLocationPicker.entries.splice(idx, 1);
   _obLocRenderTags();
   _obLocRenderGlobe();
+  // Removing a tag frees up its city in the "Popular cities" filter,
+  // so re-render the suggestion row too. Otherwise a user who
+  // discards a mistake can\u2019t click the pill again to re-add it.
+  _obLocRenderCitySuggestions();
   _obLocSyncContinueBtn();
 }
 

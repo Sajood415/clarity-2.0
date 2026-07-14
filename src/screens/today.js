@@ -905,11 +905,42 @@ function _buildTdListCard(task, idx, opts) {
   // muted indicator (users can see they had a conversation
   // that day; we just don't let them open it from the archive).
   const statusCheckboxHtml = readOnly ? '' : _renderStatusCheckbox(status, idx);
-  const discardBtnHtml = readOnly
+  // Discard is now a muted-red text link (no icon). Inline styles
+  // override the legacy .td-row-discard rule that sized it as a
+  // 26x26 hover-reveal icon slot: we want a persistently visible
+  // text affordance sized to its content in danger red. The
+  // .td-row-discard class stays on the element so the existing
+  // click handler binding via querySelector('.td-row-discard') still
+  // wires up without extra plumbing.
+  //
+  // Approve is a commitment ("yes, I plan to do this today") so
+  // once a task is approved, Discard is suppressed too \u2014 the
+  // user already opted in, changing their mind is a status-cycle
+  // (mark done / re-open) rather than a discard.
+  const discardBtnHtml = (readOnly || task.approved)
     ? ''
     : ''
-      + '<button type="button" class="td-row-discard" data-discard="' + _escape(task.id) + '" aria-label="Discard task \u2014 hide from Today">'
-      +   '<span class="td-row-discard-icon" aria-hidden="true">' + TD_DISCARD_ICON + '</span>'
+      + '<button type="button" class="td-row-discard" data-discard="' + _escape(task.id) + '" '
+      +   'style="opacity:1;width:auto;height:auto;padding:4px 6px;background:transparent;border:none;color:#E8523C;font-family:inherit;font-size:12px;font-weight:500;letter-spacing:0.01em;cursor:pointer;" '
+      +   'aria-label="Discard task \u2014 hide from Today">'
+      +   'Discard'
+      + '</button>';
+
+  // Approve: small green pill that means "yes I want to do this
+  // today". Clicking it flips task.approved to true and re-renders;
+  // because the button is only emitted when !task.approved, the
+  // subsequent render omits it \u2014 effectively hiding the button
+  // after use without a separate hide path. Status stays 'todo'
+  // (the whole point per product decision \u2014 approve != done).
+  // Suppressed in read-only mode alongside every other write
+  // affordance.
+  const approveBtnHtml = (readOnly || task.approved)
+    ? ''
+    : ''
+      + '<button type="button" class="td-row-approve" data-approve="' + _escape(task.id) + '" '
+      +   'style="background:rgba(76,175,130,0.12);border:1px solid rgba(76,175,130,0.28);color:#4CAF82;border-radius:6px;padding:3px 10px;font-family:inherit;font-size:12px;font-weight:600;letter-spacing:0.01em;cursor:pointer;" '
+      +   'aria-label="Approve task \u2014 keep on Today">'
+      +   'Approve'
       + '</button>';
 
   row.innerHTML = ''
@@ -931,6 +962,7 @@ function _buildTdListCard(task, idx, opts) {
     +   '</div>'
     +   '<div class="td-row-actions">'
     +     threadCountHtml
+    +     approveBtnHtml
     +     discardBtnHtml
     +   '</div>'
     + '</div>';
@@ -945,6 +977,7 @@ function _buildTdListCard(task, idx, opts) {
   const statusBtn = row.querySelector('.td-status-btn');
   const statusPill = row.querySelector('.td-row-status');
   const discardBtn = row.querySelector('.td-row-discard');
+  const approveBtn = row.querySelector('.td-row-approve');
 
   // Status circle: cycles todo \u2192 in_progress \u2192 done \u2192 todo.
   // Stops propagation so clicking the circle doesn't also fire the
@@ -963,6 +996,23 @@ function _buildTdListCard(task, idx, opts) {
     statusPill.addEventListener('click', function (e) {
       e.stopPropagation();
       if (_cycleTaskStatus(idx)) _rerenderToday();
+    });
+  }
+
+  // Approve: mark the task as approved without changing its status.
+  // The row stays visible and stays as 'todo' \u2014 approve just
+  // records the user's "yes I plan to do this today" signal. The
+  // button is only rendered when !task.approved, so re-rendering
+  // after the flip naturally removes it (no separate hide path).
+  if (approveBtn) {
+    approveBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const active = getActiveConcept();
+      if (active && active.today && Array.isArray(active.today.tasks) && active.today.tasks[idx]) {
+        active.today.tasks[idx].approved = true;
+        _saveState();
+      }
+      _rerenderToday();
     });
   }
 
