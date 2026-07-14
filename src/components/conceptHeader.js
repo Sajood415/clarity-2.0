@@ -119,6 +119,101 @@ function _chRenderBell() {
   );
 }
 
+// ---------------------------------------------
+// "More" dropdown (shortcut menu)
+// ---------------------------------------------
+//
+// Utility launcher next to the bell. Small menu of shortcut
+// destinations that don't warrant permanent sidebar slots. Same
+// dark-dropdown treatment as the bell but narrower (200px), with
+// button-style rows instead of notification cards.
+//
+// Each entry's `target` is passed straight to setActiveView() on
+// click and does NOT include any preprocessing \u2014 the target must
+// be a legitimate router key. If a target is unroutable it's
+// dropped at render time so the menu never surfaces dead links.
+
+// Bare "reports" is not a real view; the reports.js entry point is
+// report-market. Users navigating here land on Market Scan (same
+// place the overview cards send them). If reports.js ever ships a
+// bare "reports" hub, swap this string.
+const CH_MORE_ITEMS = [
+  {
+    id: 'daily-insights',
+    label: 'Daily Insights',
+    target: 'today',
+    icon:
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M9 18h6"/><path d="M10 22h4"/>'
+      + '<path d="M12 2a7 7 0 0 0-4 12.7c.6.6 1 1.5 1 2.3v1h6v-1c0-.8.4-1.7 1-2.3A7 7 0 0 0 12 2z"/>'
+      + '</svg>'
+  },
+  {
+    id: 'strategic-reports',
+    label: 'Strategic Reports',
+    target: 'report-market',
+    icon:
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<rect x="3" y="3" width="18" height="18" rx="2"/>'
+      + '<line x1="7" y1="16" x2="7" y2="11"/>'
+      + '<line x1="12" y1="16" x2="12" y2="8"/>'
+      + '<line x1="17" y1="16" x2="17" y2="13"/>'
+      + '</svg>'
+  },
+  {
+    id: 'all-concepts',
+    label: 'All Concepts',
+    target: 'concepts-list',
+    icon:
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M12 2l9 5-9 5-9-5 9-5z"/>'
+      + '<polyline points="3 12 12 17 21 12"/>'
+      + '<polyline points="3 17 12 22 21 17"/>'
+      + '</svg>'
+  }
+];
+
+// Horizontal-dots icon on the trigger button. Fill=currentColor so
+// hover/active states pick up amber like the bell.
+const CH_ICON_MORE =
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+  + '<circle cx="5" cy="12" r="1.8"/>'
+  + '<circle cx="12" cy="12" r="1.8"/>'
+  + '<circle cx="19" cy="12" r="1.8"/>'
+  + '</svg>';
+
+function _chRenderMore() {
+  // Drop any items whose target isn't currently routable so the menu
+  // never surfaces a dead-end nav. `setActiveView` accepts every key
+  // in CH_VIEW_LABELS plus a few internal ones \u2014 we approximate the
+  // check via the label map (adequate for the current set of shortcut
+  // targets; if new targets don't have labels, add them there first).
+  const visible = CH_MORE_ITEMS.filter(function (it) {
+    return Object.prototype.hasOwnProperty.call(CH_VIEW_LABELS, it.target);
+  });
+  if (visible.length === 0) return '';
+
+  const itemsHtml = visible.map(function (it) {
+    return (
+      '<button type="button" class="ch-more-item" role="menuitem" data-target="' + _escape(it.target) + '">'
+      +   '<span class="ch-more-item-icon" aria-hidden="true">' + it.icon + '</span>'
+      +   '<span class="ch-more-item-label">' + _escape(it.label) + '</span>'
+      + '</button>'
+    );
+  }).join('');
+
+  return (
+    '<div class="ch-more-wrap">'
+    +   '<button type="button" class="ch-more-btn" id="chMore" aria-label="More" aria-haspopup="menu" aria-expanded="false" title="More">'
+    +     '<span class="ch-more-btn-icon">' + CH_ICON_MORE + '</span>'
+    +   '</button>'
+    +   '<div class="ch-more-panel" id="chMorePanel" role="menu" aria-hidden="true" aria-labelledby="chMore">'
+    +     itemsHtml
+    +   '</div>'
+    + '</div>'
+  );
+}
+
 // Human-readable label for every top-level `activeView`. Report views
 // use their concept's card title (Market / Customer / Competition /
 // Plan) so the breadcrumb reads sensibly when a report is open.
@@ -180,9 +275,10 @@ function _renderConceptHeader() {
     return '';
   }
 
-  // Same bell fragment is injected into every topbar right slot below.
-  // Computed once so all four render paths stay in sync.
+  // Same bell + more fragments are injected into every topbar right
+  // slot below. Computed once so all four render paths stay in sync.
   const bellHtml = _chRenderBell();
+  const moreHtml = _chRenderMore();
 
   // Concepts-list is a "root" sub-page, not scoped to a single concept.
   // Render just the page label, no concept prefix.
@@ -193,7 +289,7 @@ function _renderConceptHeader() {
           <div class="ch-crumbs">
             <span class="ch-crumb-page">${_escape(pageLabel)}</span>
           </div>
-          <div class="ch-topbar-right">${bellHtml}</div>
+          <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
         </div>
       </header>
     `;
@@ -209,7 +305,7 @@ function _renderConceptHeader() {
           <div class="ch-crumbs">
             <span class="ch-crumb-page">${_escape(pageLabel)}</span>
           </div>
-          <div class="ch-topbar-right">${bellHtml}</div>
+          <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
         </div>
       </header>
     `;
@@ -233,7 +329,7 @@ function _renderConceptHeader() {
             <span class="ch-crumb-sep" aria-hidden="true">/</span>
             <span class="ch-crumb-page">${_escape(itemTitle)}</span>
           </div>
-          <div class="ch-topbar-right">${bellHtml}</div>
+          <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
         </div>
       </header>
     `;
@@ -254,7 +350,7 @@ function _renderConceptHeader() {
             <span class="ch-crumb-sep" aria-hidden="true">/</span>
             <span class="ch-crumb-page">${_escape(pageLabel)}</span>
           </div>
-          <div class="ch-topbar-right">${bellHtml}</div>
+          <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
         </div>
       </header>
     `;
@@ -268,17 +364,19 @@ function _renderConceptHeader() {
           <span class="ch-crumb-sep" aria-hidden="true">/</span>
           <span class="ch-crumb-page">${_escape(pageLabel)}</span>
         </div>
-        <div class="ch-topbar-right">${bellHtml}</div>
+        <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
       </div>
     </header>
   `;
 }
 
-// Module-level handlers for the bell dropdown. Kept out of the
-// enclosing function so we can add and remove the same reference on
-// every open/close cycle (anonymous handlers would leak).
+// Module-level handlers for the bell and more dropdowns. Kept out of
+// the enclosing function so we can add and remove the same reference
+// on every open/close cycle (anonymous handlers would leak).
 let _chOutsideBellHandler = null;
 let _chEscBellHandler = null;
+let _chOutsideMoreHandler = null;
+let _chEscMoreHandler = null;
 
 function _chCloseBell() {
   const btn   = document.getElementById('chBell');
@@ -302,6 +400,9 @@ function _chOpenBell() {
   const btn   = document.getElementById('chBell');
   const panel = document.getElementById('chNotifPanel');
   if (!btn || !panel) return;
+  // Only one dropdown open at a time \u2014 close the sibling first so
+  // the two panels never render side-by-side on top of each other.
+  _chCloseMore();
   btn.setAttribute('aria-expanded', 'true');
   panel.classList.add('ch-notif-panel-open');
   panel.setAttribute('aria-hidden', 'false');
@@ -329,6 +430,51 @@ function _chOpenBell() {
   document.addEventListener('keydown', _chEscBellHandler);
 }
 
+function _chCloseMore() {
+  const btn   = document.getElementById('chMore');
+  const panel = document.getElementById('chMorePanel');
+  if (btn)   btn.setAttribute('aria-expanded', 'false');
+  if (panel) {
+    panel.classList.remove('ch-more-panel-open');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+  if (_chOutsideMoreHandler) {
+    document.removeEventListener('mousedown', _chOutsideMoreHandler, true);
+    _chOutsideMoreHandler = null;
+  }
+  if (_chEscMoreHandler) {
+    document.removeEventListener('keydown', _chEscMoreHandler);
+    _chEscMoreHandler = null;
+  }
+}
+
+function _chOpenMore() {
+  const btn   = document.getElementById('chMore');
+  const panel = document.getElementById('chMorePanel');
+  if (!btn || !panel) return;
+  // Sibling dropdown must close first \u2014 same rule as _chOpenBell.
+  _chCloseBell();
+  btn.setAttribute('aria-expanded', 'true');
+  panel.classList.add('ch-more-panel-open');
+  panel.setAttribute('aria-hidden', 'false');
+
+  _chOutsideMoreHandler = function (e) {
+    const wrap = document.querySelector('.ch-more-wrap');
+    if (!wrap) return;
+    if (wrap.contains(e.target)) return;
+    _chCloseMore();
+  };
+  document.addEventListener('mousedown', _chOutsideMoreHandler, true);
+
+  _chEscMoreHandler = function (e) {
+    if (e.key !== 'Escape') return;
+    _chCloseMore();
+    const mm = document.getElementById('chMore');
+    if (mm) mm.focus();
+  };
+  document.addEventListener('keydown', _chEscMoreHandler);
+}
+
 // Wire the clickable crumb / back links in the topbar. Kept as native
 // buttons so they're keyboard-focusable without extra work.
 function _bindConceptHeaderEvents() {
@@ -336,6 +482,8 @@ function _bindConceptHeaderEvents() {
   // handlers point at DOM that no longer exists. Reset them.
   _chOutsideBellHandler = null;
   _chEscBellHandler = null;
+  _chOutsideMoreHandler = null;
+  _chEscMoreHandler = null;
 
   // Element id is left as 'chCrumbInsights' (git-blame continuity);
   // the crumb text and navigation target are both 'Results'.
@@ -366,6 +514,32 @@ function _bindConceptHeaderEvents() {
       else _chOpenBell();
     });
   }
+
+  // "More" dropdown \u2014 same toggle contract as the bell.
+  const moreBtn = document.getElementById('chMore');
+  if (moreBtn) {
+    moreBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const isOpen = moreBtn.getAttribute('aria-expanded') === 'true';
+      if (isOpen) _chCloseMore();
+      else _chOpenMore();
+    });
+  }
+
+  // Individual menu items in the More dropdown. Each row carries its
+  // router key on data-target; we close the panel, dispatch the view
+  // change, and re-render. Full renderApp() rebuild means the topbar
+  // and its dropdowns come back cleanly \u2014 no in-place patching.
+  document.querySelectorAll('.ch-more-item[data-target]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const target = btn.getAttribute('data-target');
+      _chCloseMore();
+      if (!target) return;
+      setActiveView(target);
+      renderApp();
+    });
+  });
 }
 
 window._renderConceptHeader = _renderConceptHeader;

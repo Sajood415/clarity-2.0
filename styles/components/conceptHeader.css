@@ -368,3 +368,166 @@
 @media (max-width: 380px) {
   .ch-notif-panel { width: calc(100vw - 32px); }
 }
+
+/* ==========================================
+   "More" dropdown
+   ==========================================
+   Sits immediately after the notification bell in the topbar
+   right slot. Shares the visual language of the notification
+   panel (dark surface, subtle border, right-aligned drop) but is
+   narrower and its rows are button-style shortcut items instead
+   of notification cards.
+*/
+
+.ch-more-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Trigger button. Same 32x32 target size as the bell so the two
+   read as siblings in the topbar. The dots icon carries fill
+   (not stroke) so hover/active states drive color via
+   `color` inheritance without needing a separate rule. */
+.ch-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.ch-more-btn:hover {
+  color: var(--text);
+  background: rgba(255, 240, 220, 0.04);
+  border-color: var(--border);
+}
+
+.ch-more-btn:focus-visible {
+  outline: none;
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.25);
+}
+
+/* When the More panel is open, keep the trigger visually "held"
+   so the connection between button and panel stays clear. */
+.ch-more-btn[aria-expanded="true"] {
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.08);
+  border-color: rgba(245, 166, 35, 0.28);
+}
+
+.ch-more-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ch-more-btn-icon svg { display: block; }
+
+/* --- Panel --------------------------------------------------- */
+/* Narrower than the notification panel (200px). Right-aligned to
+   the wrapper so its edge lines up with the trigger's right side.
+   z-index matches the bell panel so both drop above the topbar
+   (z-index: 20) but don't fight each other. */
+.ch-more-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  display: none;
+  z-index: 30;
+  overflow: hidden;
+  padding: 6px;
+  transform-origin: top right;
+}
+
+.ch-more-panel-open {
+  display: block;
+  animation: ch-notif-in 140ms ease-out;
+}
+
+/* --- Menu rows ---------------------------------------------- */
+
+.ch-more-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.ch-more-item + .ch-more-item {
+  margin-top: 2px;
+}
+
+.ch-more-item:hover {
+  background: rgba(245, 166, 35, 0.08);
+  color: var(--accent);
+}
+
+.ch-more-item:focus-visible {
+  outline: none;
+  background: rgba(245, 166, 35, 0.08);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(245, 166, 35, 0.3);
+}
+
+/* Small monochrome glyph slot. Inherits color from the row so
+   hover flips the icon amber alongside the label. */
+.ch-more-item-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  transition: color 120ms ease;
+}
+
+.ch-more-item:hover .ch-more-item-icon,
+.ch-more-item:focus-visible .ch-more-item-icon {
+  color: var(--accent);
+}
+
+.ch-more-item-icon svg { display: block; }
+
+.ch-more-item-label {
+  flex: 1;
+  min-width: 0;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Narrow-viewport tuck for the More panel too \u2014 200px is
+   comfortably small, but on ultra-narrow screens (< 260px) the
+   panel would still be cramped by topbar padding. Same clamp
+   strategy as the notification panel. */
+@media (max-width: 260px) {
+  .ch-more-panel { width: calc(100vw - 32px); }
+}
