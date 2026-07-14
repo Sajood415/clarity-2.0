@@ -1527,3 +1527,8 @@ function _crPlatformLabel(key) {
 
 window.renderCreate = renderCreate;
 window._resetCreate = _resetCreate;
+// Shared SVG catalog. Exposed so the Results screen (and any other
+// consumer) can render platform glyphs without duplicating the source
+// \u2014 kept in sync with CR_PLATFORMS so a new platform key only
+// needs the icon added here once.
+window.CR_PLATFORM_ICONS = CR_PLATFORM_ICONS;

@@ -248,7 +248,6 @@ function _tkRenderRightCol() {
     + '</div>';
 
   const boardName = board ? board.name : 'My Tasks';
-  const boardColor = board ? board.color : '#F5A623';
 
   const viewBody = view === 'list'     ? _tkRenderListView(tasks)
                  : view === 'calendar' ? _tkRenderCalendarView(tasks)
@@ -293,7 +292,6 @@ function _tkRenderRightCol() {
     +   '<div class="tk-topbar">'
     +     '<div class="tk-topbar-left">'
     +       backLink
-    +       '<span class="tk-topbar-board-dot" style="background:' + _escape(boardColor) + '"></span>'
     +       '<h2 class="tk-topbar-title">' + _escape(boardName) + '</h2>'
     +     '</div>'
     +     '<div class="tk-topbar-right">'
@@ -302,12 +300,28 @@ function _tkRenderRightCol() {
     +       '<button type="button" class="tk-add-btn" id="tkAddBtn">' + TK_ICONS.plus + '<span>Add task</span></button>'
     +     '</div>'
     +   '</div>'
+    +   '<div class="tk-datebar-row td-datebar-host" id="tkDateBarHost"></div>'
     +   _tkRenderFilterBar(tasks)
     +   '<div class="tk-view-body">' + viewBody + '</div>'
     + '</section>';
 }
 
 function _tkBindRightCol() {
+  // Shared date navigator between the topbar and the filter bar.
+  // Any date change re-renders the whole Tasks screen; that
+  // rebuilds the filter bar, view body, and detail panel (if
+  // open) so drag-drop / card-click gating stays in sync with
+  // the newly-selected viewedDate. See _tkVisibleTasks for the
+  // date-filter rule and _tkIsPastView for the read-only lock.
+  const dateBarHost = document.getElementById('tkDateBarHost');
+  if (dateBarHost && window._dateNavigator && typeof window._dateNavigator.mount === 'function') {
+    window._dateNavigator.mount(dateBarHost, {
+      screen: 'tasks',
+      hasTasksForDate: function (iso) { return _tkHasTasksOnDate(iso); },
+      onChange: function () { renderTasks(document.getElementById('homeContent')); }
+    });
+  }
+
   // Back-nav to Today \u2014 sole return path from Tasks.
   const backBtn = document.getElementById('tkBackToToday');
   if (backBtn) {
@@ -427,8 +441,29 @@ function _tkRerenderRightColKeepingSearch() {
 function _tkVisibleTasks(tasks) {
   const q = String(tasks.searchQuery || '').trim().toLowerCase();
   const f = tasks.filters;
+  const viewed = _tkViewedDate();
+  const today  = _tkTodayIso();
+  const isPast = viewed !== today;
+
   return tasks.items.filter(function (t) {
     if (t.boardId !== tasks.activeBoard) return false;
+
+    // Date filter. Sole matching rule:
+    //   viewed == today \u2014 show tasks whose dueDate matches today
+    //                     OR whose dueDate is empty (unscheduled
+    //                     work naturally lands on today's view; it
+    //                     would otherwise be invisible on every
+    //                     date and effectively lost).
+    //   viewed <  today \u2014 strict: only tasks with dueDate === viewed.
+    //                     Unscheduled tasks are NOT shown on past
+    //                     dates because they were never "due" then.
+    const due = String(t.dueDate || '');
+    if (isPast) {
+      if (due !== viewed) return false;
+    } else {
+      if (due && due !== today) return false;
+    }
+
     if (f.status.length   && f.status.indexOf(t.status)     === -1) return false;
     if (f.priority.length && f.priority.indexOf(t.priority) === -1) return false;
     if (f.type.length     && f.type.indexOf(t.type)         === -1) return false;
@@ -439,6 +474,58 @@ function _tkVisibleTasks(tasks) {
       if (!inTitle && !inDesc) return false;
     }
     return true;
+  });
+}
+
+// Local-time YYYY-MM-DD for today. Same shape as the shared
+// date navigator's todayIso; kept as a local fallback in case
+// the module didn't load (edge case during script boot).
+function _tkTodayIso() {
+  if (window._dateNavigator && typeof window._dateNavigator.todayIso === 'function') {
+    return window._dateNavigator.todayIso();
+  }
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+// Which date is the Tasks screen filtering by? Reads through the
+// shared cursor on `concept.today.viewedDate`. Missing / null
+// falls back to today so the initial paint always shows the
+// live list.
+function _tkViewedDate() {
+  const c = (typeof getActiveConcept === 'function') ? getActiveConcept() : null;
+  if (!c || !c.today) return _tkTodayIso();
+  const v = c.today.viewedDate;
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  return _tkTodayIso();
+}
+
+// True when the user is browsing an archived (past) day on the
+// Tasks screen. In this mode the board / list / calendar views
+// strip drag-drop and card-click-to-detail so the archive is
+// legible but frozen \u2014 no accidental edits to old work.
+function _tkIsPastView() {
+  return _tkViewedDate() !== _tkTodayIso();
+}
+
+// Does the given ISO have any task activity? Consumed by the
+// calendar dropdown to render the amber "has tasks" dot below
+// day numbers. A day counts if any task on the active board
+// has that exact dueDate. Today ALSO counts unscheduled tasks
+// (dueDate === '') because they land on today's view.
+function _tkHasTasksOnDate(iso) {
+  const c = (typeof getActiveConcept === 'function') ? getActiveConcept() : null;
+  if (!c || !c.tasks || !Array.isArray(c.tasks.items)) return false;
+  const activeBoard = c.tasks.activeBoard;
+  const today = _tkTodayIso();
+  return c.tasks.items.some(function (t) {
+    if (!t || t.boardId !== activeBoard) return false;
+    const due = String(t.dueDate || '');
+    if (iso === today) return !due || due === today;
+    return due === iso;
   });
 }
 
@@ -576,8 +663,18 @@ function _tkIsoFromDate(d) {
 }
 
 function _tkBindBoardView() {
-  // Card click -> open detail
+  const readOnly = _tkIsPastView();
+
+  // Card click -> open detail. Suppressed on past dates so the
+  // archive stays read-only \u2014 no accidental edits via the
+  // detail panel's inline selects.
   document.querySelectorAll('.tk-board-view [data-task]').forEach(function (card) {
+    if (readOnly) {
+      card.setAttribute('aria-disabled', 'true');
+      card.setAttribute('draggable', 'false');
+      return;
+    }
+
     card.addEventListener('click', function (e) {
       // Ignore drag-in-progress clicks
       if (_tkUiState.draggingId) return;
@@ -604,7 +701,12 @@ function _tkBindBoardView() {
     });
   });
 
-  // Column drop targets
+  // Column drop targets \u2014 also gated on read-only mode. Without
+  // a bound handler, dragover won't fire and the drop never
+  // completes, which is the desired UX (cursor never turns into
+  // the drop affordance on past dates).
+  if (readOnly) return;
+
   document.querySelectorAll('[data-drop-status]').forEach(function (col) {
     col.addEventListener('dragover', function (e) {
       if (!_tkUiState.draggingId) return;
@@ -748,6 +850,8 @@ function _tkRenderThreeDotMenu(t) {
 }
 
 function _tkBindListView() {
+  const readOnly = _tkIsPastView();
+
   // Sort headers
   document.querySelectorAll('[data-sort]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -759,8 +863,14 @@ function _tkBindListView() {
     });
   });
 
-  // Row click -> open detail
+  // Row click -> open detail. On past dates the whole row is
+  // non-interactive so the archive can't be edited via the
+  // detail panel's inline selects.
   document.querySelectorAll('.tk-list-row').forEach(function (row) {
+    if (readOnly) {
+      row.setAttribute('aria-disabled', 'true');
+      return;
+    }
     row.addEventListener('click', function (e) {
       if (e.target.closest('.tk-list-cell-menu')) return;
       const id = row.getAttribute('data-task');
@@ -919,15 +1029,21 @@ function _tkBindCalendarView() {
     renderTasks(document.getElementById('homeContent'));
   });
 
+  const readOnly = _tkIsPastView();
+
   document.querySelectorAll('.tk-cal-day[data-day]').forEach(function (cell) {
     cell.addEventListener('click', function (e) {
-      // Chip click drills straight into the task; day click just
-      // selects the day (mini-list below).
+      // Chip click drills into the task \u2014 blocked on past dates
+      // so the archived task detail can't be opened for editing.
       const chip = e.target.closest('[data-task]');
       if (chip) {
+        if (readOnly) return;
         _tkOpenDetail(chip.getAttribute('data-task'));
         return;
       }
+      // Day-cell selection stays available in every mode: browsing
+      // days inside the current calendar month is a read affordance,
+      // not an edit.
       const iso = cell.getAttribute('data-day');
       const tasks = getTasks();
       tasks.calendarSelectedDate = (tasks.calendarSelectedDate === iso) ? null : iso;
@@ -937,6 +1053,10 @@ function _tkBindCalendarView() {
   });
 
   document.querySelectorAll('.tk-cal-mini-row').forEach(function (row) {
+    if (readOnly) {
+      row.setAttribute('aria-disabled', 'true');
+      return;
+    }
     row.addEventListener('click', function () {
       _tkOpenDetail(row.getAttribute('data-task'));
     });

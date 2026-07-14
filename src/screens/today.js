@@ -115,7 +115,22 @@ function renderToday(container) {
   // gone but the teardown stays as a safety net for one session.
   _closeTdInsightDrawer();
 
+  // Close any leftover calendar dropdowns from a previous render
+  // (e.g. concept switch with a dropdown open on the outgoing
+  // screen). Cheap no-op when no dropdowns are open.
+  if (window._dateNavigator && typeof window._dateNavigator.closeAllDropdowns === 'function') {
+    window._dateNavigator.closeAllDropdowns();
+  }
+
   _seedTodayTasks(c);
+  // Mirror the live Today task array into `taskHistory[today]` on
+  // every render so the archive is always the "as I left it just
+  // now" copy. Once the calendar day rolls over, we stop writing
+  // to that entry and it freezes as the historical record of that
+  // day. Runs BEFORE we choose which pool to render so the archive
+  // is fresh even if the user immediately navigates to today's ISO
+  // (no double-render needed).
+  _snapshotTodayTasks(c);
   // Ensure today's insights are populated before we decide whether to
   // render the card. Idempotent \u2014 the seeder bails cleanly if
   // today.insights[0].date already matches the current calendar day.
@@ -213,6 +228,7 @@ function renderToday(container) {
           >${calendarGlyph}</button>
         </div>
       </div>
+      <div class="td-datebar-host" id="tdDateBarHost"></div>
       ${insightMarkup}
       <div id="tdBody"></div>
       <div class="td-footer-note">Clara updates these every day based on what\u2019s working.</div>
@@ -221,6 +237,20 @@ function renderToday(container) {
 
   _bindTdOpenBoard(container);
   if (showInsights) _bindTdInsightCard(container, c);
+
+  // Mount the shared date navigator between the heading + view-
+  // toggle row and the insight card. Any date change re-renders
+  // the Today screen top-to-bottom via _rerenderToday so the
+  // task list, filter bar, empty state, and read-only mode all
+  // stay in sync with the newly-selected date.
+  const dateBarHost = container.querySelector('#tdDateBarHost');
+  if (dateBarHost && window._dateNavigator && typeof window._dateNavigator.mount === 'function') {
+    window._dateNavigator.mount(dateBarHost, {
+      screen: 'today',
+      hasTasksForDate: function (iso) { return _tdHasTasksOnDate(c, iso); },
+      onChange: function () { _rerenderToday(); }
+    });
+  }
 
   const body = container.querySelector('#tdBody');
   _renderTdList(body, c);
@@ -495,6 +525,93 @@ function _tdListFilterLabel(key) {
   return 'All';
 }
 
+// Mirror the current `concept.today.tasks` array into
+// `concept.today.taskHistory[today]` on every Today render. This
+// is the entire archive mechanism \u2014 no cron, no rollover
+// bookkeeping, just a write-through cache keyed by local-time
+// ISO. Once the calendar day changes the next Today render
+// writes to a NEW key, so the previous day's entry is naturally
+// frozen at whatever state the list held on the last render of
+// that day. Snapshots deep-clone the array so future mutations
+// to `concept.today.tasks` don't retroactively edit the archive.
+function _snapshotTodayTasks(c) {
+  if (!c || !c.today) return;
+  if (!c.today.taskHistory || typeof c.today.taskHistory !== 'object') {
+    c.today.taskHistory = {};
+  }
+  if (!Array.isArray(c.today.tasks)) return;
+  const iso = (window._dateNavigator && typeof window._dateNavigator.todayIso === 'function')
+    ? window._dateNavigator.todayIso()
+    : _tdLocalTodayIso();
+  // JSON deep-clone is fine here: task objects only contain
+  // primitives, arrays, and plain objects (no functions, no DOM).
+  // Cheaper than structuredClone in older browsers.
+  try {
+    c.today.taskHistory[iso] = JSON.parse(JSON.stringify(c.today.tasks));
+    if (typeof window._saveState === 'function') window._saveState();
+  } catch (err) {
+    console.error('Today snapshot failed:', err);
+  }
+}
+
+// Local YYYY-MM-DD fallback for environments where the shared
+// dateNavigator module hasn't loaded yet (edge case during
+// script boot). Same format as the module's todayIso.
+function _tdLocalTodayIso() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+// Which date is the Today screen currently rendering? Reads
+// through the shared cursor on `concept.today.viewedDate`.
+// A null / missing value means "today's live list".
+function _tdViewedDate(c) {
+  const nav = window._dateNavigator;
+  if (nav && typeof nav.readViewedDate === 'function') return nav.readViewedDate();
+  // Fallback if module didn't load: just return today.
+  return _tdLocalTodayIso();
+}
+
+// True when the user is browsing an archived day. In this
+// mode the row renderer strips all interactive affordances
+// (status circle click, status pill click, discard button,
+// row click-to-detail) so the past is legible but frozen.
+function _tdIsPastView(c) {
+  return _tdViewedDate(c) !== _tdLocalTodayIso();
+}
+
+// Pick the correct task pool for the currently-viewed date.
+// Today \u2192 live `concept.today.tasks`. Past \u2192 archived snapshot
+// from `concept.today.taskHistory[viewedDate]`. Empty array if
+// no snapshot exists for that day (an empty state message is
+// rendered by _renderTdList in that case).
+function _tdTasksForViewed(c) {
+  if (!c || !c.today) return [];
+  const iso = _tdViewedDate(c);
+  if (iso === _tdLocalTodayIso()) {
+    return Array.isArray(c.today.tasks) ? c.today.tasks : [];
+  }
+  const snap = c.today.taskHistory && c.today.taskHistory[iso];
+  return Array.isArray(snap) ? snap : [];
+}
+
+// Does the given ISO have any recorded task activity? Used by
+// the calendar dropdown to render the little amber "has tasks"
+// dot below the day number. Today counts if the live list has
+// entries; past days count if their taskHistory snapshot has
+// entries.
+function _tdHasTasksOnDate(c, iso) {
+  if (!c || !c.today) return false;
+  if (iso === _tdLocalTodayIso()) {
+    return Array.isArray(c.today.tasks) && c.today.tasks.length > 0;
+  }
+  const snap = c.today.taskHistory && c.today.taskHistory[iso];
+  return Array.isArray(snap) && snap.length > 0;
+}
+
 // Seed the concept's persistent task list from the generator, once.
 // Also handles legacy state where `today.tasks` is missing.
 function _seedTodayTasks(c) {
@@ -622,44 +739,66 @@ function _bindTdOpenBoard(scope) {
 // ---------------------------------------------
 
 function _renderTdList(container, c) {
+  // Which day are we rendering? Today (live, editable) or an
+  // archived past day (read-only view from taskHistory)?
+  const isPast = _tdIsPastView(c);
+  const sourceTasks = _tdTasksForViewed(c);
+
+  // Past-date empty state: no snapshot recorded for that day.
+  // The spec calls for a muted centered message rather than the
+  // usual filter bar + rows scaffold.
+  if (isPast && sourceTasks.length === 0) {
+    container.innerHTML = ''
+      + '<div class="td-past-empty" role="status">'
+      +   '<div class="td-past-empty-icon" aria-hidden="true">\u2014</div>'
+      +   '<div class="td-past-empty-msg">No tasks recorded for this day.</div>'
+      + '</div>';
+    return;
+  }
+
   // Filter bar sits ABOVE the row list, inside the same body so
   // vertical rhythm stays consistent with the rest of the Today
   // page. The bar is only rendered when there's at least one
   // non-discarded task to filter \u2014 an empty task list looks
-  // cleaner without dangling pills.
+  // cleaner without dangling pills. Also hidden on past-date
+  // views: filtering an archived day is possible in theory but
+  // adds noise for what's already a "look, don't touch" surface.
   const activeFilter = _tdListFilterCurrent();
-  const hasVisibleTasks = c.today.tasks.some(function (t) {
+  const hasVisibleTasks = sourceTasks.some(function (t) {
     return t && !t.discarded;
   });
-  const filterBarHtml = hasVisibleTasks
+  const filterBarHtml = (hasVisibleTasks && !isPast)
     ? _tdRenderFilterBar(activeFilter)
     : '';
 
   container.innerHTML = ''
     + filterBarHtml
-    + '<div class="td-rows" id="tdRows"></div>';
+    + '<div class="td-rows' + (isPast ? ' td-rows-readonly' : '') + '" id="tdRows"></div>';
 
   const wrap = container.querySelector('#tdRows');
 
   // Skip discarded tasks first (always hidden regardless of the
   // active filter \u2014 discard is a "not today" verdict, not a
-  // status). Then apply the status filter. Preserve the ORIGINAL
-  // idx into c.today.tasks so status-cycle and discard writes
-  // still land on the right slot after filtering: idx is what
-  // _setTaskStatus / _cycleTaskStatus consume.
-  c.today.tasks.forEach(function (task, idx) {
+  // status). Then apply the status filter (today only). Preserve
+  // the ORIGINAL idx into c.today.tasks so status-cycle and
+  // discard writes still land on the right slot after filtering.
+  // For past-date rendering the idx points into the archived
+  // snapshot array \u2014 which is irrelevant because past cards
+  // are stripped of write affordances, so idx is never consumed.
+  sourceTasks.forEach(function (task, idx) {
     if (!task || task.discarded) return;
-    if (activeFilter !== 'all') {
+    if (!isPast && activeFilter !== 'all') {
       const status = _resolveStatus(task.status);
       if (status !== activeFilter) return;
     }
-    wrap.appendChild(_buildTdListCard(task, idx));
+    wrap.appendChild(_buildTdListCard(task, idx, { readOnly: isPast }));
   });
 
   // Wire filter-pill clicks after the DOM is mounted. Handlers
   // just flip the module-level filter and re-render \u2014 no state
-  // save (filter is session-only by design).
-  _tdBindFilterBar(container);
+  // save (filter is session-only by design). Skipped in past-date
+  // mode because the bar itself isn't rendered.
+  if (!isPast) _tdBindFilterBar(container);
 }
 
 // Filter bar markup: "All | To Do | In Progress | Done" pills.
@@ -709,13 +848,14 @@ function _tdBindFilterBar(scope) {
 // the row's default meaning is "yes I plan to do this today", so an
 // explicit approve action is redundant. `task.approved` still exists
 // in state for backward compat but no longer has a UI affordance.
-function _buildTdListCard(task, idx) {
+function _buildTdListCard(task, idx, opts) {
+  const readOnly = !!(opts && opts.readOnly);
   const status = _resolveStatus(task.status);
   const done = status === 'done';
   const type = String(task.type || '').toUpperCase();
 
   const row = document.createElement('div');
-  row.className = 'td-row' + (done ? ' td-row-done' : '');
+  row.className = 'td-row' + (done ? ' td-row-done' : '') + (readOnly ? ' td-row-readonly' : '');
   row.setAttribute('data-task-id', task.id);
   row.setAttribute('data-type', type);
 
@@ -756,10 +896,25 @@ function _buildTdListCard(task, idx) {
     +   _escape(statusLabel.toUpperCase())
     + '</button>';
 
+  // Row body composition. In read-only (past-date) mode we strip
+  // ALL interactive affordances: no status circle, no status
+  // pill click, no discard button, no click-to-detail on the row.
+  // The row becomes an informational readout of what the day
+  // looked like. Thread-count badge is still rendered as a
+  // muted indicator (users can see they had a conversation
+  // that day; we just don't let them open it from the archive).
+  const statusCheckboxHtml = readOnly ? '' : _renderStatusCheckbox(status, idx);
+  const discardBtnHtml = readOnly
+    ? ''
+    : ''
+      + '<button type="button" class="td-row-discard" data-discard="' + _escape(task.id) + '" aria-label="Discard task \u2014 hide from Today">'
+      +   '<span class="td-row-discard-icon" aria-hidden="true">' + TD_DISCARD_ICON + '</span>'
+      + '</button>';
+
   row.innerHTML = ''
     + '<span class="td-row-accent" aria-hidden="true"></span>'
     + '<div class="td-row-main">'
-    +   _renderStatusCheckbox(status, idx)
+    +   statusCheckboxHtml
     +   '<div class="td-row-body">'
     +     '<div class="td-row-desc">' + _escape(task.description) + '</div>'
     +     '<div class="td-row-meta">'
@@ -775,11 +930,16 @@ function _buildTdListCard(task, idx) {
     +   '</div>'
     +   '<div class="td-row-actions">'
     +     threadCountHtml
-    +     '<button type="button" class="td-row-discard" data-discard="' + _escape(task.id) + '" aria-label="Discard task \u2014 hide from Today">'
-    +       '<span class="td-row-discard-icon" aria-hidden="true">' + TD_DISCARD_ICON + '</span>'
-    +     '</button>'
+    +     discardBtnHtml
     +   '</div>'
     + '</div>';
+
+  // Interactive wiring is entirely suppressed on past-date rows.
+  // Every write path (cycle status, discard) mutates
+  // `concept.today.tasks` at a live idx \u2014 which doesn't exist for
+  // archived snapshots. Returning early keeps the archive
+  // strictly frozen and side-effect-free.
+  if (readOnly) return row;
 
   const statusBtn = row.querySelector('.td-status-btn');
   const statusPill = row.querySelector('.td-row-status');

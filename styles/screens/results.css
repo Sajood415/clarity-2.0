@@ -105,6 +105,154 @@
   letter-spacing: -0.005em;
 }
 
+/* --- Filter bar ------------------------------------------- */
+/* Sits between the summary tiles and the feed. Left cluster is a
+   row of format pills (image / video / audio / post); right cluster
+   is a native <select> for platform. The pill treatment mirrors the
+   Today screen's filter row so switching between the two doesn't
+   register as a stylistic jump.
+   Filters do NOT affect the summary tile totals \u2014 those show the
+   full published corpus. Filters only narrow the feed below. */
+
+.ins-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.ins-format-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Pill toggles. Idle state is a plain 13px muted button; active
+   picks up an amber tint background + amber label. Same tokens
+   the Today filter uses so both screens read as one system. */
+.ins-filter {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.ins-filter:hover {
+  color: #fff;
+}
+
+.ins-filter:focus-visible {
+  outline: none;
+  color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+.ins-filter-active,
+.ins-filter-active:hover {
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.08);
+}
+
+.ins-platform-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ins-platform-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Native <select> restyled to match the dark theme. Chevron is
+   an inline SVG data URI so we don't need a wrapper element. */
+.ins-platform-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1l4 4 4-4' stroke='%23F5A623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+    no-repeat right 12px center / 10px 6px,
+    var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 32px 6px 12px;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.ins-platform-select:hover {
+  border-color: rgba(245, 166, 35, 0.35);
+}
+
+.ins-platform-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.25);
+}
+
+/* Empty state variant that renders inside the feed when a filter
+   combination has zero matches. Different copy + reset button vs
+   the "nothing published yet" empty state so it stays honest about
+   which state the user is looking at. */
+.ins-empty-filter {
+  padding: 44px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.ins-empty-filter-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+
+.ins-empty-filter-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.ins-empty-filter-reset {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ins-empty-filter-reset:hover {
+  border-color: var(--accent);
+  background: rgba(245, 166, 35, 0.08);
+}
+
 /* --- Content feed ----------------------------------------- */
 
 .ins-feed {
@@ -199,11 +347,14 @@
 .ins-info-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .ins-platform-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -216,10 +367,78 @@
   line-height: 1.4;
 }
 
+/* Platform glyph rendered inside the chip. The glyphs come from
+   CR_PLATFORM_ICONS on the create screen and are sized via a
+   viewBox on the SVG itself; we constrain the outer slot so the
+   glyph never blows out the chip on rare platforms with heavier
+   iconography. currentColor inherits the chip's amber. */
+.ins-platform-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: var(--accent);
+}
+
+.ins-platform-chip-icon svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.ins-platform-chip-label {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Content-type badge that sits next to the platform chip. Color
+   tint per type keeps the row scannable ("was this a video or a
+   post?") without stealing focus from the platform chip. */
+.ins-type-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 6px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+
+/* image = warm neutral (matches the existing amber system without
+   competing for it), video = blue, audio = purple, post = grey. */
+.ins-type-badge-image {
+  background: rgba(232, 133, 60, 0.12);
+  color: #E8853C;
+  border-color: rgba(232, 133, 60, 0.28);
+}
+
+.ins-type-badge-video {
+  background: rgba(74, 158, 224, 0.12);
+  color: #4A9EE0;
+  border-color: rgba(74, 158, 224, 0.28);
+}
+
+.ins-type-badge-audio {
+  background: rgba(168, 118, 232, 0.12);
+  color: #A876E8;
+  border-color: rgba(168, 118, 232, 0.28);
+}
+
+.ins-type-badge-post {
+  background: rgba(245, 240, 232, 0.06);
+  color: rgba(245, 240, 232, 0.75);
+  border-color: rgba(245, 240, 232, 0.14);
+}
+
 .ins-content-date {
   font-size: 12px;
   color: var(--muted);
   letter-spacing: 0.01em;
+  margin-left: auto;
 }
 
 .ins-content-body {
@@ -554,6 +773,23 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+}
+
+/* Modifier: 3-column layout for platforms with 5\u20136 metrics
+   (Email/Newsletter, Podcast, X). Same as the default \u2014 kept
+   as an explicit class so the JS can toggle intent without
+   relying on cardinality inference in CSS. */
+.insd-metrics-grid--3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Modifier: 4-column layout for platforms with 7\u20138 metrics
+   (Instagram/Facebook/LinkedIn/YouTube 7 fields, TikTok 8). Cards
+   are dense but the extra column keeps orphaned rows from
+   appearing at desktop widths. Falls back to 3 / 2 / 1 columns via
+   the responsive block at the bottom of the file. */
+.insd-metrics-grid--4col {
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .insd-metric-card {
@@ -928,28 +1164,46 @@
 
 /* --- Responsive ------------------------------------------- */
 
+@media (max-width: 1100px) {
+  /* Between 900px and 1100px the 4-col grid gets cramped, so we
+     drop it to 3 columns while leaving the 3-col grid at 3. */
+  .insd-metrics-grid--4col { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 900px) {
-  .ins-summary-row       { grid-template-columns: repeat(2, 1fr); }
-  .insd-metrics-grid     { grid-template-columns: repeat(2, 1fr); }
-  .insd-actions          { grid-template-columns: 1fr; }
-  .insd-two-col          { grid-template-columns: 1fr; }
-  .insd-head             { flex-direction: column; align-items: flex-start; }
-  .insd-external         { margin-top: 4px; }
+  .ins-summary-row         { grid-template-columns: repeat(2, 1fr); }
+  .insd-metrics-grid,
+  .insd-metrics-grid--3col,
+  .insd-metrics-grid--4col { grid-template-columns: repeat(2, 1fr); }
+  .insd-actions            { grid-template-columns: 1fr; }
+  .insd-two-col            { grid-template-columns: 1fr; }
+  .insd-head               { flex-direction: column; align-items: flex-start; }
+  .insd-external           { margin-top: 4px; }
+
+  /* Filter bar wraps onto two rows: pills up top, dropdown below. */
+  .ins-filters             { flex-direction: column; align-items: stretch; }
+  .ins-platform-wrap       { justify-content: flex-start; }
 }
 
 @media (max-width: 640px) {
-  .ins-wrap              { padding: 32px 20px 60px; }
-  .ins-heading           { font-size: 22px; }
-  .ins-summary-row       { gap: 12px; }
-  .ins-media-preview     { height: 160px; }
+  .ins-wrap                { padding: 32px 20px 60px; }
+  .ins-heading             { font-size: 22px; }
+  .ins-summary-row         { gap: 12px; }
+  .ins-media-preview       { height: 160px; }
 
-  .insd-wrap             { padding: 20px 20px 60px; }
-  .insd-hero             { height: 200px; border-radius: 16px; }
-  .insd-title            { font-size: 20px; }
-  .insd-metrics-grid     { grid-template-columns: 1fr; }
-  .insd-bars             { gap: 8px; }
-  .insd-bar-fill         { max-width: 32px; }
-  .insd-persona          { grid-template-columns: 80px 1fr; gap: 12px; }
-  .insd-persona-ring     { width: 80px; height: 80px; }
+  .insd-wrap               { padding: 20px 20px 60px; }
+  .insd-hero               { height: 200px; border-radius: 16px; }
+  .insd-title              { font-size: 20px; }
+  .insd-metrics-grid,
+  .insd-metrics-grid--3col,
+  .insd-metrics-grid--4col { grid-template-columns: 1fr; }
+  .insd-bars               { gap: 8px; }
+  .insd-bar-fill           { max-width: 32px; }
+  .insd-persona            { grid-template-columns: 80px 1fr; gap: 12px; }
+  .insd-persona-ring       { width: 80px; height: 80px; }
   .insd-persona-ring-inner { width: 62px; height: 62px; }
+
+  /* Format pills wrap on very small viewports; keep them
+     scannable rather than crushing into a single line. */
+  .ins-format-pills        { flex-wrap: wrap; }
 }

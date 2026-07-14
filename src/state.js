@@ -428,7 +428,25 @@ function _newConcept(opts) {
     // clara/insights.js. `insightsDismissedDate` (YYYY-MM-DD | null)
     // is the per-day "Skip for today" flag; cleared automatically the
     // next calendar day so the card reappears with fresh insights.
-    today: { tasks: [], viewingTaskId: null, viewingInsightId: null, insights: [], insightsDismissedDate: null },
+    // `taskHistory` (object | undefined) is a per-day archive of the
+    // Today task list keyed by local-time YYYY-MM-DD. The Today
+    // screen mirrors the live `tasks` array into `taskHistory[today]`
+    // on every render, so once the calendar day ends that entry
+    // naturally freezes and the past-date viewer can pull the exact
+    // state the user left the list in. `viewedDate` is the
+    // shared "which day am I looking at" cursor read by BOTH the
+    // Today screen and the Tasks screen \u2014 null (or the current
+    // local ISO) means the user is on today's live list; any past
+    // ISO string means we're browsing history in read-only mode.
+    today: {
+      tasks: [],
+      viewingTaskId: null,
+      viewingInsightId: null,
+      insights: [],
+      insightsDismissedDate: null,
+      taskHistory: {},
+      viewedDate: null
+    },
     // Daily-insights archive keyed by YYYY-MM-DD. Populated by
     // clara/insights.js at onboarding completion and then lazily on
     // every new day the user visits Today.
@@ -752,7 +770,15 @@ function _normalizeState() {
     }
     c.widgetMerged = true;
     c.today = Object.assign(
-      { tasks: [], viewingTaskId: null, viewingInsightId: null, insights: [], insightsDismissedDate: null },
+      {
+        tasks: [],
+        viewingTaskId: null,
+        viewingInsightId: null,
+        insights: [],
+        insightsDismissedDate: null,
+        taskHistory: {},
+        viewedDate: null
+      },
       c.today || {}
     );
     if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
@@ -797,6 +823,35 @@ function _normalizeState() {
     if (!Array.isArray(c.today.insights)) c.today.insights = [];
     if (typeof c.today.insightsDismissedDate !== 'string' || !c.today.insightsDismissedDate) {
       c.today.insightsDismissedDate = null;
+    }
+
+    // Per-day task archive. Keys are local-time YYYY-MM-DD; values
+    // are frozen copies of the Today task array as it stood at the
+    // end of that day. Any stray non-array value under a key is
+    // scrubbed so the date-navigator viewer can trust the shape.
+    // Missing / non-object taskHistory resets to an empty dict \u2014
+    // no historical data is manufactured, we just guarantee a
+    // legible container.
+    if (!c.today.taskHistory || typeof c.today.taskHistory !== 'object') {
+      c.today.taskHistory = {};
+    } else {
+      const thKeys = Object.keys(c.today.taskHistory);
+      for (let tk = 0; tk < thKeys.length; tk++) {
+        const k = thKeys[tk];
+        // Basic date-key sanity: 'YYYY-MM-DD'. Anything else means
+        // corrupted persistence and we drop it rather than surface a
+        // broken date to the user.
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !Array.isArray(c.today.taskHistory[k])) {
+          delete c.today.taskHistory[k];
+        }
+      }
+    }
+    // Shared "which date is being viewed" cursor. Null = today (live
+    // list). A past ISO = read-only archive view. Any invalid value
+    // resets to null so a bad persisted state opens on today's list.
+    if (typeof c.today.viewedDate !== 'string'
+        || !/^\d{4}-\d{2}-\d{2}$/.test(c.today.viewedDate)) {
+      c.today.viewedDate = null;
     }
 
     // Insights history archive. Kept as an open dictionary keyed by

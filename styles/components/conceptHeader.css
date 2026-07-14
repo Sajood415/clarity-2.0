@@ -135,3 +135,236 @@
   align-items: center;
   gap: 8px;
 }
+
+/* ==========================================
+   Notification bell (mock)
+   ==========================================
+   Sits at the far right of the topbar. Bell button toggles a fixed-
+   width panel that drops below it, right-aligned. All content is
+   hardcoded today \u2014 no state, no dismissal \u2014 so the CSS carries
+   the entire look and doesn't need any read/unread variants yet.
+*/
+
+/* Wrapper anchors the absolutely-positioned dropdown against the
+   bell button. Its position:relative is what makes the panel's
+   top/right offsets work. */
+.ch-notif-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ch-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.ch-bell:hover {
+  color: var(--text);
+  background: rgba(255, 240, 220, 0.04);
+  border-color: var(--border);
+}
+
+.ch-bell:focus-visible {
+  outline: none;
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.25);
+}
+
+/* Amber "unread count" badge \u2014 pinned to the top-right corner of
+   the bell button. Small numeric label (1\u20139) sits comfortably at
+   16px; larger counts would need a "9+" fallback in the JS which
+   isn't wired yet since the number is hardcoded to 3. */
+.ch-bell-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #E8523C;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  letter-spacing: 0;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.ch-bell-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ch-bell-icon svg { display: block; }
+
+/* --- Dropdown panel ---------------------------------------- */
+/* Fixed 320px width, right-aligned to the wrapper (which is the
+   bell button's parent). display:none is the closed state; the
+   .ch-notif-panel-open modifier flips it to block. z-index is
+   above .ch-topbar (which sits at 20) so it isn't clipped by
+   whatever is scrolling underneath. */
+.ch-notif-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  display: none;
+  z-index: 30;
+  overflow: hidden;
+  transform-origin: top right;
+}
+
+.ch-notif-panel-open {
+  display: block;
+  animation: ch-notif-in 140ms ease-out;
+}
+
+@keyframes ch-notif-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.ch-notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ch-notif-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+
+/* "3 new" pill \u2014 sits opposite the title, subtle amber tint. */
+.ch-notif-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.1);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  line-height: 1.5;
+}
+
+/* --- Notification list rows -------------------------------- */
+
+.ch-notif-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.ch-notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.ch-notif-item:last-child { border-bottom: none; }
+
+.ch-notif-item:hover {
+  background: rgba(255, 240, 220, 0.03);
+}
+
+.ch-notif-item:focus-visible {
+  outline: none;
+  background: rgba(245, 166, 35, 0.06);
+}
+
+/* Round icon slot. Each variant paints its own tinted background
+   and matching foreground so the list reads at a glance:
+     insight = amber, post = green, spark = blue */
+.ch-notif-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.ch-notif-icon svg { display: block; }
+
+.ch-notif-icon-insight {
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.12);
+}
+
+.ch-notif-icon-post {
+  color: #4CAF82;
+  background: rgba(76, 175, 130, 0.12);
+}
+
+.ch-notif-icon-spark {
+  color: #4A9EE0;
+  background: rgba(74, 158, 224, 0.12);
+}
+
+.ch-notif-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ch-notif-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+}
+
+.ch-notif-item-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.ch-notif-item-ago {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+}
+
+/* Narrow-viewport tuck: on very small screens the 320px panel
+   would overflow the topbar padding. Clamp it to the viewport
+   width minus a bit of gutter and let it right-align. */
+@media (max-width: 380px) {
+  .ch-notif-panel { width: calc(100vw - 32px); }
+}
