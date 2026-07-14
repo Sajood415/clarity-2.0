@@ -634,7 +634,12 @@
 }
 
 .cr-variation-card-active::after {
-  content: '\u2713';
+  /* CSS unicode escapes use \HHHH (no leading "u"). The previous
+     '\u2713' rendered as the literal string "u2713" \u2014 clipped by
+     the 22px circle it showed up as "271" on the selected card. The
+     correct escape is '\2713 ' (with a trailing space to terminate
+     the hex sequence unambiguously). */
+  content: '\2713';
   position: absolute;
   top: 12px;
   right: 12px;
