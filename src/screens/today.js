@@ -818,6 +818,7 @@ function _tdRenderFilterBar(activeFilter) {
       + '</button>';
   }).join('');
   return ''
+    + '<div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);margin-bottom:14px;">Your moves for today</div>'
     + '<div class="td-filters" role="group" aria-label="Filter tasks by status">'
     +   pills
     + '</div>';

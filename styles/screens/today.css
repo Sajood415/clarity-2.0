@@ -13,8 +13,8 @@
 
    .td-wrap-kanban keeps a wider cap so three columns still breathe. */
 .td-wrap {
-  padding: 32px 48px 48px 48px;
-  max-width: 900px;
+  padding: 32px 32px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -270,6 +270,7 @@
 .td-rows {
   display: flex;
   flex-direction: column;
+  gap: 10px;
   /* Cap the top border on the first row so the block reads as a
      bordered list, not a card sitting inside another card. */
   border-top: 1px solid var(--border);
@@ -2004,9 +2005,9 @@
 .td-filters {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   padding: 0;
   /* Pull the row up flush against the insight-card gap so
      the filter bar reads as part of the list, not floating
