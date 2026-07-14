@@ -108,6 +108,37 @@ function _renderHome(root) {
     return;
   }
 
+  // First-time insights briefing \u2014 full-screen, no sidebar, no
+  // concept header. Fires exactly once per concept, immediately after
+  // onboarding completes (see onboardingModal._obCompleteFlow). We
+  // check the flag directly instead of trusting the view key alone
+  // so a stale persisted `activeView='first-briefing'` from a bad
+  // reload can't strand the user on the briefing forever \u2014 the
+  // "Start Today" handler flips the flag, so any subsequent visit
+  // routes past this branch straight to Today.
+  if (appState.activeView === 'first-briefing'
+      && active.today
+      && active.today.hasSeenFirstBriefing !== true) {
+    root.innerHTML = '<div id="firstBriefingHost"></div>';
+    if (typeof renderFirstBriefing === 'function') {
+      renderFirstBriefing(document.getElementById('firstBriefingHost'));
+    } else {
+      // Safety fallback: briefing screen not loaded (dev iteration,
+      // missing script tag). Route to Today so the user never sees
+      // a blank viewport. `hasSeenFirstBriefing` stays false so the
+      // briefing fires on the next reload once the script is back.
+      appState.activeView = 'today';
+      renderApp();
+    }
+    return;
+  }
+  // If the flag is already true but activeView still says
+  // 'first-briefing' (e.g. stale persisted state, or the briefing
+  // was dismissed in a race), silently rewrite to Today and continue.
+  if (appState.activeView === 'first-briefing') {
+    appState.activeView = 'today';
+  }
+
   // Dashboard shell for existing concept. Top bar + content area. If
   // the active concept is mid-onboarding, the overlay sits on top of
   // this shell with the sidebar behind it (visible but non-interactive).

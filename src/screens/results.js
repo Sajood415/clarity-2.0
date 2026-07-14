@@ -46,6 +46,12 @@ const INS_PLATFORM_LABELS = {
   podcast:   'Podcast'
 };
 
+// External-link URL per platform for the detail-page "View on \u2026"
+// button. Email and podcast are placeholders \u2014 there's no
+// canonical destination to link to (mailto: opens a blank composer;
+// Apple Podcasts is only one of many possible hosts), so both use
+// '#' and the detail renderer switches the anchor to a disabled
+// span when it sees a placeholder URL.
 const INS_PLATFORM_URLS = {
   instagram: 'https://www.instagram.com/',
   linkedin:  'https://www.linkedin.com/',
@@ -53,8 +59,8 @@ const INS_PLATFORM_URLS = {
   tiktok:    'https://www.tiktok.com/',
   youtube:   'https://www.youtube.com/',
   x:         'https://x.com/',
-  email:     'mailto:',
-  podcast:   'https://podcasts.apple.com/'
+  email:     '#',
+  podcast:   '#'
 };
 
 // Business-type -> media-preview gradient. Warm amber/coral for food,
@@ -184,7 +190,30 @@ const INS_METRIC_ICONS = {
   listeners:
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
   downloads:
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+
+  // ---- Icon aliases for the platform-specific metric additions.
+  // Each new key gets its own SVG so a mixed grid still reads as a
+  // consistent icon family; where a new metric is conceptually
+  // adjacent to an existing one (bookmarks \u2248 saves, follows \u2248
+  // subscribers) we reuse the existing glyph rather than invent a
+  // near-duplicate that would only confuse the eye.
+  profileVisits:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  follows:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
+  followersGained:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
+  bookmarks:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+  thumbnailCTR:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><polygon points="10 9 15 12 10 15 10 9" fill="currentColor" stroke="none"/><path d="M17 20l3 2-1-4"/></svg>',
+  dwellTime:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  totalOpens:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg>',
+  totalClicks:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3l4.5 12 2-5.5L21 7.5z"/><path d="M15 15l6 6"/></svg>'
 };
 
 // ---------------------------------------------
@@ -311,14 +340,21 @@ function _insdInstagramMetrics(id) {
   const comments = Math.max(0, Math.round(totalActions * (0.04 + _insdRand(id, 64) * 0.06)));
   const shares   = Math.max(0, Math.round(totalActions * (0.06 + _insdRand(id, 65) * 0.08)));
   const saves    = Math.max(0, Math.round(totalActions * (0.08 + _insdRand(id, 66) * 0.10)));
+  // Two IG-native discovery signals: how many people tapped the
+  // handle after seeing the piece, and how many actually followed
+  // as a result. Offsets 67-68 stay inside the reserved 60-69 range.
+  const profileVisits = Math.max(20, Math.round(20 + _insdRand(id, 67) * 380));  // 20-400
+  const follows       = Math.max(1,  Math.round(1  + _insdRand(id, 68) * 29));   // 1-30
   return [
-    { key: 'reach',       label: 'Reach',           num: _insFormatInt(reach),                     rawNum: reach,          sub: 'Unique accounts' },
-    { key: 'impressions', label: 'Impressions',     num: _insFormatInt(impressions),               rawNum: impressions,    sub: 'Times shown' },
-    { key: 'likes',       label: 'Likes',           num: _insFormatInt(likes),                     rawNum: likes,          sub: 'Heart taps' },
-    { key: 'comments',    label: 'Comments',        num: _insFormatInt(comments),                  rawNum: comments,       sub: 'Direct replies' },
-    { key: 'shares',      label: 'Shares',          num: _insFormatInt(shares),                    rawNum: shares,         sub: 'Sent to others' },
-    { key: 'saves',       label: 'Saves',           num: _insFormatInt(saves),                     rawNum: saves,          sub: 'Kept for later' },
-    { key: 'engagement',  label: 'Engagement Rate', num: engagementPct.toFixed(1) + '%',           rawNum: engagementPct,  sub: 'Of reach' }
+    { key: 'reach',         label: 'Reach',            num: _insFormatInt(reach),                     rawNum: reach,          sub: 'Unique accounts' },
+    { key: 'impressions',   label: 'Impressions',      num: _insFormatInt(impressions),               rawNum: impressions,    sub: 'Times shown' },
+    { key: 'likes',         label: 'Likes',            num: _insFormatInt(likes),                     rawNum: likes,          sub: 'Heart taps' },
+    { key: 'comments',      label: 'Comments',         num: _insFormatInt(comments),                  rawNum: comments,       sub: 'Direct replies' },
+    { key: 'shares',        label: 'Shares',           num: _insFormatInt(shares),                    rawNum: shares,         sub: 'Sent to others' },
+    { key: 'saves',         label: 'Saves',            num: _insFormatInt(saves),                     rawNum: saves,          sub: 'Kept for later' },
+    { key: 'profileVisits', label: 'Profile Visits',   num: _insFormatInt(profileVisits),             rawNum: profileVisits,  sub: 'Tapped your handle' },
+    { key: 'follows',       label: 'Follows From Post',num: '+' + _insFormatInt(follows),             rawNum: follows,        sub: 'Net new followers' },
+    { key: 'engagement',    label: 'Engagement Rate',  num: engagementPct.toFixed(1) + '%',           rawNum: engagementPct,  sub: 'Of reach' }
   ];
 }
 
@@ -333,15 +369,23 @@ function _insdTiktokMetrics(id) {
   const avgSecPerView = 8 + _insdRand(id, 76) * 15;                       // 8-23s
   const watchMinutes = Math.round((views * avgSecPerView) / 60);
   const completion = Math.round(35 + _insdRand(id, 77) * 40);             // 35-75%
+  // Profile-side discovery signals for TikTok. Ranges intentionally
+  // dwarf the IG equivalents \u2014 a viral TT clip can send 10x the
+  // profile taps of a big IG post. Offsets 78-79 close out the
+  // reserved 70-79 range.
+  const profileVisits = Math.max(100, Math.round(100 + _insdRand(id, 78) * 1900));  // 100-2000
+  const follows       = Math.max(5,   Math.round(5   + _insdRand(id, 79) * 195));   // 5-200
   return [
-    { key: 'views',          label: 'Views',           num: _insFormatInt(views),                  rawNum: views,          sub: 'Total plays' },
-    { key: 'likes',          label: 'Likes',           num: _insFormatInt(likes),                  rawNum: likes,          sub: 'Heart taps' },
-    { key: 'comments',       label: 'Comments',        num: _insFormatInt(comments),               rawNum: comments,       sub: 'Direct replies' },
-    { key: 'shares',         label: 'Shares',          num: _insFormatInt(shares),                 rawNum: shares,         sub: 'Sent to others' },
-    { key: 'saves',          label: 'Saves',           num: _insFormatInt(saves),                  rawNum: saves,          sub: 'Kept for later' },
-    { key: 'watchTime',      label: 'Watch Time',      num: _insFormatMinutes(watchMinutes),       rawNum: watchMinutes,   sub: 'Total minutes' },
-    { key: 'completionRate', label: 'Completion Rate', num: completion + '%',                      rawNum: completion,     sub: 'Watched fully' },
-    { key: 'engagement',     label: 'Engagement Rate', num: engagementPct.toFixed(1) + '%',        rawNum: engagementPct,  sub: 'Of views' }
+    { key: 'views',          label: 'Views',            num: _insFormatInt(views),                  rawNum: views,          sub: 'Total plays' },
+    { key: 'likes',          label: 'Likes',            num: _insFormatInt(likes),                  rawNum: likes,          sub: 'Heart taps' },
+    { key: 'comments',       label: 'Comments',         num: _insFormatInt(comments),               rawNum: comments,       sub: 'Direct replies' },
+    { key: 'shares',         label: 'Shares',           num: _insFormatInt(shares),                 rawNum: shares,         sub: 'Sent to others' },
+    { key: 'saves',          label: 'Saves',            num: _insFormatInt(saves),                  rawNum: saves,          sub: 'Kept for later' },
+    { key: 'watchTime',      label: 'Watch Time',       num: _insFormatMinutes(watchMinutes),       rawNum: watchMinutes,   sub: 'Total minutes' },
+    { key: 'completionRate', label: 'Completion Rate',  num: completion + '%',                      rawNum: completion,     sub: 'Watched fully' },
+    { key: 'profileVisits',  label: 'Profile Visits',   num: _insFormatInt(profileVisits),          rawNum: profileVisits,  sub: 'Tapped your handle' },
+    { key: 'follows',        label: 'Follows From Video',num: '+' + _insFormatInt(follows),         rawNum: follows,        sub: 'Net new followers' },
+    { key: 'engagement',     label: 'Engagement Rate',  num: engagementPct.toFixed(1) + '%',        rawNum: engagementPct,  sub: 'Of views' }
   ];
 }
 
@@ -353,14 +397,27 @@ function _insdYoutubeMetrics(id) {
   const comments = Math.max(0, Math.round(views * (0.005 + _insdRand(id, 83) * 0.015)));
   const shares   = Math.max(0, Math.round(views * (0.01 + _insdRand(id, 84) * 0.02)));
   const subs     = Math.max(0, Math.round(views * (0.008 + _insdRand(id, 85) * 0.015)));
+  // Three YouTube-native signals the previous bundle missed. Impressions
+  // are the discovery denominator behind Thumbnail CTR (YouTube's #1
+  // creator metric), and Completion Rate rounds out the retention
+  // story that Watch Time + Avg View Duration only partially tell.
+  // Impressions run 3-8x views (typical algorithm surfacing rate),
+  // clamped to 500-80000 per spec. Offsets 86-88 close the 80-89 range.
+  const impRaw     = Math.round(views * (3 + _insdRand(id, 86) * 5));
+  const impressions = Math.max(500, Math.min(80000, impRaw));
+  const thumbCTR   = Math.round((3 + _insdRand(id, 87) * 9) * 10) / 10;  // 3.0-12.0%
+  const completion = Math.round(30 + _insdRand(id, 88) * 35);            // 30-65%
   return [
     { key: 'views',          label: 'Views',              num: _insFormatInt(views),               rawNum: views,          sub: 'Total plays' },
+    { key: 'impressions',    label: 'Impressions',        num: _insFormatInt(impressions),         rawNum: impressions,    sub: 'Times shown in feed' },
     { key: 'watchTime',      label: 'Watch Time',         num: _insFormatMinutes(watchMinutes),    rawNum: watchMinutes,   sub: 'Total minutes' },
+    { key: 'avgDuration',    label: 'Avg View Duration',  num: _insFormatMMSS(avgSec),             rawNum: avgSec,         sub: 'Per view' },
+    { key: 'completionRate', label: 'Completion Rate',    num: completion + '%',                   rawNum: completion,     sub: 'Watched fully' },
+    { key: 'thumbnailCTR',   label: 'Thumbnail CTR',      num: thumbCTR.toFixed(1) + '%',          rawNum: thumbCTR,       sub: 'Click-through' },
     { key: 'likes',          label: 'Likes',              num: _insFormatInt(likes),               rawNum: likes,          sub: 'Thumb ups' },
     { key: 'comments',       label: 'Comments',           num: _insFormatInt(comments),            rawNum: comments,       sub: 'Direct replies' },
     { key: 'shares',         label: 'Shares',             num: _insFormatInt(shares),              rawNum: shares,         sub: 'Sent to others' },
-    { key: 'subscribers',    label: 'Subscribers Gained', num: '+' + _insFormatInt(subs),          rawNum: subs,           sub: 'From this piece' },
-    { key: 'avgDuration',    label: 'Avg View Duration',  num: _insFormatMMSS(avgSec),             rawNum: avgSec,         sub: 'Per view' }
+    { key: 'subscribers',    label: 'Subscribers Gained', num: '+' + _insFormatInt(subs),          rawNum: subs,           sub: 'From this piece' }
   ];
 }
 
@@ -373,12 +430,29 @@ function _insdFacebookMetrics(id) {
   const comments  = Math.max(0, Math.round(totalActions * (0.08 + _insdRand(id, 94) * 0.08)));
   const shares    = Math.max(0, Math.round(totalActions * (0.05 + _insdRand(id, 95) * 0.08)));
   const clicks    = Math.max(0, Math.round(reach * (0.008 + _insdRand(id, 96) * 0.02)));
+  // Fixed 60/20/20 split for the reaction-type breakdown surfaced in
+  // the sub-caption. Real FB tracks six reaction types \u2014 collapsing
+  // to Like / Love / Other keeps the string legible in the small
+  // caption slot while still conveying the shape of the response.
+  // Any Math.round rounding drift lands in the 'Other' bucket so the
+  // three sub-values always sum to `reactions`.
+  const fbLikeShare  = Math.max(1, Math.round(reactions * 0.60));
+  const fbLoveShare  = Math.max(1, Math.round(reactions * 0.20));
+  const fbOtherShare = Math.max(0, reactions - fbLikeShare - fbLoveShare);
+  const fbReactionSub = '\uD83D\uDC4D ' + _insFormatInt(fbLikeShare)
+    + ' \u00B7 \u2764\uFE0F ' + _insFormatInt(fbLoveShare)
+    + ' \u00B7 \uD83D\uDE2E ' + _insFormatInt(fbOtherShare);
+  // Saves as a % of reach (2-5%) \u2014 lower rate than IG because FB
+  // save behaviour is rarer even for high-performing posts. Offset
+  // 97 fits in the reserved 90-99 range.
+  const saves = Math.max(0, Math.round(reach * (0.02 + _insdRand(id, 97) * 0.03)));
   return [
     { key: 'reach',       label: 'Reach',           num: _insFormatInt(reach),                     rawNum: reach,          sub: 'Unique accounts' },
     { key: 'impressions', label: 'Impressions',     num: _insFormatInt(impressions),               rawNum: impressions,    sub: 'Times shown' },
-    { key: 'reactions',   label: 'Reactions',       num: _insFormatInt(reactions),                 rawNum: reactions,      sub: 'All reactions' },
+    { key: 'reactions',   label: 'Reactions',       num: _insFormatInt(reactions),                 rawNum: reactions,      sub: fbReactionSub },
     { key: 'comments',    label: 'Comments',        num: _insFormatInt(comments),                  rawNum: comments,       sub: 'Direct replies' },
     { key: 'shares',      label: 'Shares',          num: _insFormatInt(shares),                    rawNum: shares,         sub: 'Sent to others' },
+    { key: 'saves',       label: 'Saves',           num: _insFormatInt(saves),                     rawNum: saves,          sub: 'Kept for later' },
     { key: 'clicks',      label: 'Clicks',          num: _insFormatInt(clicks),                    rawNum: clicks,         sub: 'Link taps' },
     { key: 'engagement',  label: 'Engagement Rate', num: engagementPct.toFixed(1) + '%',           rawNum: engagementPct,  sub: 'Of reach' }
   ];
@@ -392,14 +466,22 @@ function _insdLinkedinMetrics(id) {
   const reactions = Math.max(1, Math.round(totalActions * (0.60 + _insdRand(id, 103) * 0.20)));
   const comments  = Math.max(0, Math.round(totalActions * (0.04 + _insdRand(id, 104) * 0.06)));
   const shares    = Math.max(0, Math.round(totalActions * (0.04 + _insdRand(id, 105) * 0.06)));
-  const ctr = Math.round((1.5 + _insdRand(id, 106) * 4) * 10) / 10;       // 1.5-5.5%
+  // CTR removed \u2014 it duplicated the Engagement Rate story on a
+  // shared denominator (impressions). Two LI-native replacements
+  // fill the slot: Dwell Time (LinkedIn surfaces this prominently as
+  // its retention signal) and Follows Gained. Offset 106 is now free
+  // and re-used for dwellSecs; 107 is new. Offsets stay inside the
+  // reserved 100-109 range.
+  const dwellSecs = Math.round(15 + _insdRand(id, 106) * 75);            // 15-90s
+  const follows   = Math.max(1, Math.round(1 + _insdRand(id, 107) * 24));  // 1-25
   return [
     { key: 'impressions', label: 'Impressions',     num: _insFormatInt(impressions),               rawNum: impressions,    sub: 'Times shown' },
     { key: 'clicks',      label: 'Clicks',          num: _insFormatInt(clicks),                    rawNum: clicks,         sub: 'Link taps' },
     { key: 'reactions',   label: 'Reactions',       num: _insFormatInt(reactions),                 rawNum: reactions,      sub: 'All reactions' },
     { key: 'comments',    label: 'Comments',        num: _insFormatInt(comments),                  rawNum: comments,       sub: 'Direct replies' },
     { key: 'shares',      label: 'Shares',          num: _insFormatInt(shares),                    rawNum: shares,         sub: 'Reposts' },
-    { key: 'ctr',         label: 'CTR',             num: ctr.toFixed(1) + '%',                     rawNum: ctr,            sub: 'Click-through' },
+    { key: 'dwellTime',   label: 'Dwell Time',      num: dwellSecs + 's avg',                      rawNum: dwellSecs,      sub: 'Per impression' },
+    { key: 'follows',     label: 'Follows Gained',  num: '+' + _insFormatInt(follows),             rawNum: follows,        sub: 'Net new followers' },
     { key: 'engagement',  label: 'Engagement Rate', num: engagementPct.toFixed(1) + '%',           rawNum: engagementPct,  sub: 'Of impressions' }
   ];
 }
@@ -411,13 +493,21 @@ function _insdXMetrics(id) {
   const retweets   = Math.max(0, Math.round(impressions * (0.002 + _insdRand(id, 113) * 0.006)));
   const replies    = Math.max(0, Math.round(impressions * (0.001 + _insdRand(id, 114) * 0.005)));
   const linkClicks = Math.max(0, Math.round(impressions * (0.005 + _insdRand(id, 115) * 0.02)));
+  // X-native "keeper" and profile-side discovery signals. Bookmarks
+  // scale off likes (empirically 30-60% of like volume for high-save
+  // posts) and Profile Visits use a flat 50-800 range. Offsets 116-117
+  // stay within the reserved 110-119 range.
+  const bookmarks     = Math.max(0,  Math.round(likes * (0.3 + _insdRand(id, 116) * 0.3)));  // 0.3-0.6x likes
+  const profileVisits = Math.max(50, Math.round(50 + _insdRand(id, 117) * 750));             // 50-800
   return [
-    { key: 'impressions', label: 'Impressions',     num: _insFormatInt(impressions),               rawNum: impressions,    sub: 'Times shown' },
-    { key: 'likes',       label: 'Likes',           num: _insFormatInt(likes),                     rawNum: likes,          sub: 'Heart taps' },
-    { key: 'retweets',    label: 'Retweets',        num: _insFormatInt(retweets),                  rawNum: retweets,       sub: 'Republished' },
-    { key: 'replies',     label: 'Replies',         num: _insFormatInt(replies),                   rawNum: replies,        sub: 'Direct replies' },
-    { key: 'clicks',      label: 'Link Clicks',     num: _insFormatInt(linkClicks),                rawNum: linkClicks,     sub: 'Outbound taps' },
-    { key: 'engagement',  label: 'Engagement Rate', num: engagementPct.toFixed(1) + '%',           rawNum: engagementPct,  sub: 'Of impressions' }
+    { key: 'impressions',   label: 'Impressions',     num: _insFormatInt(impressions),               rawNum: impressions,    sub: 'Times shown' },
+    { key: 'likes',         label: 'Likes',           num: _insFormatInt(likes),                     rawNum: likes,          sub: 'Heart taps' },
+    { key: 'retweets',      label: 'Retweets',        num: _insFormatInt(retweets),                  rawNum: retweets,       sub: 'Republished' },
+    { key: 'replies',       label: 'Replies',         num: _insFormatInt(replies),                   rawNum: replies,        sub: 'Direct replies' },
+    { key: 'bookmarks',     label: 'Bookmarks',       num: _insFormatInt(bookmarks),                 rawNum: bookmarks,      sub: 'Kept for later' },
+    { key: 'clicks',        label: 'Link Clicks',     num: _insFormatInt(linkClicks),                rawNum: linkClicks,     sub: 'Outbound taps' },
+    { key: 'profileVisits', label: 'Profile Visits',  num: _insFormatInt(profileVisits),             rawNum: profileVisits,  sub: 'Tapped your handle' },
+    { key: 'engagement',    label: 'Engagement Rate', num: engagementPct.toFixed(1) + '%',           rawNum: engagementPct,  sub: 'Of impressions' }
   ];
 }
 
@@ -427,10 +517,18 @@ function _insdEmailMetrics(id) {
   const clickPct    = Math.round((2 + _insdRand(id, 122) * 10) * 10) / 10;   // 2-12%
   const unsubscribes = Math.max(0, Math.round(delivered * (0.001 + _insdRand(id, 123) * 0.005)));
   const bounces      = Math.max(0, Math.round(delivered * (0.005 + _insdRand(id, 124) * 0.02)));
+  // Absolute counts derived from the rates + delivered volume. Users
+  // scanning the card grid can read the story two ways: "45% opened"
+  // (Open Rate) and "339 opens" (Total Opens) \u2014 the second one
+  // is what almost every campaign postmortem actually cares about.
+  const totalOpens  = Math.max(0, Math.round(delivered * (openPct  / 100)));
+  const totalClicks = Math.max(0, Math.round(delivered * (clickPct / 100)));
   return [
     { key: 'delivered',    label: 'Delivered',    num: _insFormatInt(delivered),                    rawNum: delivered,      sub: 'Inboxes reached' },
     { key: 'openRate',     label: 'Open Rate',    num: openPct.toFixed(1) + '%',                    rawNum: openPct,        sub: 'Of delivered' },
+    { key: 'totalOpens',   label: 'Total Opens',  num: _insFormatInt(totalOpens),                   rawNum: totalOpens,     sub: 'Absolute count' },
     { key: 'clickRate',    label: 'Click Rate',   num: clickPct.toFixed(1) + '%',                   rawNum: clickPct,       sub: 'Of delivered' },
+    { key: 'totalClicks',  label: 'Total Clicks', num: _insFormatInt(totalClicks),                  rawNum: totalClicks,    sub: 'Absolute count' },
     { key: 'unsubscribes', label: 'Unsubscribes', num: _insFormatInt(unsubscribes),                 rawNum: unsubscribes,   sub: 'Opt-outs' },
     { key: 'bounces',      label: 'Bounces',      num: _insFormatInt(bounces),                      rawNum: bounces,        sub: 'Undelivered' }
   ];
@@ -442,12 +540,23 @@ function _insdPodcastMetrics(id) {
   const avgListenMin = Math.round(4 + _insdRand(id, 132) * 26);           // 4-30 min
   const completion   = Math.round(40 + _insdRand(id, 133) * 45);          // 40-85%
   const downloads    = Math.max(0, Math.round(plays * (0.30 + _insdRand(id, 134) * 0.40)));  // 30-70%
+  // Podcast follower/subscriber gains for the episode. Range mirrors
+  // the IG "follows from post" band but shifted higher since podcast
+  // discovery generally converts a lower share of listeners into
+  // subscribers than social does. Offset 135 sits in the 130-139 range.
+  const followersGained = Math.max(2, Math.round(2 + _insdRand(id, 135) * 38));  // 2-40
+  // Top-app hint surfaced as the Plays sub-caption. Uses offset 136
+  // (still inside the reserved podcast range) as a deterministic
+  // 50/50 coin flip between the two dominant apps \u2014 same id
+  // renders the same app forever.
+  const app = _insdRand(id, 136) < 0.5 ? 'Spotify' : 'Apple Podcasts';
   return [
-    { key: 'plays',          label: 'Plays',              num: _insFormatInt(plays),               rawNum: plays,          sub: 'Total starts' },
-    { key: 'listeners',      label: 'Listeners',          num: _insFormatInt(listeners),           rawNum: listeners,      sub: 'Unique people' },
-    { key: 'avgDuration',    label: 'Avg Listen Duration', num: _insFormatMinutes(avgListenMin),   rawNum: avgListenMin,   sub: 'Per listener' },
-    { key: 'completionRate', label: 'Completion Rate',    num: completion + '%',                   rawNum: completion,     sub: 'Finished fully' },
-    { key: 'downloads',      label: 'Downloads',          num: _insFormatInt(downloads),           rawNum: downloads,      sub: 'Offline saves' }
+    { key: 'plays',            label: 'Plays',               num: _insFormatInt(plays),               rawNum: plays,           sub: 'Top app: ' + app },
+    { key: 'listeners',        label: 'Listeners',           num: _insFormatInt(listeners),           rawNum: listeners,       sub: 'Unique people' },
+    { key: 'avgDuration',      label: 'Avg Listen Duration', num: _insFormatMinutes(avgListenMin),    rawNum: avgListenMin,    sub: 'Per listener' },
+    { key: 'completionRate',   label: 'Completion Rate',     num: completion + '%',                   rawNum: completion,      sub: 'Finished fully' },
+    { key: 'downloads',        label: 'Downloads',           num: _insFormatInt(downloads),           rawNum: downloads,       sub: 'Offline saves' },
+    { key: 'followersGained',  label: 'Followers Gained',    num: '+' + _insFormatInt(followersGained), rawNum: followersGained, sub: 'Net new subscribers' }
   ];
 }
 
@@ -478,7 +587,11 @@ const INS_PLATFORM_VOLUME = {
   facebook:  { key: 'reach',       word: 'Reach',       chart: 'Reach' },
   linkedin:  { key: 'impressions', word: 'Impressions', chart: 'Impressions' },
   x:         { key: 'impressions', word: 'Impressions', chart: 'Impressions' },
-  email:     { key: 'delivered',   word: 'Delivered',   chart: 'Opens' },
+  // Chart label now matches the underlying series ('delivered'). It
+  // previously read 'Opens' while the bars summed to delivered \u2014
+  // the section header and metric grid disagreed, so users saw
+  // numbers that didn't reconcile with the Open Rate card above.
+  email:     { key: 'delivered',   word: 'Delivered',   chart: 'Delivered' },
   podcast:   { key: 'plays',       word: 'Plays',       chart: 'Plays' }
 };
 
@@ -596,9 +709,19 @@ const INS_METRIC_SHORT_LABEL = {
   clickRate:      'click rate',
   unsubscribes:   'unsubs',
   bounces:        'bounces',
-  plays:          'plays',
-  listeners:      'listeners',
-  downloads:      'downloads'
+  plays:            'plays',
+  listeners:        'listeners',
+  downloads:        'downloads',
+  // Platform-specific additions. Kept lowercase and short so a mixed
+  // top-3 row on a list card still reads as one visual family.
+  profileVisits:    'profile visits',
+  follows:          'new follows',
+  followersGained:  'new followers',
+  bookmarks:        'bookmarks',
+  thumbnailCTR:     'thumb CTR',
+  dwellTime:        'dwell time',
+  totalOpens:       'total opens',
+  totalClicks:      'total clicks'
 };
 
 function _insShortLabel(entry) {
@@ -1193,61 +1316,278 @@ function _insdPersonaCopy(score) {
 // Clara's three-paragraph analysis. Each paragraph is drawn from an
 // id-seeded pool so we get variety, but the same item always gets the
 // same read.
+// Per-platform copy pools for Clara's three-paragraph read on a
+// published piece. Each platform pool has three lines per section
+// (worked / sharper / tryNext) that reference platform-native
+// mechanics \u2014 Reels/Stories for IG, thumbnails/retention for
+// YouTube, subject lines/segmentation for Email, and so on \u2014
+// so the copy actually sounds like feedback for that channel rather
+// than generic advice. The `default` pool (kept from the original
+// generic copy) is the fallback for any unknown platform value.
+const INS_CLARA_POOLS = {
+  instagram: {
+    worked: [
+      'Your visual hook stopped the scroll. On Instagram, the first frame does 80% of the work \u2014 and this one earned the swipe.',
+      'Carousels like this one over-index on saves because each swipe is a fresh dopamine hit. You paced the reveal well.',
+      'The caption led with a hook, not a preamble. Instagram rewards captions that read like a Reel script \u2014 you did that here.'
+    ],
+    sharper: [
+      'The last two lines of the caption trail off. Instagram cuts previews aggressively \u2014 put the CTA in the first two lines next time.',
+      'This would have hit harder as a Reel. Static posts under-perform Reels by 3\u20134x on new-audience reach right now.',
+      'You didn\u2019t seed a Story teaser before publishing. Stories drive 20-30% of feed post reach for accounts your size \u2014 don\u2019t skip that step.'
+    ],
+    tryNext: [
+      'Cut this into a 15-second Reel and re-post with a text-on-video hook. Same idea, 3\u20134x the reach ceiling.',
+      'Save this to a Highlight the moment engagement plateaus. Highlights keep top posts working for months after the feed forgets them.',
+      'Post a Story teaser 4\u20136 hours before your next feed post. Stories warm the algorithm and pull reach up by 15-25%.'
+    ]
+  },
+  tiktok: {
+    worked: [
+      'The first three seconds did the job. TikTok\u2019s completion curve is brutal below 3 seconds \u2014 you cleared it and kept them watching.',
+      'Your hook rewarded the loop. A visual pattern that only resolves on the second watch is why watch time on this one runs above average.',
+      'You leaned on a trending sound without letting it eat the message. That\u2019s the FYP sweet spot \u2014 relevant audio, original content.'
+    ],
+    sharper: [
+      'You lost the audience between seconds 8 and 12. That\u2019s where 40% of the drop-off happened \u2014 tighten the pacing there.',
+      'The CTA at the end is where TikTok watch time falls off a cliff. Move it to the middle, or cut it entirely and let the hook do the CTA work.',
+      'No text-on-video hook. Even 4\u20135 words at the top of frame lifts completion rate by 10-15% because sound-off viewers can\u2019t follow otherwise.'
+    ],
+    tryNext: [
+      'Stitch this with a trending video in your niche. Stitches get a For You Page boost from the source video\u2019s existing traction.',
+      'Re-post a 15-second cut of this in 48 hours. Shorter reposts of proven hooks routinely out-perform the original on TikTok.',
+      'Reply to the top comment with a video. Video replies get pushed to the original comment thread and pull new eyeballs back to the source.'
+    ]
+  },
+  youtube: {
+    worked: [
+      'Your thumbnail earned the click. A 6%+ Thumbnail CTR at your subscriber count means the algorithm will keep testing this on new audiences.',
+      'Retention held above 50% past the halfway point. That\u2019s the retention shape YouTube rewards with impressions on the browse feed.',
+      'The subscribe CTA landed at the natural pause after the payoff \u2014 not tacked on at the end. That\u2019s the shape that converts.'
+    ],
+    sharper: [
+      'Retention dips hard around the 20% mark. That\u2019s usually a signal the intro is too long \u2014 tighten it to 15 seconds max next video.',
+      'Your thumbnail and title tell the same joke twice. Give them two different reasons to click; the CTR ceiling is higher when they complement instead of echo.',
+      'No end-screen CTA to your next video. That\u2019s a session-length metric YouTube uses to decide whether to keep promoting the channel.'
+    ],
+    tryNext: [
+      'Cut a 60-second Short from the highest-retention moment. Shorts route new viewers back into the long-form video within 48 hours.',
+      'Test a new thumbnail using YouTube\u2019s A/B tool. Even a small CTR lift compounds \u2014 a 2% CTR bump at 10K impressions is 200 more views.',
+      'Add this to a playlist alongside your two top-performing videos. Playlists lift average session time, which lifts new-video impressions.'
+    ]
+  },
+  facebook: {
+    worked: [
+      'Reach held up even without a boost. That\u2019s the shape of content Facebook\u2019s algorithm is happy to keep serving organically.',
+      'The comment section stayed on-topic \u2014 that\u2019s a community signal. Facebook actively favors posts with substantive replies over passive reactions.',
+      'Your share-to-reach ratio is strong. Shares are the metric Facebook currently weights hardest for cold-audience reach.'
+    ],
+    sharper: [
+      'Reactions skewed heavily toward Likes with almost no Loves. That\u2019s a "read and moved on" pattern \u2014 the hook needed more emotional stakes.',
+      'You didn\u2019t reply to any comments in the first 90 minutes. Facebook\u2019s reach algorithm gives an early-reply boost that closed before you engaged.',
+      'This is exactly the kind of post that would have doubled its reach with a $10 boost. The organic ceiling here was low from the start.'
+    ],
+    tryNext: [
+      'Boost this post with a $20\u201350 spend targeted at existing page fans + lookalikes. The engagement rate here justifies the paid amplification.',
+      'Cross-post the same angle into 2\u20133 relevant Facebook Groups where your buyers actually spend time. Group reach dwarfs page reach right now.',
+      'Turn this into a Facebook Story with a poll sticker. Stories catch the fraction of your fans who never see the feed post.'
+    ]
+  },
+  linkedin: {
+    worked: [
+      'Your dwell time is well above average \u2014 people actually read this. That\u2019s the LinkedIn signal that keeps the post surfacing all week, not just day one.',
+      'You wrote like a peer, not a brand. LinkedIn\u2019s current algorithm rewards first-person operator voice over polished corporate voice by a wide margin.',
+      'The framing landed like thought leadership without the buzzwords. That\u2019s rare and it\u2019s why your comment section skewed toward decision-makers.'
+    ],
+    sharper: [
+      'The hook takes too long to land. LinkedIn now truncates at 3\u20134 lines \u2014 the strongest sentence needs to be visible before the "see more" click.',
+      'No specific ask at the end. LinkedIn comments reward a targeted prompt ("what\u2019s your experience with X?") rather than an open invitation.',
+      'This would have doubled its dwell time as a carousel. Text posts cap out; carousels keep readers on the slide for 20-30 seconds each.'
+    ],
+    tryNext: [
+      'Repurpose this as a LinkedIn carousel with 6\u20138 slides. Same idea, 3x the dwell time, and native LinkedIn reach LinkedIn currently favors.',
+      'DM the top three commenters. LinkedIn\u2019s algorithm won\u2019t \u2014 but your pipeline will \u2014 reward that one-to-one follow-up while the post is still warm.',
+      'Package the last month of these into a LinkedIn newsletter issue. Newsletters compound because subscribers get notified for every issue.'
+    ]
+  },
+  x: {
+    worked: [
+      'Your hook fit in the preview crop. That\u2019s the game on X now \u2014 the first line has to survive being cut off, and this one did.',
+      'Replies out-ran retweets. That\u2019s the ratio X\u2019s algorithm currently prizes; conversation drives more reach than passive amplification.',
+      'You timed this right. Posting in the 2-hour window when your audience is actually on the platform beats crafting the perfect tweet at 3am.'
+    ],
+    sharper: [
+      'The tweet reads like the middle of a thought. Complete the loop \u2014 or explicitly frame it as a thread \u2014 so the reply guy instinct kicks in.',
+      'No thread continuation. X\u2019s current algorithm treats a solo tweet as a dead end; threads keep serving replies deep into day two.',
+      'You included a link. Native tweets without links out-reach tweets with links by 2\u20133x on X. Put the link in a reply instead.'
+    ],
+    tryNext: [
+      'Turn the second half of this into a thread. Threads compound because each new reply from you signals the algorithm to re-serve the whole chain.',
+      'Quote-tweet this in 48 hours with a "here\u2019s what happened next" update. Quote-tweets recycle reach without competing with the original tweet.',
+      'Pin this to your profile for a week. Profile visits are the highest-intent traffic on X and a pinned post converts a share of them into follows.'
+    ]
+  },
+  email: {
+    worked: [
+      'Your open rate cleared 30%. That\u2019s the number that separates a healthy list from a burnt one \u2014 a subject line this direct will keep clearing it.',
+      'The click-through pattern shows readers actually finished the email. That\u2019s the metric your list will be worth on \u2014 not opens alone.',
+      'Your unsubscribe rate stayed below 0.3%. Well-segmented sends look like this; the audience got the email they signed up for.'
+    ],
+    sharper: [
+      'The subject line was too clever. Email opens are won by clarity, not curiosity \u2014 A/B test a plainer version next send.',
+      'You sent to the whole list. Segmenting by last-click behavior would have lifted the open rate 10-15 points on the engaged half.',
+      'The single CTA is buried below three paragraphs. Move it to the first screen \u2014 anyone still reading past the second scroll is 3x more likely to click.'
+    ],
+    tryNext: [
+      'A/B test the subject line on your next send. Even a 2-point open-rate lift compounds across the year into thousands of extra opens.',
+      'Resend this to non-openers with a different subject line 4\u20135 days later. You typically recover 15-25% of the original open volume that way.',
+      'Segment the click-through audience into its own list and send them the follow-up sequence. That\u2019s where your highest-intent readers actually live.'
+    ]
+  },
+  podcast: {
+    worked: [
+      'Your first-60-seconds retention held. Podcast listeners bail fast \u2014 anyone still there past the intro is now committed to the whole episode.',
+      'The episode length matched the content weight. Consistency is what builds a podcast audience, and this one felt on-brand for the show.',
+      'Your listener-to-play ratio is healthy. That means real people are finishing the episode, not autoplay tallies inflating the number.'
+    ],
+    sharper: [
+      'The intro is 90 seconds too long. Podcast listeners drop 20% of the audience in the first two minutes when the value doesn\u2019t start immediately.',
+      'No listener CTA. Ask for a review, a share, or a follow-up question \u2014 podcast growth is downstream of listeners doing something after the episode.',
+      'You released off your usual cadence. Podcast subscriber growth compounds hardest when every listener knows when the next episode is coming.'
+    ],
+    tryNext: [
+      'Clip the best 60 seconds and post it as a video on Instagram Reels and TikTok. Podcast discovery is a social problem now, not a directory problem.',
+      'Ask three specific listeners for reviews by name in your next episode. Named asks convert 5-10x better than "please leave a review".',
+      'Transcribe this episode and publish it as a long-form blog post. Podcast episodes bleed most of their value when they never leave the audio player.'
+    ]
+  },
+  default: {
+    worked: [
+      'You led with a specific outcome, not a claim. That\u2019s why people paused instead of scrolling \u2014 the hook did its job.',
+      'The tone here was unmistakably yours. Personal, direct, no marketing polish. That\u2019s the voice your audience actually leans into.',
+      'The first line named a real problem your audience is already thinking about. That\u2019s the fastest way to earn a save.'
+    ],
+    sharper: [
+      'The middle section drifts a little. Cutting 1\u20132 sentences would tighten the arc without losing anything material.',
+      'The call-to-action is soft. Give the reader one specific thing to do next \u2014 not "let me know your thoughts", but "reply with X".',
+      'You buried the strongest line. Move it up top; make it the hook the reader sees first.'
+    ],
+    tryNext: [
+      'Ship a follow-up this week. Same angle, different example. Series compounds far better than one-offs.',
+      'Reply to every comment on this piece in the next 24 hours. That\u2019s where the next 3 leads are hiding.',
+      'Write one more piece that answers the follow-up question this one raised. Audiences reward continuity.'
+    ]
+  }
+};
+
 function _insdClaraAnalysis(item, metrics, business) {
-  const platform = _insPlatformLabel(item.platform);
-  const formatLabel = INS_FORMAT_LABELS[item.type] || 'post';
+  // Platform lookup with a default fallback. Any unknown platform
+  // string (legacy items, custom platforms) falls through to the
+  // original generic pool so we never render blank.
+  const platformKey = String(item && item.platform || '').toLowerCase();
+  const pool = INS_CLARA_POOLS[platformKey] || INS_CLARA_POOLS.default;
 
-  const worked = [
-    'You led with a specific outcome, not a claim. That\u2019s why people paused instead of scrolling \u2014 the hook did its job.',
-    'The tone here was unmistakably yours. Personal, direct, no marketing polish. That\u2019s the voice your audience actually leans into.',
-    'The first line named a real problem your audience is already thinking about. That\u2019s the fastest way to earn a save.',
-    'You anchored the piece to a moment, not a concept. Concrete beats abstract every single time on ' + platform + '.',
-    'The pacing was clean \u2014 short setup, clear middle, one takeaway. This is the shape most of your best content will share.'
-  ];
-  const sharper = [
-    'The middle section drifts a little. Cutting 1\u20132 sentences would tighten the arc without losing anything material.',
-    'The call-to-action is soft. Give the reader one specific thing to do next \u2014 not "let me know your thoughts", but "reply with X".',
-    'You buried the strongest line. Move it up top; make it the hook the reader sees first.',
-    'A single visual reference would have compounded the reach here. Even a screenshot would have added a full point of engagement.',
-    'The framing is generic. Say the customer\u2019s name out loud in the copy \u2014 the exact type of person you want reading this.'
-  ];
-  const tryNext = [
-    'Ship a follow-up this week. Same angle, different example. Series compounds far better than one-offs on ' + platform + '.',
-    'Repurpose the strongest line into a standalone ' + formatLabel.toLowerCase() + ' next week. It earns a second impression from the same audience.',
-    'Test the same idea on a different platform. If it worked on ' + platform + ', a 60-second cut of it will likely work on Reels too.',
-    'Reply to every comment on this piece in the next 24 hours. That\u2019s where the next 3 leads are hiding.',
-    'Write one more piece that answers the follow-up question this one raised. Audiences reward continuity.'
-  ];
-
-  const pick = function (pool, offset) {
-    const idx = Math.abs(_insSeedNum(item.id) + offset) % pool.length;
-    return pool[idx];
+  // Seed offsets 0/1/2 keep each of the three sections drawing from
+  // an independent slot on the same id \u2014 same item always
+  // renders the same three paragraphs.
+  const pick = function (arr, offset) {
+    const idx = Math.abs(_insSeedNum(item.id) + offset) % arr.length;
+    return arr[idx];
   };
 
   return {
-    worked:  pick(worked,   0),
-    sharper: pick(sharper,  1),
-    tryNext: pick(tryNext,  2)
+    worked:  pick(pool.worked,  0),
+    sharper: pick(pool.sharper, 1),
+    tryNext: pick(pool.tryNext, 2)
   };
 }
 
-// Three concrete follow-up cards keyed on the item's format + platform.
-// Same seeding rules as the analysis.
+// Per-platform pools of 5 concrete follow-up plays keyed to the
+// mechanics that actually move the needle on each network. Every
+// pool has exactly 5 items \u2014 the picker below draws 3
+// deterministically per item id, so the same item always shows the
+// same three cards while different items on the same platform
+// rotate through the full pool. Unknown platforms fall back to
+// `default` (the original generic pool).
+const INS_ACTION_POOLS = {
+  instagram: [
+    { title: 'Turn this into a Reel',                desc: 'Reels out-reach static posts by 3\u20134x on new-audience discovery. Same idea, 15\u201330 seconds, text-on-video hook.' },
+    { title: 'Post a Story teaser',                  desc: 'Warm the algorithm before your next feed post \u2014 Story reach primes reach on the piece that follows.' },
+    { title: 'Add to Highlights',                    desc: 'Save this to a Highlight so it keeps earning impressions long after the feed forgets it.' },
+    { title: 'Reply to every comment in the first hour', desc: 'The first-60-minutes reply spike is the strongest reach signal Instagram currently reads.' },
+    { title: 'Test the same content at a different time', desc: 'A/B test evening vs morning next week. Reach ceiling shifts by 30\u201350% for most accounts based on window alone.' }
+  ],
+  tiktok: [
+    { title: 'Stitch this with a trending sound',    desc: 'Stitches ride the source video\u2019s existing FYP momentum \u2014 highest-leverage way to buy new reach.' },
+    { title: 'Reply to top comment with a video',    desc: 'Video replies get pinned in-thread and re-pull viewers back to the source clip.' },
+    { title: 'Post a Part 2',                        desc: 'Sequels on TikTok routinely out-perform the original because Part 1\u2019s viewers self-select as your warm audience.' },
+    { title: 'Cross-post to Instagram Reels',        desc: 'A proven TikTok hook re-cut for Reels typically hits 60\u201380% of its TikTok reach on IG within 48 hours.' },
+    { title: 'Trim to 15 seconds and repost',        desc: 'Short reposts of proven hooks routinely out-perform the original. 48 hours is the ideal gap.' }
+  ],
+  youtube: [
+    { title: 'Add an end-screen CTA',                desc: 'End screens are the single biggest lever on session length, and session length is what promotes the channel.' },
+    { title: 'Create a Short from this',             desc: 'Cut the highest-retention 60 seconds. Shorts route new viewers into the long-form video within 48 hours.' },
+    { title: 'Update the thumbnail and test CTR',    desc: 'YouTube\u2019s built-in A/B tool. A 2-point CTR lift on 10K impressions is 200 more views \u2014 free upside.' },
+    { title: 'Pin a comment with next-video link',   desc: 'Pinned comments are read by ~30% of viewers and are the cleanest way to hand-off session time.' },
+    { title: 'Add to a playlist',                    desc: 'Playlists lift average session time. Higher session time = more impressions on future uploads.' }
+  ],
+  facebook: [
+    { title: 'Boost this post',                      desc: 'The engagement rate here justifies a $20\u201350 boost targeted at existing fans + lookalikes.' },
+    { title: 'Share to relevant Groups',             desc: 'Group reach dwarfs page reach right now. Cross-post the same angle into 2\u20133 groups where buyers hang out.' },
+    { title: 'Turn into a Facebook Story',           desc: 'Stories catch the fraction of your fans who never see the feed. Add a poll sticker for a reach kicker.' },
+    { title: 'Reply to every comment',               desc: 'Facebook\u2019s early-reply boost closes fast \u2014 replying within 90 minutes doubles the reach ceiling.' },
+    { title: 'Repurpose as an Instagram post',       desc: 'Same audience overlap, different discovery mechanic. Meta\u2019s cross-post tools make this a 2-minute task.' }
+  ],
+  linkedin: [
+    { title: 'Turn into a carousel post',            desc: 'Carousels 3x the dwell time of text posts and LinkedIn currently favors dwell over any other signal.' },
+    { title: 'Tag people mentioned',                 desc: 'Named tags trigger notifications and pull the tagged person\u2019s network into your post\u2019s reach graph.' },
+    { title: 'Follow up with commenters via DM',     desc: 'LinkedIn\u2019s algorithm won\u2019t reward this \u2014 but your pipeline will. Best done while the post is still warm.' },
+    { title: 'Repurpose as a newsletter article',    desc: 'LinkedIn newsletters compound: every subscriber gets notified on every issue, unlike feed posts.' },
+    { title: 'Schedule a follow-up post',            desc: 'Post a related-but-distinct angle within 5\u20137 days while the same audience is still primed by this one.' }
+  ],
+  x: [
+    { title: 'Turn into a thread',                   desc: 'Threads keep serving replies deep into day two because each new reply from you signals the algorithm.' },
+    { title: 'Quote-tweet with added context',       desc: 'Recycles reach without competing with the original. Do this at the 48-hour mark for best effect.' },
+    { title: 'Pin this tweet',                       desc: 'Profile visits are the highest-intent traffic on X. A pinned post converts a share of them into follows.' },
+    { title: 'Screenshot and post to LinkedIn',      desc: 'Text-only tweets that landed become LinkedIn posts with 3\u20135x the dwell time when reframed as commentary.' },
+    { title: 'Follow up 48hrs later with results',   desc: 'A "here\u2019s what happened" follow-up tweet on a hit original often out-performs the original itself.' }
+  ],
+  email: [
+    { title: 'A/B test the subject line',            desc: 'Even a 2-point open-rate lift compounds across the year into thousands of extra opens. Test one variable at a time.' },
+    { title: 'Resend to non-openers',                desc: 'Resend 4\u20135 days later with a different subject line. Typically recovers 15\u201325% of the original open volume.' },
+    { title: 'Segment by click behavior',            desc: 'Split the clicked-through cohort into its own list. That\u2019s where your highest-intent readers actually live.' },
+    { title: 'Turn the top click into a landing page', desc: 'The link with the most engagement is your customer\u2019s real question. Build a page that answers it.' },
+    { title: 'Send a follow-up sequence',            desc: 'A 3-email drip to the click cohort within 2 weeks typically converts 2\u20135x better than a single follow-up.' }
+  ],
+  podcast: [
+    { title: 'Clip the best 60 seconds for social',  desc: 'Podcast discovery is a social problem now. Post the highest-energy clip on Reels and TikTok this week.' },
+    { title: 'Ask listeners to leave a review',      desc: 'Named asks convert 5\u201310x better than generic ones. Call out three specific listeners in the next episode.' },
+    { title: 'Transcribe and turn into a blog post', desc: 'Episodes bleed most of their value when they never leave the audio player. Transcripts capture search traffic.' },
+    { title: 'Create a short video teaser',          desc: 'A 30-second video teaser \u2014 face + hook \u2014 doubles as promo and warms up your video-native audience.' },
+    { title: 'Pitch the episode to a newsletter',    desc: 'Newsletter operators are always hungry for pre-packaged content. One placement can equal a week of organic downloads.' }
+  ],
+  default: [
+    { title: 'Turn this into a series',              desc: 'This angle resonated. Ship two more pieces this week that expand on the same idea.' },
+    { title: 'Cut a 60-second version',              desc: 'Reels and Shorts of proven content tend to outperform the original by 2\u20134x.' },
+    { title: 'Repost the top comment',               desc: 'Pin the strongest reply as social proof and screenshot it into your next piece.' },
+    { title: 'Write the follow-up',                  desc: 'This piece raised a question. The next one should answer it \u2014 same voice, same shape.' },
+    { title: 'DM your 5 warmest leads',              desc: 'Send them this piece directly with one line: "This is why I built the thing."' }
+  ]
+};
+
+// Three concrete follow-up cards keyed on the item's platform.
+// Draws deterministically from the platform-specific pool above so
+// the same id always shows the same three cards, but different
+// items on the same platform rotate through all 5 pool entries.
 function _insdSuggestedActions(item) {
-  const platform = _insPlatformLabel(item.platform);
-  const formatLabel = (INS_FORMAT_LABELS[item.type] || 'post').toLowerCase();
-  const pool = [
-    { title: 'Turn this into a series',      desc: 'This angle resonated. Ship two more pieces this week that expand on the same idea.' },
-    { title: 'Cut a 60-second version',       desc: 'Reels and Shorts of proven ' + formatLabel + 's tend to outperform the original by 2\u20134x.' },
-    { title: 'Repost the top comment',        desc: 'Pin the strongest reply as social proof and screenshot it into your next piece.' },
-    { title: 'Cross-post to a second channel',desc: 'This worked on ' + platform + '. Try it on the channel where your ideal buyer also lives.' },
-    { title: 'DM your 5 warmest leads',       desc: 'Send them this piece directly with one line: "This is why I built the thing."' },
-    { title: 'Write the follow-up',           desc: 'This piece raised a question. The next one should answer it \u2014 same voice, same shape.' },
-    { title: 'Bundle 3 pieces into an email', desc: 'Your list wants curation. Package this + two more into a Friday sendout.' }
-  ];
+  const platformKey = String(item && item.platform || '').toLowerCase();
+  const pool = INS_ACTION_POOLS[platformKey] || INS_ACTION_POOLS.default;
   const seed = _insSeedNum(item.id);
   const picks = [];
   const used = {};
+  // Coprime stride (7) with a 5-item pool guarantees full coverage
+  // before repeats. The outer bound (`pool.length * 2`) is a safety
+  // net for pools that shrink in the future.
   for (let i = 0; picks.length < 3 && i < pool.length * 2; i++) {
     const idx = Math.abs(seed + i * 7) % pool.length;
     if (used[idx]) continue;
@@ -1421,9 +1761,9 @@ function renderInsightsDetail(container) {
           </div>
           <h1 class="insd-title">${_escape(angle)}</h1>
         </div>
-        <a class="insd-external" href="${_escape(platformUrl)}" target="_blank" rel="noopener noreferrer">
-          View on ${_escape(platformLabel)} \u2192
-        </a>
+        ${platformUrl === '#'
+          ? '<span class="insd-external insd-external-disabled" aria-disabled="true" title="No canonical destination for this platform">View on ' + _escape(platformLabel) + ' \u2192</span>'
+          : '<a class="insd-external" href="' + _escape(platformUrl) + '" target="_blank" rel="noopener noreferrer">View on ' + _escape(platformLabel) + ' \u2192</a>'}
       </div>
 
       ${hasVariation ? '<div class="insd-fulltext">' + _escape(variation) + '</div>' : ''}

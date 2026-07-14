@@ -345,6 +345,24 @@ function _shouldRenderInsights(c) {
 
 function _renderTdInsightCard(insight) {
   if (!insight) return '';
+
+  // "FOR {NAME}" personalisation tag. Rendered only when the active
+  // concept has a non-empty business.name \u2014 unnamed concepts
+  // fall back to the plain headline without the amber pill.
+  const active = (typeof window.getActiveConcept === 'function') ? window.getActiveConcept() : null;
+  const businessName = (active && active.business && active.business.name)
+    ? String(active.business.name).trim()
+    : '';
+  const personalTagHtml = businessName
+    ? '<span class="td-insight-personal-tag">FOR ' + _escape(businessName.toUpperCase()) + '</span>'
+    : '';
+
+  // Emphasise the first stat "quantity" (percent / multiplier / ratio)
+  // by wrapping it in a larger, brighter span. Falls through to plain
+  // escaped text when the regex family finds no match \u2014 no stat
+  // ever comes back empty just because it was oddly formatted.
+  const statHtml = _tdEmphasiseInsightStat(insight.stat || '');
+
   return ''
     + '<div class="td-insight-card" id="tdInsightCard" role="button" tabindex="0"'
     +   ' aria-label="Read today\u2019s Daily Insight">'
@@ -353,14 +371,46 @@ function _renderTdInsightCard(insight) {
     +       '<span class="td-insight-kicker">DAILY INSIGHT</span>'
     +       '<span class="td-insight-arrow" aria-hidden="true">' + TD_INSIGHT_ARROW_SVG + '</span>'
     +     '</div>'
+    +     personalTagHtml
     +     '<h2 class="td-insight-headline">' + _escape(insight.headline || '') + '</h2>'
-    +     '<p class="td-insight-stat">' + _escape(insight.stat || '') + '</p>'
+    +     '<p class="td-insight-stat">' + statHtml + '</p>'
     +     '<div class="td-insight-footer">'
     +       '<button type="button" class="td-insight-skip" id="tdInsightSkip">Hide for today \u2192</button>'
-    +       '<span class="td-insight-source" aria-hidden="true">' + _escape(insight.source || '') + '</span>'
+    +       '<span class="td-insight-source" aria-hidden="true">'
+    +         '<span class="td-insight-source-dot" aria-hidden="true"></span>'
+    +         '<span class="td-insight-source-label">' + _escape(insight.source || '') + '</span>'
+    +       '</span>'
     +     '</div>'
     +   '</div>'
     + '</div>';
+}
+
+// Wraps the first "stat quantity" in the sentence with an accent
+// span so the number pops visually. Priority order matches the
+// stat-copy patterns in the insight pool (percentage range >
+// single percentage > multiplier range > single multiplier > "N
+// out of M" > ratio). Everything else is escape-passed. The
+// escape happens BEFORE the wrap so no user-controllable input
+// (headline / stat) can ever inject markup \u2014 the wrap
+// operates on already-escaped text and inserts a fixed span.
+function _tdEmphasiseInsightStat(stat) {
+  if (!stat) return '';
+  const escaped = _escape(String(stat));
+  const patterns = [
+    /(\d+(?:[.,]\d+)?[-\u2013]\d+(?:[.,]\d+)?%\+?)/,   // 10-15%, 15-20%
+    /(\d+(?:[.,]\d+)?%\+?)/,                             // 42%, 42.5%, 120%+
+    /(\d+(?:[.,]\d+)?[-\u2013]\d+(?:[.,]\d+)?x)/,       // 3-5x
+    /(\d+(?:[.,]\d+)?x)/,                                // 2.4x, 3x
+    /(\d+ out of \d+)/,                                  // 9 out of 10
+    /(\d+:\d+)/                                          // 8:1
+  ];
+  for (let i = 0; i < patterns.length; i++) {
+    const m = escaped.match(patterns[i]);
+    if (m) {
+      return escaped.replace(m[1], '<span class="td-insight-stat-num">' + m[1] + '</span>');
+    }
+  }
+  return escaped;
 }
 
 // Binds card-open, skip-for-today, and keyboard-activation handlers.

@@ -1290,9 +1290,43 @@
   text-underline-offset: 3px;
 }
 
+/* "FOR {NAME}" personalisation tag \u2014 rendered only when the
+   active concept has a non-empty business.name. Small amber pill
+   above the headline that signals "this insight was picked for you,
+   not a generic feed item". Self-aligned so it hugs the left edge
+   regardless of the parent flex axis. */
+.td-insight-personal-tag {
+  display: inline-block;
+  align-self: flex-start;
+  margin: 14px 0 10px;
+  padding: 4px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(245, 166, 35, 0.1);
+  border: 1px solid rgba(245, 166, 35, 0.28);
+  border-radius: 3px;
+  line-height: 1;
+}
+
+/* First numeric quantity inside the stat sentence \u2014 sized up
+   and brightened so the eye lands on the actual number rather than
+   the surrounding prose. Uses currentColor's contrast peer so it
+   scales cleanly with theme changes. */
+.td-insight-stat-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.005em;
+  line-height: 1;
+}
+
 .td-insight-source {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 5px 12px;
   border-radius: 999px;
   background: rgba(255, 240, 220, 0.03);
@@ -1303,6 +1337,31 @@
   letter-spacing: 0.02em;
   line-height: 1;
   max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "Verified" dot in front of the source name. 5px amber puck with
+   a subtle glow \u2014 reads as a data-integrity signal without
+   competing with the amber personalisation tag above the headline.
+   flex-shrink:0 so the label ellipsis truncates first, never the
+   dot. */
+.td-insight-source-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(245, 166, 35, 0.55);
+  flex-shrink: 0;
+}
+
+/* The actual source text lives inside its own span now (dot is
+   sibling). Ellipsis applies here so long sources like "Fundraising
+   Effectiveness Project 2024" gracefully truncate rather than
+   overflowing the pill boundary. */
+.td-insight-source-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

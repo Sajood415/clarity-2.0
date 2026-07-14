@@ -852,6 +852,24 @@
   transform: translateY(-1px);
 }
 
+/* Disabled variant for platforms without a canonical URL (email,
+   podcast). Rendered as a <span> instead of <a> so it isn't
+   focusable / clickable; we still preserve the pill visual so the
+   detail page doesn't look inconsistent between platforms. */
+.insd-external-disabled {
+  color: var(--muted);
+  background: rgba(255, 240, 220, 0.03);
+  border-color: var(--border);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.insd-external-disabled:hover {
+  background: rgba(255, 240, 220, 0.03);
+  border-color: var(--border);
+  transform: none;
+}
+
 /* --- Full body text (variation, if any) ------------------- */
 
 .insd-fulltext {

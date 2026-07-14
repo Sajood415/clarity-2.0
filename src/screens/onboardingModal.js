@@ -982,15 +982,19 @@ function _obCompleteFlow() {
   // The 5 canonical steps from the spec, in this exact order:
   //   1. appState.mode = 'home'                (defensive: already home
   //      by the time we get here, but pins it against any stale value)
-  //   2. appState.activeView = 'today'          (this is our routing key
-  //      \u2014 the same idea as appState.nav in the spec; the router
-  //      switches on activeView, not `nav`. Today is the new dashboard
-  //      landing after the Overview tab was removed from the sidebar.)
+  //   2. appState.activeView = 'today' | 'first-briefing'
+  //      (routing key. New concepts that have never seen the first-time
+  //      briefing land there; returning concepts \u2014 e.g. an already
+  //      onboarded concept that somehow re-runs completion \u2014 skip
+  //      straight to Today. Choice happens below, AFTER we've seeded
+  //      insights so the briefing screen is guaranteed to have data.)
   //   3. appState.onboardingOverlayOpen = false (dismount the overlay)
   //   4. _saveState()                           (persist BEFORE any
   //      async re-render so a reload lands here too)
   //   5. renderApp()                            (paint the dashboard)
   appState.mode = 'home';
+  // Provisional landing view. Overwritten below after insights seed so
+  // a brand-new concept lands on the briefing screen instead of Today.
   appState.activeView = 'today';
   appState.onboardingOverlayOpen = false;
 
@@ -1032,6 +1036,34 @@ function _obCompleteFlow() {
     }
   } catch (err) {
     console.error('Daily insights seed failed during onboarding complete:', err);
+  }
+
+  // First-time briefing routing decision. Runs AFTER the insights
+  // seeder so `concept.today.insights[0]` is guaranteed to exist by
+  // the time the briefing screen paints. Gated by
+  // `concept.today.hasSeenFirstBriefing` so:
+  //   \u2022 Brand-new concept  \u2192 flag is false \u2192 briefing shows,
+  //                                                       flag flips
+  //                                                       when the
+  //                                                       user hits
+  //                                                       "Start Today"
+  //   \u2022 Returning concept   \u2192 flag is true  \u2192 straight to Today
+  // Any concept without a `today.insights` array (defensive; shouldn't
+  // happen because we just seeded) is treated as "no briefing" too so
+  // we never route to a screen that can't render its content.
+  try {
+    const activeForBriefing = getActiveConcept();
+    if (activeForBriefing
+        && activeForBriefing.today
+        && activeForBriefing.today.hasSeenFirstBriefing !== true
+        && Array.isArray(activeForBriefing.today.insights)
+        && activeForBriefing.today.insights.length > 0) {
+      appState.activeView = 'first-briefing';
+    }
+  } catch (err) {
+    // Briefing routing is non-critical \u2014 fall through to Today on
+    // any failure so the user always lands somewhere usable.
+    console.error('First-briefing routing failed; falling back to Today:', err);
   }
 
   // Legacy flag consumed by the old concept header (harmless now).

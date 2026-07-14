@@ -1,0 +1,270 @@
+/* ==========================================
+   First-time Insights Briefing — full-screen
+   ==========================================
+   Fires once per concept, right after onboarding completes.
+
+   Layout:
+     .fb-fullscreen               fixed inset 0, dark bg + amber glow
+       .fb-inner                  centered column, max 720, gap 32
+         .fb-kicker               11/uppercase amber pill copy
+         .fb-headline             Playfair 42/bold, centered
+         .fb-stat                 24 emphasized number + 18 muted rest
+         .fb-source               amber dot + source name
+         .fb-divider              1px muted, 60% width, 40px margin
+         .fb-bullets-label        11/uppercase amber pill copy
+         .fb-bullets              3 rows, amber dot + 16/white text
+         .fb-cta-button           amber gradient, 52 tall, max 400
+         .fb-footnote             11/muted, sub CTA copy
+*/
+
+.fb-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 380;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(245, 166, 35, 0.04) 0%, rgba(245, 166, 35, 0) 55%),
+    var(--bg);
+  animation: fb-screen-in 400ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  overflow-y: auto;
+}
+
+@keyframes fb-screen-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.fb-fullscreen-out {
+  animation: fb-screen-out 260ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes fb-screen-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.fb-inner {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+}
+
+/* --- Kicker --- */
+
+.fb-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+
+/* --- Headline --- */
+
+.fb-headline {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  max-width: 700px;
+  margin: 0;
+}
+
+/* --- Stat line --- */
+
+.fb-stat {
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 620px;
+  margin: 4px 0 8px 0;
+}
+
+.fb-stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin-right: 2px;
+}
+
+/* --- Source badge --- */
+
+.fb-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  padding: 6px 12px;
+  background: rgba(245, 166, 35, 0.06);
+  border: 1px solid rgba(245, 166, 35, 0.14);
+  border-radius: 999px;
+}
+
+.fb-source-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.6);
+  flex-shrink: 0;
+}
+
+.fb-source-label {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Divider --- */
+
+.fb-divider {
+  width: 60%;
+  max-width: 480px;
+  height: 1px;
+  background: var(--border-strong);
+  margin: 20px 0 4px 0;
+}
+
+/* --- Bullets label --- */
+
+.fb-bullets-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+
+/* --- Bullets --- */
+
+.fb-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 600px;
+  width: 100%;
+}
+
+.fb-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.fb-bullet-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(245, 166, 35, 0.5);
+  margin-top: 9px;
+}
+
+.fb-bullet-text {
+  flex: 1;
+}
+
+/* --- CTA button --- */
+
+.fb-cta-button {
+  width: 100%;
+  max-width: 400px;
+  height: 52px;
+  margin-top: 20px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #1A1108;
+  background: linear-gradient(180deg, #F5A623 0%, #D4860A 100%);
+  border: 1px solid rgba(245, 166, 35, 0.9);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 4px 20px rgba(245, 166, 35, 0.28),
+    0 12px 32px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 180ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.fb-cta-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 6px 24px rgba(245, 166, 35, 0.4),
+    0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.fb-cta-button:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.fb-cta-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* --- Footnote --- */
+
+.fb-footnote {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 720px) {
+  .fb-fullscreen { padding: 32px 20px; }
+  .fb-headline   { font-size: 32px; }
+  .fb-stat       { font-size: 16px; }
+  .fb-stat-num   { font-size: 20px; }
+  .fb-bullet     { font-size: 15px; }
+}
+
+@media (max-height: 720px) {
+  /* Compact vertical rhythm for laptops (13" MacBook lands here). */
+  .fb-inner      { gap: 16px; }
+  .fb-headline   { font-size: 36px; }
+  .fb-divider    { margin: 12px 0 0 0; }
+  .fb-cta-button { margin-top: 12px; }
+}

@@ -480,7 +480,14 @@ function _newConcept(opts) {
       insights: [],
       insightsDismissedDate: null,
       taskHistory: {},
-      viewedDate: null
+      viewedDate: null,
+      // First-time briefing gate. Flipped to true the first time the
+      // user clicks "Start Today \u2192" on the full-screen briefing
+      // that runs once immediately after onboarding completes. Never
+      // reset \u2014 subsequent logins skip the briefing and land
+      // directly on Today. See screens/firstBriefing.js for the
+      // renderer and onboardingModal._obCompleteFlow for the route.
+      hasSeenFirstBriefing: false
     },
     // Daily-insights archive keyed by YYYY-MM-DD. Populated by
     // clara/insights.js at onboarding completion and then lazily on
@@ -948,6 +955,19 @@ function _normalizeState() {
     if (typeof c.today.viewedDate !== 'string'
         || !/^\d{4}-\d{2}-\d{2}$/.test(c.today.viewedDate)) {
       c.today.viewedDate = null;
+    }
+    // First-time briefing gate. Legacy concepts that predate this
+    // field have never seen the briefing screen either, but we treat
+    // them as if they had \u2014 the briefing is meant for a brand-new
+    // concept that JUST completed onboarding, not for every existing
+    // concept in a returning user's account. Rule of thumb: if
+    // onboarding is already complete, the briefing window has passed,
+    // so backfill as `true`; if onboarding hasn't completed yet, we
+    // start at `false` so the flag fires the first time completion
+    // lands them on the briefing. Any non-boolean value is coerced.
+    if (typeof c.today.hasSeenFirstBriefing !== 'boolean') {
+      const alreadyOnboarded = !!(c.chat && c.chat.onboardingComplete);
+      c.today.hasSeenFirstBriefing = alreadyOnboarded;
     }
 
     // Insights history archive. Kept as an open dictionary keyed by
