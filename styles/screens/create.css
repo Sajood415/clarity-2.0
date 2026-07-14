@@ -694,6 +694,70 @@
    the copy button slightly so the two never overlap. */
 .cr-variation-card-active .cr-copy-btn { margin-right: 28px; }
 
+/* ---------------------------------------------
+   4th variation card \u2014 "Your idea" (custom textarea)
+   ---------------------------------------------
+   Structural notes:
+     \u2022 Spans the full grid row via grid-column: 1 / -1 so it sits
+       on its own row underneath the 3 auto-generated cards. Gives
+       the textarea room to breathe without cramming a 4th column
+       onto small viewports.
+     \u2022 Same .cr-variation-card frame (border, hover, active state,
+       checkmark badge) so the row reads as a peer, not a footer.
+     \u2022 No copy button (nothing to copy until the user has typed
+       something) \u2014 the head row still uses the same layout so
+       the label + subtitle sit exactly where they do on cards 1-3. */
+
+.cr-variation-card-custom {
+  grid-column: 1 / -1;
+}
+
+.cr-variation-custom-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  border: none;
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  resize: vertical;
+  outline: none;
+  transition: background 150ms ease, box-shadow 150ms ease;
+}
+
+.cr-variation-custom-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.cr-variation-custom-textarea:focus {
+  background: rgba(0, 0, 0, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(245, 166, 35, 0.28);
+}
+
+/* Card body clicks propagate up to the card wrapper (which handles
+   selection). The textarea itself is inline-interactive \u2014 clicks
+   land on the input, not on the card selector. The click handler in
+   _crBindStep3 checks .cr-variation-custom-textarea and bails, so
+   caret placement is preserved. */
+
+.cr-variation-char-hint {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  margin-top: 6px;
+  transition: color 180ms ease;
+}
+
+.cr-variation-char-hint-ok {
+  color: var(--accent);
+}
+
 .cr-copy-btn {
   width: 30px;
   height: 30px;
@@ -1255,6 +1319,21 @@
   font-size: 16px;
 }
 
+/* "Your idea" preview body \u2014 rendered on Step 4 when the user
+   picked the 4th card. Plain text block with preserved whitespace
+   so paste-in content keeps its paragraph breaks. Padded to match
+   the visual weight of the format-specific preview bodies. */
+.cr-publish-custom-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+  padding: 8px 4px;
+  min-height: 60px;
+}
+
 /* Container that holds the platform badge + confidence chip side by
    side. Stacks on narrow viewports. */
 .cr-publish-meta {
@@ -1371,6 +1450,22 @@
   box-shadow: 0 0 8px rgba(183, 155, 229, 0.55);
 }
 .cr-confidence-experiment .cr-confidence-label { color: #C6B0EA; }
+
+/* "Your own take" \u2014 the custom-angle chip. No rating, no
+   colored dot, no accent tint. Renders in the same slot as the
+   high/solid/experiment chips so Step 4's meta row keeps its
+   layout, but visually mutes the "confidence" language because
+   Clara has no benchmark for user-authored text. */
+.cr-confidence-custom {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.cr-confidence-custom .cr-confidence-dot {
+  background: var(--muted);
+  box-shadow: none;
+  opacity: 0.7;
+}
+.cr-confidence-custom .cr-confidence-label { color: var(--text-secondary); }
 
 .cr-publish-options {
   display: flex;

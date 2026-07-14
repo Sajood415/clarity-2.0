@@ -241,6 +241,16 @@ function _defaultCreate() {
     // Step 2 pre-fills a Clara-authored brief the user can edit before
     // hitting Generate. Empty until Step 2 renders for the first time.
     customBrief: '',
+    // Step 3 "Your idea" (4th) card — free-form textarea for the user
+    // to write their own angle. Persisted separately from
+    // selectedVariation so switching between the 3 Clara-generated
+    // cards and the custom card doesn't wipe the user's typing;
+    // selectedVariation.customText is mirrored from this field when
+    // the custom card is the active pick. Cleared alongside variations
+    // whenever contentType / subFormat / regenerationCount changes
+    // (matching the reset semantics of the sibling fields), and on
+    // any full wizard reset (_resetCreate / Publish success).
+    customText: '',
     variations: [],
     // If the user arrived here via a Today task, this holds the task
     // so _crInit can pre-select sensible defaults for contentType,
@@ -1074,6 +1084,13 @@ function _normalizeState() {
     if (typeof c.create.regenerationCount !== 'number' || c.create.regenerationCount < 0) {
       c.create.regenerationCount = 0;
     }
+    // Legacy concepts pre-dating the "Your idea" 4th card have no
+    // `customText` field. Object.assign above already spread the
+    // default empty string in, but a corrupted non-string value
+    // (from a bad hand-edit of localStorage, or an old migration
+    // step) would still slip through \u2014 coerce here so the
+    // Step 3 textarea can always read a string.
+    if (typeof c.create.customText !== 'string') c.create.customText = '';
     // Transient flags always false on load.
     c.create.publishing = false;
     c.create.generating = false;

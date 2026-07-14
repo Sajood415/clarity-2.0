@@ -89,12 +89,21 @@ const CR_SUB_FORMATS = [
 
 // Angle labels sit in place of the old "VARIATION A / B / C". Each
 // variation carries an `angle` field that maps into this. Direct =
-// declarative, Story = customer-voice, Question = hook.
+// declarative, Story = customer-voice, Question = hook. `Custom` is
+// the 4th "Your idea" escape hatch \u2014 rendered separately with a
+// textarea inside the card instead of a preview body.
 const CR_ANGLE_META = {
   Direct:   { label: 'Direct',   sub: 'Declarative, no hedging' },
   Story:    { label: 'Story',    sub: 'From a customer\u2019s mouth' },
-  Question: { label: 'Question', sub: 'Opens with a hook' }
+  Question: { label: 'Question', sub: 'Opens with a hook' },
+  Custom:   { label: 'Your idea', sub: 'Write your own angle' }
 };
+
+// Minimum character count for the "Your idea" custom textarea before
+// the Continue button can enable. Kept as a named constant so the
+// hint copy, gating logic, and char-hint threshold-color styling all
+// agree on the same number.
+const CR_CUSTOM_MIN_CHARS = 10;
 
 // ---------------------------------------------
 // Platform catalog + icons
@@ -712,6 +721,11 @@ function _crRenderThreadPreview(v) {
 // and Step 4 to put a clean version onto the clipboard.
 function _crVariationPreviewText(v) {
   if (!v) return '';
+  // "Your idea" (4th card) short-circuits to the raw textarea value.
+  // Clipboard copy, published results.items, and draft results.items
+  // all funnel through this helper, so a single branch here keeps the
+  // downstream code path unchanged.
+  if (v.angle === 'Custom' || v.id === 'custom') return v.customText || '';
   if (v.format === 'image')      return 'CAPTION: ' + (v.caption || '') + '\n\nVISUAL: ' + (v.visual || '');
   if (v.format === 'video')      return 'HOOK: ' + (v.hook || '') + '\n\nMIDDLE: ' + (v.middle || '') + '\n\nCTA: ' + (v.cta || '');
   if (v.format === 'audio')      return 'HOOK: ' + (v.hook || '') + '\n\nSPOT: ' + (v.spot || '') + '\n\nCTA: ' + (v.cta || '');
@@ -758,6 +772,7 @@ function _resetCreate() {
   c.selectedPlatform = null;
   c.selectedVariation = null;
   c.customBrief = '';
+  c.customText = '';
   c.variations = [];
   c.fromTask = null;
   c.generating = false;
@@ -940,6 +955,11 @@ function _crBindStep1() {
         c.variations = [];
         c.selectedVariation = null;
         c.customBrief = '';
+        // The "Your idea" text was drafted for the old format \u2014 a
+        // switch to a different content type is a fresh brief, so
+        // wipe it alongside variations / customBrief. Matches the
+        // "we're restarting Step 3" intent.
+        c.customText = '';
         c.regenerationCount = 0;
       }
       _saveState();
@@ -1059,6 +1079,10 @@ function _crBindStep2() {
       cur.selectedPlatform = _crDefaultPlatformFor(cur.contentType, cur.subFormat);
       cur.variations = [];
       cur.selectedVariation = null;
+      // Sub-format change (post \u2192 email etc.) is another
+      // "we're restarting Step 3" moment \u2014 wipe the custom
+      // textarea state along with the auto-generated variations.
+      cur.customText = '';
       cur.regenerationCount = 0;
       _saveState();
       renderCreate(document.getElementById('homeContent'));
@@ -1166,6 +1190,7 @@ function _crRenderStep3() {
   // position when checking selection. Cheapest cross-check is a stored
   // key on the variation itself.
   const selectedKey = c.selectedVariation ? c.selectedVariation.id + '|' + (c.selectedVariation.angle || '') : null;
+  const isCustomSelected = !!(c.selectedVariation && c.selectedVariation.angle === 'Custom');
 
   const cardsHtml = variations.map(function (v, i) {
     const key = v.id + '|' + (v.angle || '');
@@ -1186,20 +1211,62 @@ function _crRenderStep3() {
       + '</div>';
   }).join('');
 
+  // Fourth card \u2014 "Your idea" escape hatch. Uses the same
+  // .cr-variation-card frame as the pool cards but skips the copy
+  // button and swaps the format-specific preview body for a
+  // free-form textarea + character hint. `data-variation-index` is
+  // the string "custom" so the click handler in _crBindStep3 can
+  // branch on it. Textarea rehydrates from `c.customText`, so
+  // toggling between the pool cards and this one preserves the
+  // user's typing.
+  const customMeta = CR_ANGLE_META.Custom;
+  const customText = typeof c.customText === 'string' ? c.customText : '';
+  const customLen = customText.length;
+  const hintOkClass = customLen >= CR_CUSTOM_MIN_CHARS ? ' cr-variation-char-hint-ok' : '';
+  const customCardActiveClass = isCustomSelected ? ' cr-variation-card-active' : '';
+  const customCardHtml = ''
+    + '<div class="cr-variation-card cr-variation-card-custom' + customCardActiveClass + '"'
+    +      ' data-variation-index="custom" data-angle="Custom">'
+    +   '<div class="cr-variation-head">'
+    +     '<div class="cr-variation-head-text">'
+    +       '<div class="cr-variation-angle">' + _escape(customMeta.label.toUpperCase()) + '</div>'
+    +       '<div class="cr-variation-sub">' + _escape(customMeta.sub) + '</div>'
+    +     '</div>'
+    +   '</div>'
+    +   '<textarea class="cr-variation-custom-textarea" id="crCustomTextarea"'
+    +          ' placeholder="Describe your angle or paste your own content..."'
+    +          ' rows="5"'
+    +          ' aria-label="Your own angle">' + _escape(customText) + '</textarea>'
+    +   '<div class="cr-variation-char-hint' + hintOkClass + '" id="crCustomHint" aria-live="polite">'
+    +     _escape(String(CR_CUSTOM_MIN_CHARS)) + ' characters minimum'
+    +   '</div>'
+    + '</div>';
+
+  // Continue-button enablement:
+  //   \u2022 One of the first-3 cards picked   \u2192 always enabled
+  //   \u2022 The "Your idea" card picked        \u2192 only when the
+  //     textarea has \u2265 CR_CUSTOM_MIN_CHARS characters
+  //   \u2022 Nothing picked                      \u2192 disabled
+  // Re-computed imperatively on every textarea input event so users
+  // don't have to re-click the card to unlock the button.
+  const canContinue = isCustomSelected
+    ? customLen >= CR_CUSTOM_MIN_CHARS
+    : !!selectedId;
+
   return ''
     + '<button type="button" class="cr-back-link" id="crBackBtn">\u2190 Back</button>'
     + '<div class="cr-step3-head">'
     +   '<div>'
     +     '<h1 class="cr-heading cr-heading-sm">Pick one to publish.</h1>'
-    +     '<p class="cr-subheading">Three angles on the same brief. Tap Copy to save any of them.</p>'
+    +     '<p class="cr-subheading">Three angles on the same brief \u2014 or write your own. Tap Copy to save any of them.</p>'
     +   '</div>'
     +   '<button type="button" class="cr-regen-btn" id="crRegenBtn">'
     +     '<span class="cr-regen-icon">' + CR_REGEN_ICON + '</span>'
     +     '<span>Regenerate</span>'
     +   '</button>'
     + '</div>'
-    + '<div class="cr-variations cr-variations-grid">' + cardsHtml + '</div>'
-    + '<button type="button" class="cr-continue-btn" id="crContinueBtn"' + (selectedId ? '' : ' disabled') + '>'
+    + '<div class="cr-variations cr-variations-grid">' + cardsHtml + customCardHtml + '</div>'
+    + '<button type="button" class="cr-continue-btn" id="crContinueBtn"' + (canContinue ? '' : ' disabled') + '>'
     +   'Continue \u2192'
     + '</button>';
 }
@@ -1214,7 +1281,24 @@ function _crBindStep3() {
       // propagation, but as a belt-and-braces, ignore any click that
       // originated inside the copy button.
       if (e.target && e.target.closest && e.target.closest('.cr-copy-btn')) return;
-      const idx = parseInt(card.getAttribute('data-variation-index'), 10);
+
+      const rawIdx = card.getAttribute('data-variation-index');
+
+      // Fourth card \u2014 "Your idea" branch. Different selection
+      // shape (custom object) and different UI update path (imperative
+      // \u2014 no full re-render, so the textarea keeps focus / caret
+      // position if the click happened via keyboard tabbing).
+      if (rawIdx === 'custom') {
+        // Clicks that originated inside the textarea itself are
+        // handled by its input event, not by this card click.
+        // Otherwise selecting the card from a background click would
+        // race with the caret placement inside the textarea.
+        if (e.target && e.target.closest && e.target.closest('.cr-variation-custom-textarea')) return;
+        _crSelectCustomCard();
+        return;
+      }
+
+      const idx = parseInt(rawIdx, 10);
       const c = getCreate();
       const v = (c.variations || [])[idx];
       if (!v) return;
@@ -1238,6 +1322,25 @@ function _crBindStep3() {
     });
   });
 
+  // Textarea input \u2014 mirrors typing into c.customText and auto-
+  // selects the custom card so the user never has to click twice to
+  // unlock Continue. All UI updates run imperatively to preserve
+  // focus + caret position; a re-render on every keystroke would
+  // reset the caret to the end of the string on every fire.
+  const customTextarea = document.getElementById('crCustomTextarea');
+  if (customTextarea) {
+    customTextarea.addEventListener('input', function () {
+      _crOnCustomInput(customTextarea.value);
+    });
+    // Blur-time save is a belt-and-braces backup for the input
+    // listener \u2014 covers the vanishingly rare browsers where a
+    // paste event doesn't dispatch an input. Cheap because
+    // _crOnCustomInput bails when the value hasn't changed.
+    customTextarea.addEventListener('blur', function () {
+      _crOnCustomInput(customTextarea.value);
+    });
+  }
+
   const regen = document.getElementById('crRegenBtn');
   if (regen) {
     regen.addEventListener('click', function () {
@@ -1245,6 +1348,12 @@ function _crBindStep3() {
       c.regenerationCount = (c.regenerationCount || 0) + 1;
       c.variations = _crVariationsFor(c.contentType, c.subFormat, c.regenerationCount);
       c.selectedVariation = null;
+      // Regenerate targets only the first-3 pool cards; the "Your
+      // idea" card is user-owned content and NOT wiped. If the user
+      // had picked the custom card, keep the customText in place
+      // but let the click below re-set selectedVariation \u2014 the
+      // full re-render will restore selection state from
+      // c.customText the next time the user interacts.
       _saveState();
       renderCreate(document.getElementById('homeContent'));
     });
@@ -1253,9 +1362,90 @@ function _crBindStep3() {
   const cont = document.getElementById('crContinueBtn');
   if (cont) {
     cont.addEventListener('click', function () {
-      if (!getCreate().selectedVariation) return;
+      const c = getCreate();
+      if (!c.selectedVariation) return;
+      // Second guard for the custom card: block advancement if the
+      // textarea is still under the character threshold. Belt-and-
+      // braces against a race between imperative disabled-flip and
+      // click firing on stale DOM.
+      if (c.selectedVariation.angle === 'Custom'
+          && (c.customText || '').length < CR_CUSTOM_MIN_CHARS) return;
       _crGoTo(4);
     });
+  }
+}
+
+// ---------------------------------------------
+// Step 3 \u2014 "Your idea" custom card helpers
+// ---------------------------------------------
+//
+// Both paths (click-to-select + type-to-select) funnel through these
+// helpers so the state shape stays consistent. All UI updates are
+// imperative so the textarea's focus + caret position survive.
+
+function _crSelectCustomCard() {
+  const textarea = document.getElementById('crCustomTextarea');
+  const c = getCreate();
+  const value = textarea ? textarea.value : (c.customText || '');
+  c.customText = value;
+  c.selectedVariation = {
+    id: 'custom',
+    angle: 'Custom',
+    format: c.contentType,
+    customText: value
+  };
+  _saveState();
+  _crRefreshCustomCardUI(value);
+  // Give the textarea focus when the user picked the card by clicking
+  // its background \u2014 they're clearly about to type. Guarded so we
+  // don't yank focus if the card was already active (e.g. re-click).
+  if (textarea && document.activeElement !== textarea) {
+    try { textarea.focus({ preventScroll: true }); } catch (_) { textarea.focus(); }
+  }
+}
+
+function _crOnCustomInput(value) {
+  const c = getCreate();
+  // Skip the write when nothing actually changed (fires on blur even
+  // when the value didn't move). Keeps localStorage writes proportional
+  // to real edits.
+  if (c.customText === value
+      && c.selectedVariation
+      && c.selectedVariation.angle === 'Custom') {
+    _crRefreshCustomCardUI(value);
+    return;
+  }
+  c.customText = value;
+  c.selectedVariation = {
+    id: 'custom',
+    angle: 'Custom',
+    format: c.contentType,
+    customText: value
+  };
+  _saveState();
+  _crRefreshCustomCardUI(value);
+}
+
+// Imperative pass \u2014 flips the active class between cards, updates
+// the char-hint color, and syncs the Continue button's disabled flag.
+// Called from both the click and input paths. No re-render.
+function _crRefreshCustomCardUI(value) {
+  const len = (typeof value === 'string' ? value : '').length;
+  const ok = len >= CR_CUSTOM_MIN_CHARS;
+
+  // Move .cr-variation-card-active to the custom card only.
+  document.querySelectorAll('.cr-variation-card').forEach(function (card) {
+    const isCustom = card.getAttribute('data-variation-index') === 'custom';
+    card.classList.toggle('cr-variation-card-active', isCustom);
+  });
+
+  const hint = document.getElementById('crCustomHint');
+  if (hint) hint.classList.toggle('cr-variation-char-hint-ok', ok);
+
+  const cont = document.getElementById('crContinueBtn');
+  if (cont) {
+    if (ok) cont.removeAttribute('disabled');
+    else    cont.setAttribute('disabled', '');
   }
 }
 
@@ -1282,6 +1472,18 @@ function _crConfidence(v, platform) {
   if (!v) return { level: 'solid', label: 'Solid pick', copy: 'Clara thinks this will land \u2014 the angle matches your audience.' };
   const angle = v.angle || 'Direct';
   const platformLabel = _crPlatformLabel(platform);
+
+  // "Your idea" (custom textarea) has no Clara-authored angle for us
+  // to benchmark against, so there's no confidence rating to show.
+  // We still return a chip so Step 4's layout stays intact \u2014 just
+  // in a neutral level with muted styling and no colored dot.
+  if (angle === 'Custom') {
+    return {
+      level: 'custom',
+      label: 'Your own take',
+      copy: 'You wrote this yourself. Clara has no benchmark for it \u2014 but a personal angle often lands harder than a template.'
+    };
+  }
 
   if (angle === 'Direct') {
     return {
@@ -1313,6 +1515,16 @@ function _crRenderStep4() {
   const icon = CR_PLATFORM_ICONS[platform] || '';
   const conf = _crConfidence(c.selectedVariation, platform);
 
+  // "Your idea" preview body \u2014 a plain-text block. Sidesteps
+  // _crRenderVariationBody entirely because there are no format-
+  // specific fields (caption / hook / body / etc.) on a custom
+  // variation, only the raw user text. white-space:pre-wrap in CSS
+  // preserves paragraph breaks.
+  const isCustom = c.selectedVariation.angle === 'Custom';
+  const bodyHtml = isCustom
+    ? '<div class="cr-publish-custom-body">' + _escape(c.selectedVariation.customText || '') + '</div>'
+    : _crRenderVariationBody(c.selectedVariation);
+
   return ''
     + '<button type="button" class="cr-back-link" id="crBackBtn">\u2190 Back</button>'
     + '<h1 class="cr-heading cr-heading-sm">Ready when you are.</h1>'
@@ -1325,7 +1537,7 @@ function _crRenderStep4() {
     +       '<span>Copy</span>'
     +     '</button>'
     +   '</div>'
-    +   '<div class="cr-publish-body">' + _crRenderVariationBody(c.selectedVariation) + '</div>'
+    +   '<div class="cr-publish-body">' + bodyHtml + '</div>'
     + '</div>'
     + '<div class="cr-publish-meta">'
     +   '<div class="cr-publish-badge">'

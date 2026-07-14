@@ -328,6 +328,14 @@ function _obRenderAnswer(step) {
         multiLine: false,
         onCommit: _obHandleQName
       });
+      // "\u2726 Suggest a name" button, mounted BELOW the input.
+      // Only shows when we have enough business context to produce
+      // a meaningful suggestion (Q1 answered + either Q3 answered
+      // or Q1_other description available) \u2014 the visibility
+      // check lives inside the mount helper. Same reuse pattern as
+      // the Q3 "Enhance with AI" affordance; kept in a separate
+      // function so _obRenderTextInput stays generic.
+      _obMountQNameAIExtras(host);
       break;
 
     case 'q2':
@@ -835,10 +843,11 @@ function _obPreviousQNameOrigin() {
 function _obTransitionTo(nextStep) {
   const content = document.getElementById('obContent');
   if (!content) {
-    // Tear down any Q3 AI timers (typing animation frames, suggestion
-    // debounce) before rendering the next step. Safe no-op when Q3
-    // isn't active.
+    // Tear down any Q3 / Q_name AI timers (typing animation frames,
+    // suggestion debounce) before rendering the next step. Safe
+    // no-ops when the respective step isn't currently active.
     _obQ3TeardownAI();
+    _obQNameTeardownAI();
     _obState.currentStep = nextStep;
     _obRenderStep();
     return;
@@ -852,6 +861,7 @@ function _obTransitionTo(nextStep) {
     // whereas the branch above catches the "content already gone"
     // path (e.g. router swapped hm-shell mid-flight).
     _obQ3TeardownAI();
+    _obQNameTeardownAI();
     _obState.currentStep = nextStep;
     _obRenderStep();
     _obState.transitioning = false;
@@ -1395,6 +1405,198 @@ function _obQ3TeardownAI() {
     _obQ3State.suggestDebounce = null;
   }
   _obQ3State.enhanceRunning = false;
+}
+
+// ---------------------------------------------
+// Q_name \u2014 "Suggest a name" affordance
+// ---------------------------------------------
+//
+// Renders below the standard q_name text input. Same shape as Q3's
+// "Enhance with AI" button (character-by-character typing animation
+// into the same input, imperative disabled/running state, teardown on
+// step transition), but with tighter scope:
+//
+//   \u2022 No live-suggestion pill \u2014 the name field is one-shot,
+//     not a paragraph the user builds up over time.
+//   \u2022 Visibility is gated on having *some* business context to
+//     personalise off (see _obQNameShouldShow). If we don't have
+//     enough context to produce a meaningful suggestion, the button
+//     isn't mounted at all.
+//   \u2022 Slower per-character interval (30ms vs Q3's 15ms) because
+//     name suggestions are short \u2014 the extra delay makes the
+//     animation feel intentional rather than instant.
+
+const OB_QNAME_TYPE_SPEED_MS = 30;
+const OB_QNAME_SPARK_SVG =
+  '<span class="ob-qname-suggest-spark" aria-hidden="true">\u2726</span>';
+
+const _obQNameState = {
+  // setInterval id for the typing animation. Non-null while a suggest
+  // run is streaming characters into the input.
+  typingTimer: null,
+  // Whether a run is currently active. Guards duplicate clicks and
+  // signals the teardown path.
+  running: false,
+  // The button label as it was when the animation started. Restored
+  // on finish so we don't hard-code "Suggest a name" (which would
+  // stick if we ever localised the label).
+  savedLabel: ''
+};
+
+// Returns true when there's enough business context to produce a
+// meaningful suggestion. `business.type` alone isn't enough \u2014 the
+// templates need a product token to be interesting. Q1_other stores
+// its free-text description on business.product (confusingly, since
+// the schema also has typeDescription), so both fields count. Q3's
+// customer field also unlocks the button, on the theory that a
+// re-edit pass through q_name will have the whole customer paragraph
+// available and we can still generate something reasonable off type
+// + goal even without an explicit product token.
+function _obQNameShouldShow(business) {
+  if (!business || !business.type) return false;
+  const hasCustomer = !!String(business.customer || '').trim();
+  const hasDesc =
+    !!String(business.typeDescription || '').trim()
+    || !!String(business.product || '').trim();
+  return hasCustomer || hasDesc;
+}
+
+function _obMountQNameAIExtras(host) {
+  if (!host) return;
+  // Reset transient state so a re-mount (edit \u2192 back \u2192 edit)
+  // never inherits a stale typing timer or running flag.
+  _obQNameTeardownAI();
+
+  const business = getBusiness();
+  if (!_obQNameShouldShow(business)) return;
+
+  const input = host.querySelector('#obInput');
+  const continueBtn = host.querySelector('#obContinueBtn');
+  if (!input || !continueBtn) return;
+
+  // Wrapper matches the .ob-q3-actions column width so the button
+  // aligns with the input above it. Inserted BEFORE the Continue
+  // button so the visual order is: input \u2192 suggest link \u2192
+  // continue.
+  const actions = document.createElement('div');
+  actions.className = 'ob-qname-actions';
+  actions.innerHTML = ''
+    + '<button type="button" class="ob-qname-suggest-btn" id="obQNameSuggestBtn">'
+    +   OB_QNAME_SPARK_SVG
+    +   '<span class="ob-qname-suggest-label">Suggest a name</span>'
+    + '</button>';
+  host.insertBefore(actions, continueBtn);
+
+  _obBindQNameAIEvents();
+}
+
+function _obBindQNameAIEvents() {
+  const btn = document.getElementById('obQNameSuggestBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    if (_obQNameState.running) return;
+    _obQNameStartSuggest();
+  });
+}
+
+function _obQNameStartSuggest() {
+  const input = document.getElementById('obInput');
+  const btn = document.getElementById('obQNameSuggestBtn');
+  if (!input || !btn) return;
+
+  const generated = (typeof _claraGenerateName === 'function')
+    ? _claraGenerateName(getBusiness())
+    : '';
+  if (!generated) return;
+
+  _obQNameState.running = true;
+
+  // Swap the button into its "thinking" state. Label text change (no
+  // spinner) matches the spec: light, text-only affordance rather
+  // than a heavy animated control.
+  btn.classList.add('ob-qname-suggest-btn-running');
+  btn.disabled = true;
+  btn.setAttribute('aria-busy', 'true');
+  const labelEl = btn.querySelector('.ob-qname-suggest-label');
+  _obQNameState.savedLabel = labelEl ? labelEl.textContent : 'Suggest a name';
+  if (labelEl) labelEl.textContent = 'Thinking\u2026';
+
+  // Lock the input for the duration of the animation so keystrokes
+  // don't fight the streamed characters. Cleared in _obQNameFinishSuggest.
+  input.readOnly = true;
+  input.value = '';
+  _obQNameSyncInputAfterMutation(input);
+
+  let i = 0;
+  _obQNameState.typingTimer = setInterval(function () {
+    // Guard against the input being unmounted mid-animation (Back
+    // key, step transition, concept switch). Bail cleanly \u2014
+    // teardown already ran, we just need to stop the timer.
+    const live = document.getElementById('obInput');
+    if (!live) { _obQNameFinishSuggest(true); return; }
+    if (i >= generated.length) { _obQNameFinishSuggest(false); return; }
+    live.value += generated.charAt(i);
+    _obQNameSyncInputAfterMutation(live);
+    i += 1;
+  }, OB_QNAME_TYPE_SPEED_MS);
+}
+
+function _obQNameFinishSuggest(unmounted) {
+  if (_obQNameState.typingTimer) {
+    clearInterval(_obQNameState.typingTimer);
+    _obQNameState.typingTimer = null;
+  }
+  _obQNameState.running = false;
+
+  // The unmounted-mid-animation branch has nothing to restore \u2014
+  // the DOM elements it would touch are already gone.
+  if (unmounted) return;
+
+  const input = document.getElementById('obInput');
+  const btn = document.getElementById('obQNameSuggestBtn');
+  if (input) {
+    input.readOnly = false;
+    // Focus + place caret at end so the user can immediately keep
+    // typing / editing the suggestion without an extra click.
+    input.focus();
+    if (typeof input.setSelectionRange === 'function') {
+      const end = input.value.length;
+      try { input.setSelectionRange(end, end); } catch (err) { /* ignore */ }
+    }
+    _obQNameSyncInputAfterMutation(input);
+  }
+  if (btn) {
+    btn.classList.remove('ob-qname-suggest-btn-running');
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    const labelEl = btn.querySelector('.ob-qname-suggest-label');
+    if (labelEl) labelEl.textContent = _obQNameState.savedLabel || 'Suggest a name';
+    _obQNameState.savedLabel = '';
+  }
+}
+
+// Same trick as _obQ3SyncInputAfterMutation: programmatic value
+// changes don't fire the 'input' event, so the Continue-button sync
+// bound by _obRenderTextInput never runs. Dispatch a synthetic
+// event to keep the two paths in step so the Continue button
+// enables the moment the suggestion crosses the minChars threshold.
+function _obQNameSyncInputAfterMutation(input) {
+  try {
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  } catch (err) {
+    // Older browsers might not support Event constructor \u2014 fall
+    // back to nothing. The Continue button will still enable on the
+    // user's first real keystroke after the animation completes.
+  }
+}
+
+function _obQNameTeardownAI() {
+  if (_obQNameState.typingTimer) {
+    clearInterval(_obQNameState.typingTimer);
+    _obQNameState.typingTimer = null;
+  }
+  _obQNameState.running = false;
+  _obQNameState.savedLabel = '';
 }
 
 // ---------------------------------------------

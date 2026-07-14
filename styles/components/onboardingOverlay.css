@@ -1229,6 +1229,100 @@
   to   { transform: rotate(360deg); }
 }
 
+/* ------------------------------------------
+   Q_name — "Suggest a name" affordance
+   ------------------------------------------
+   Injected by _obMountQNameAIExtras() BELOW the standard single-line
+   input on the q_name step. Left-aligned so it reads as an option
+   ("or let Clara pick one") rather than a submit affordance.
+
+     .ob-qname-actions       — column-width wrapper (matches the
+                                 480px input column). 8px top margin
+                                 puts the button just below the input,
+                                 matching the spec's "sits 8px below".
+     .ob-qname-suggest-btn   — text-only button (no bg, no border).
+                                 Muted grey by default, amber on hover
+                                 so it reads as ambient rather than
+                                 primary. Turns italic-amber during
+                                 the "Thinking…" state.
+     .ob-qname-suggest-spark — the ✦ glyph. Always amber to hint at
+                                 the affordance's role.
+     .ob-qname-suggest-label — the text ("Suggest a name" /
+                                 "Thinking…"). Colour and italic-ness
+                                 are keyed off the .-running modifier.
+*/
+
+.ob-qname-actions {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.ob-qname-suggest-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  transition: color 160ms ease, transform 120ms ease;
+}
+
+.ob-qname-suggest-btn:hover:not(:disabled) {
+  color: var(--accent);
+  transform: translateY(-0.5px);
+}
+
+.ob-qname-suggest-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.ob-qname-suggest-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.ob-qname-suggest-btn:disabled {
+  cursor: default;
+}
+
+.ob-qname-suggest-spark {
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  transition: transform 260ms ease;
+}
+
+/* Running state \u2014 "Thinking\u2026". No spinner (spec: "animation
+   starts immediately"); the character-by-character typing into the
+   input IS the visual feedback. The label just flips to italic amber
+   so the affordance stays quiet. */
+.ob-qname-suggest-btn-running {
+  color: var(--accent);
+  cursor: default;
+}
+
+.ob-qname-suggest-btn-running .ob-qname-suggest-label {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.ob-qname-suggest-btn-running .ob-qname-suggest-spark {
+  transform: rotate(180deg);
+}
+
 /* Suggestion pill. Muted / ghost style — sits distinctly quieter than
    the Enhance button so it reads as ambient hint, not primary action.
    The [hidden] attribute is respected (display: none). */
