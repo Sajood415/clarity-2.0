@@ -1319,19 +1319,36 @@
   font-size: 16px;
 }
 
-/* "Your idea" preview body \u2014 rendered on Step 4 when the user
-   picked the 4th card. Plain text block with preserved whitespace
-   so paste-in content keeps its paragraph breaks. Padded to match
-   the visual weight of the format-specific preview bodies. */
-.cr-publish-custom-body {
+/* "Your idea" angle note \u2014 rendered on Step 4 for image / video /
+   audio custom variations. The format-specific preview still renders
+   above (blank fields, since customText is a brief not the content);
+   this note pins the user's angle description below. A hairline top
+   border separates it from the mockup without breaking the preview
+   card's framing. */
+.cr-publish-angle-note {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cr-publish-angle-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.cr-publish-angle-text {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.6;
-  letter-spacing: -0.005em;
-  padding: 8px 4px;
-  min-height: 60px;
 }
 
 /* Container that holds the platform badge + confidence chip side by

@@ -721,11 +721,44 @@ function _crRenderThreadPreview(v) {
 // and Step 4 to put a clean version onto the clipboard.
 function _crVariationPreviewText(v) {
   if (!v) return '';
-  // "Your idea" (4th card) short-circuits to the raw textarea value.
-  // Clipboard copy, published results.items, and draft results.items
-  // all funnel through this helper, so a single branch here keeps the
-  // downstream code path unchanged.
-  if (v.angle === 'Custom' || v.id === 'custom') return v.customText || '';
+  // "Your idea" (4th card) \u2014 the plaintext export mirrors the on-
+  // screen preview: for text formats the customText IS the body, so we
+  // wrap it in the same SUBJECT/HEADLINE/etc. scaffolding a Clara-
+  // authored variation would use. For image/video/audio the customText
+  // is a brief, so we emit the format's normal fields (empty since we
+  // never generated them) followed by a YOUR ANGLE note. Clipboard,
+  // published results.items, and draft results.items all pass through
+  // here so downstream storage stays consistent with what the user saw.
+  if (v.angle === 'Custom' || v.id === 'custom') {
+    const customText = v.customText || '';
+    const effective = _crCustomEffectiveFormat(v);
+    if (effective === 'email')      return 'SUBJECT: \n\nBODY: ' + customText;
+    if (effective === 'newsletter') return 'HEADLINE: \n\nBODY: ' + customText;
+    if (effective === 'thread') {
+      const lines = customText.split(/\n{2,}/).map(function (s) { return s.trim(); }).filter(Boolean);
+      if (!lines.length) return customText;
+      return lines.map(function (l, i) { return (i + 1) + '. ' + l; }).join('\n');
+    }
+    if (effective === 'image') {
+      return 'CAPTION: ' + (v.caption || '')
+        + '\n\nVISUAL: ' + (v.visual || '')
+        + (customText ? '\n\nYOUR ANGLE: ' + customText : '');
+    }
+    if (effective === 'video') {
+      return 'HOOK: ' + (v.hook || '')
+        + '\n\nMIDDLE: ' + (v.middle || '')
+        + '\n\nCTA: ' + (v.cta || '')
+        + (customText ? '\n\nYOUR ANGLE: ' + customText : '');
+    }
+    if (effective === 'audio') {
+      return 'HOOK: ' + (v.hook || '')
+        + '\n\nSPOT: ' + (v.spot || '')
+        + '\n\nCTA: ' + (v.cta || '')
+        + (customText ? '\n\nYOUR ANGLE: ' + customText : '');
+    }
+    // post / text / unknown \u2192 customText is the whole body.
+    return customText;
+  }
   if (v.format === 'image')      return 'CAPTION: ' + (v.caption || '') + '\n\nVISUAL: ' + (v.visual || '');
   if (v.format === 'video')      return 'HOOK: ' + (v.hook || '') + '\n\nMIDDLE: ' + (v.middle || '') + '\n\nCTA: ' + (v.cta || '');
   if (v.format === 'audio')      return 'HOOK: ' + (v.hook || '') + '\n\nSPOT: ' + (v.spot || '') + '\n\nCTA: ' + (v.cta || '');
@@ -1506,6 +1539,52 @@ function _crConfidence(v, platform) {
   };
 }
 
+// Effective sub-format for a "Your idea" variation. For text content
+// types it's the chosen subFormat (post/email/newsletter/thread); for
+// image / video / audio it's just the contentType. Falls back to the
+// variation's own format field for defensive rendering when create
+// state has been reset out from under us.
+function _crCustomEffectiveFormat(variation) {
+  const c = getCreate();
+  if (c && c.contentType === 'text') return c.subFormat || 'post';
+  if (c && c.contentType)             return c.contentType;
+  return (variation && variation.format) || '';
+}
+
+// Builds a synthetic variation shape for the "Your idea" card when the
+// selected content type is text-based. The user's raw textarea value
+// slots into the format's primary body field so _crRenderVariationBody
+// produces the same mockup a Clara-authored variation would \u2014 for
+// text formats the customText IS the content, not a brief.
+function _crBuildCustomTextVariation(original, effective, customText) {
+  const text = customText || '';
+  const base = Object.assign({}, original || {}, { id: 'custom' });
+  if (effective === 'email') {
+    return Object.assign(base, { format: 'email', subject: '', body: text });
+  }
+  if (effective === 'newsletter') {
+    return Object.assign(base, { format: 'newsletter', headline: '', body: text });
+  }
+  if (effective === 'thread') {
+    // Blank-line separated paragraphs each become a numbered tweet.
+    // A single-paragraph brief falls back to a one-line thread so the
+    // preview still frames correctly.
+    const lines = text.split(/\n{2,}/).map(function (s) { return s.trim(); }).filter(Boolean);
+    return Object.assign(base, { format: 'thread', lines: lines.length ? lines : [text] });
+  }
+  // post / text / unknown \u2192 flat text post.
+  return Object.assign(base, { format: 'post', text: text });
+}
+
+function _crIsCustomTextFormat(effective) {
+  return effective === 'post'
+      || effective === 'text'
+      || effective === 'email'
+      || effective === 'newsletter'
+      || effective === 'thread'
+      || !effective;
+}
+
 function _crRenderStep4() {
   const c = getCreate();
   if (!c.selectedVariation) return _crRenderStep3();
@@ -1515,15 +1594,33 @@ function _crRenderStep4() {
   const icon = CR_PLATFORM_ICONS[platform] || '';
   const conf = _crConfidence(c.selectedVariation, platform);
 
-  // "Your idea" preview body \u2014 a plain-text block. Sidesteps
-  // _crRenderVariationBody entirely because there are no format-
-  // specific fields (caption / hook / body / etc.) on a custom
-  // variation, only the raw user text. white-space:pre-wrap in CSS
-  // preserves paragraph breaks.
+  // "Your idea" preview \u2014 still uses _crRenderVariationBody so the
+  // format-specific mockup (image frame, video player, thread etc.)
+  // stays intact. For text-ish formats customText slots into the body
+  // field via a synthetic variation. For image/video/audio the
+  // customText is a brief and appears below as a "YOUR ANGLE" note.
   const isCustom = c.selectedVariation.angle === 'Custom';
-  const bodyHtml = isCustom
-    ? '<div class="cr-publish-custom-body">' + _escape(c.selectedVariation.customText || '') + '</div>'
-    : _crRenderVariationBody(c.selectedVariation);
+  let bodyHtml;
+  let angleNoteHtml = '';
+  if (isCustom) {
+    const customText = c.selectedVariation.customText || '';
+    const effective = _crCustomEffectiveFormat(c.selectedVariation);
+    if (_crIsCustomTextFormat(effective)) {
+      const synth = _crBuildCustomTextVariation(c.selectedVariation, effective, customText);
+      bodyHtml = _crRenderVariationBody(synth);
+    } else {
+      bodyHtml = _crRenderVariationBody(c.selectedVariation);
+      if (customText) {
+        angleNoteHtml = ''
+          + '<div class="cr-publish-angle-note">'
+          +   '<span class="cr-publish-angle-label">YOUR ANGLE</span>'
+          +   '<div class="cr-publish-angle-text">' + _escape(customText) + '</div>'
+          + '</div>';
+      }
+    }
+  } else {
+    bodyHtml = _crRenderVariationBody(c.selectedVariation);
+  }
 
   return ''
     + '<button type="button" class="cr-back-link" id="crBackBtn">\u2190 Back</button>'
@@ -1538,6 +1635,7 @@ function _crRenderStep4() {
     +     '</button>'
     +   '</div>'
     +   '<div class="cr-publish-body">' + bodyHtml + '</div>'
+    +   angleNoteHtml
     + '</div>'
     + '<div class="cr-publish-meta">'
     +   '<div class="cr-publish-badge">'
