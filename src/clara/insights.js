@@ -779,7 +779,7 @@ function _seedTodayInsightsIfMissing(concept) {
   return true;
 }
 
-// True if the user has hit "Skip for today" on the current calendar
+// True if the user has hit "Hide for today" on the current calendar
 // day. Any earlier dismiss date is treated as expired.
 function _insightsDismissedToday(concept) {
   if (!concept || !concept.today) return false;

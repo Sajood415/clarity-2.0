@@ -454,7 +454,7 @@ function _newConcept(opts) {
     // `insights` (array | undefined) holds the day's chosen daily
     // insights when the Today screen has run the seeder \u2014 see
     // clara/insights.js. `insightsDismissedDate` (YYYY-MM-DD | null)
-    // is the per-day "Skip for today" flag; cleared automatically the
+    // is the per-day "Hide for today" flag; cleared automatically the
     // next calendar day so the card reappears with fresh insights.
     // `taskHistory` (object | undefined) is a per-day archive of the
     // Today task list keyed by local-time YYYY-MM-DD. The Today

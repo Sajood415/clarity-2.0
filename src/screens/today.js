@@ -318,7 +318,7 @@ if (typeof window !== 'undefined') {
 // the sidebar; the full-page view sits inside the same content area
 // as the task-detail sub-view so navigation stays consistent.
 //
-// "Skip for today \u2192" dismisses just for the current calendar day;
+// "Hide for today \u2192" dismisses just for the current calendar day;
 // next day the card reappears with fresh insights via the seeder in
 // clara/insights.js.
 
@@ -356,7 +356,7 @@ function _renderTdInsightCard(insight) {
     +     '<h2 class="td-insight-headline">' + _escape(insight.headline || '') + '</h2>'
     +     '<p class="td-insight-stat">' + _escape(insight.stat || '') + '</p>'
     +     '<div class="td-insight-footer">'
-    +       '<button type="button" class="td-insight-skip" id="tdInsightSkip">Skip for today \u2192</button>'
+    +       '<button type="button" class="td-insight-skip" id="tdInsightSkip">Hide for today \u2192</button>'
     +       '<span class="td-insight-source" aria-hidden="true">' + _escape(insight.source || '') + '</span>'
     +     '</div>'
     +   '</div>'
@@ -1122,24 +1122,17 @@ function _openTaskDetail(task) {
   c.today.viewingInsightId = null;
   c.today.viewingTaskId = task.id;
 
-  // First-open seed: if this task has never had a thread turn
-  // (fresh from the seeder, or a legacy task the normalizer just
-  // backfilled with an empty array), drop in Clara's opening line
-  // BEFORE the detail renders. That way the transcript is already
-  // populated on first paint \u2014 no empty-state flash. Persisted
-  // via _saveState so subsequent opens read it back from disk
-  // instead of re-seeding.
+  // Thread stays empty on open now \u2014 the detail page shows a
+  // "\u2726 Discuss with Clara" trigger button when the transcript
+  // is empty. Clicking that button is what seeds Clara's opening
+  // message. Any task whose thread already has turns (returning
+  // user) skips the trigger and renders the transcript directly.
+  // Normalising the array is still worth doing so downstream
+  // reads never trip on a legacy undefined.
   const idx = c.today.tasks.findIndex(function (t) { return t.id === task.id; });
   if (idx >= 0) {
     const persisted = c.today.tasks[idx];
     if (!Array.isArray(persisted.thread)) persisted.thread = [];
-    if (persisted.thread.length === 0 && typeof window._claraThreadOpening === 'function') {
-      persisted.thread.push({
-        role: 'clara',
-        text: window._claraThreadOpening(persisted, c),
-        timestamp: Date.now()
-      });
-    }
   }
 
   _saveState();
@@ -1432,7 +1425,21 @@ function _renderTdDetail(container, task, c) {
     +     '<ol class="td-detail-steps">' + stepsHtml + '</ol>'
     +   '</div>'
     +   '<div class="td-detail-divider" aria-hidden="true"></div>'
-    +   '<div class="td-detail-section td-thread-section">'
+    // Trigger button \u2014 only rendered when the transcript is
+    // empty. Clicking it seeds Clara's opening line and slides
+    // the thread section open. Users returning to a task with
+    // existing history skip the button entirely (see below,
+    // `hasThread` branch after the innerHTML assignment).
+    +   (Array.isArray(task.thread) && task.thread.length > 0
+      ? ''
+      : '<button type="button" class="td-thread-trigger" id="tdThreadTrigger">\u2726 Discuss with Clara</button>')
+    // Thread section always rendered so the form handler can bind
+    // at mount time. Starts collapsed (max-height 0, opacity 0)
+    // when no history exists; the trigger click removes the
+    // collapsed class and the CSS transition takes it from there.
+    +   '<div class="td-detail-section td-thread-section'
+    +     (Array.isArray(task.thread) && task.thread.length > 0 ? '' : ' td-thread-section-collapsed')
+    +     '" id="tdThreadSection">'
     +     '<div class="td-thread-label">Discuss with Clara</div>'
     +     '<div class="td-thread-list" id="tdThreadList" data-task-id="' + _escape(task.id) + '"></div>'
     +     '<form class="td-thread-input-row" id="tdThreadForm" autocomplete="off">'
@@ -1480,6 +1487,53 @@ function _renderTdDetail(container, task, c) {
     threadFormEl.addEventListener('submit', function (e) {
       e.preventDefault();
       _tdThreadHandleSend(task.id, threadListEl, threadInputEl);
+    });
+  }
+
+  // ------------------------------------------------------------
+  // "\u2726 Discuss with Clara" trigger. Rendered only when the
+  // thread is empty; clicking it seeds Clara's opening line,
+  // reveals the thread section (CSS transition), hides itself,
+  // and drops focus into the input. No collapse-back path \u2014
+  // once the user opens the chat it stays open for the session.
+  // ------------------------------------------------------------
+  const triggerBtn = document.getElementById('tdThreadTrigger');
+  const threadSection = document.getElementById('tdThreadSection');
+  if (triggerBtn) {
+    triggerBtn.addEventListener('click', function () {
+      const active = getActiveConcept();
+      const liveIdx = active && active.today && Array.isArray(active.today.tasks)
+        ? active.today.tasks.findIndex(function (t) { return t && t.id === task.id; })
+        : -1;
+      if (liveIdx >= 0) {
+        const persisted = active.today.tasks[liveIdx];
+        if (!Array.isArray(persisted.thread)) persisted.thread = [];
+        // Only seed if still empty \u2014 a defensive guard against
+        // a double-click racing to insert two openings.
+        if (persisted.thread.length === 0 && typeof window._claraThreadOpening === 'function') {
+          persisted.thread.push({
+            role: 'clara',
+            text: window._claraThreadOpening(persisted, active),
+            timestamp: Date.now()
+          });
+          _saveState();
+        }
+        // Repaint the list with the freshly-seeded message so
+        // the transition reveals a populated transcript, not an
+        // empty box the user has to wait for.
+        if (threadListEl) {
+          _tdThreadRenderList(threadListEl, persisted.thread);
+          _tdThreadScrollToBottom(threadListEl, false);
+        }
+      }
+      // Reveal + hide the trigger. display:none removes it from
+      // the layout so the thread section slides into its slot
+      // cleanly. Focus lands on the input after the 300ms
+      // transition finishes so the browser doesn't try to
+      // scroll it into view while it's still 0px tall.
+      if (threadSection) threadSection.classList.remove('td-thread-section-collapsed');
+      triggerBtn.style.display = 'none';
+      if (threadInputEl) setTimeout(function () { threadInputEl.focus(); }, 320);
     });
   }
 

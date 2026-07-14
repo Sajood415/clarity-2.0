@@ -1154,7 +1154,7 @@
      [kicker "DAILY INSIGHT"] ......... [arrow tile]
      [Playfair headline 32/700]
      [Inter stat 14/text-secondary]
-     [Skip for today \u2192] ........... [SOURCE pill]
+     [Hide for today \u2192] ........... [SOURCE pill]
 
    min-height keeps the card visually anchored even when the copy
    is short so it doesn\u2019t collapse into a thin banner. */
@@ -1732,6 +1732,71 @@
   /* Inherits .td-detail-section vertical rhythm; overrides
      only what's specific to the thread block. */
   padding-top: 0;
+  /* Transition-friendly base state. When collapsed via
+     .td-thread-section-collapsed we crush max-height + opacity
+     to 0; the reveal transitions both back to their natural
+     values. max-height (not height) so the section can size to
+     content once expanded without needing a JS measurement. */
+  max-height: 800px;
+  opacity: 1;
+  overflow: hidden;
+  transition:
+    max-height 300ms ease,
+    opacity 300ms ease,
+    margin 300ms ease,
+    padding 300ms ease;
+}
+
+/* Collapsed pre-reveal state. Used only on first-open of a
+   task whose thread is empty \u2014 the trigger button
+   ".td-thread-trigger" sits above and drives the reveal by
+   removing this class. There is no path back to collapsed
+   within a session; navigating away and re-opening a task
+   with existing thread turns will render without this class
+   from the start (the section is open).
+   pointer-events:none avoids the invisible input still
+   swallowing tab focus while the section is 0px tall. */
+.td-thread-section-collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  pointer-events: none;
+}
+
+/* Trigger button that replaces the thread section for
+   first-open task detail pages. Full width, muted amber
+   outline that firms up on hover \u2014 reads as a call to
+   action without competing with the primary action buttons
+   below. */
+.td-thread-trigger {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 16px;
+  background: transparent;
+  border: 1px solid rgba(245, 166, 35, 0.4);
+  border-radius: 8px;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.td-thread-trigger:hover {
+  border-color: var(--accent);
+  background: rgba(245, 166, 35, 0.06);
+}
+
+.td-thread-trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.25);
 }
 
 .td-thread-label {
