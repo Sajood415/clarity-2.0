@@ -76,6 +76,36 @@ const TD_SEND_ICON = ''
   +   '<path d="M3 7 L11 7 M7.5 3 L11.5 7 L7.5 11"/>'
   + '</svg>';
 
+// Spark glyph used on the row-level "Ask Clara" pill and on the
+// legacy "Discuss with Clara" trigger button inside task detail.
+// currentColor drives the stroke so the amber pill styling in
+// today.css controls the visible colour without SVG edits.
+const TD_ASK_CLARA_ICON = ''
+  + '<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" '
+  +   'stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  +   '<path d="M6 1 L6 11 M1 6 L11 6 M2.5 2.5 L9.5 9.5 M9.5 2.5 L2.5 9.5"/>'
+  + '</svg>';
+
+// Transient in-session flag \u2014 records that the pending open of a
+// task detail was initiated via the row-level "Ask Clara" pill (not
+// a plain row click). Consumed inside _renderTdDetail to grab focus
+// into the thread input on mount. Module-scoped rather than
+// persisted because:
+//   \u2022 The signal is one-shot: click \u2192 render \u2192 focus.
+//     There's nothing to preserve across reloads (a reload lands
+//     the user back on the detail because viewingTaskId is
+//     persisted; auto-focus on top of that would feel like the
+//     browser is stealing focus).
+//   \u2022 Seeding Clara's opening message (done in _openTaskDetail
+//     when opts.openThread is truthy) is what carries the "thread
+//     is expanded, not the trigger button" behaviour across
+//     reloads \u2014 that's rendered off task.thread.length, which
+//     IS persisted.
+// Cleared inside _renderTdDetail after focus lands, and defensively
+// inside _closeTaskDetail so any un-consumed flag from a bail path
+// can't leak into the next detail open.
+let _tdPendingThreadFocusTaskId = null;
+
 // Status-cycling checkbox icons used in the list view.
 //   todo        \u2014 empty circle (muted)
 //   in_progress \u2014 half-filled amber
@@ -993,6 +1023,24 @@ function _buildTdListCard(task, idx, opts) {
       +   'Approve'
       + '</button>';
 
+  // "Ask Clara" pill \u2014 always visible on live rows (not
+  // hover-only, unlike discard was originally). Skips the "Discuss
+  // with Clara" trigger button on the detail page and drops focus
+  // into the thread input immediately \u2014 the entire flow from
+  // "I have a question about this" to "typing to Clara" is one
+  // click. Suppressed on read-only past-date rows since those have
+  // no live task index to open. Kept live even when task.approved
+  // (a user can still want to talk about a task they've committed
+  // to) so it never disappears on live rows.
+  const askClaraBtnHtml = readOnly
+    ? ''
+    : ''
+      + '<button type="button" class="td-row-ask-clara" data-ask-clara="' + _escape(task.id) + '" '
+      +   'aria-label="Ask Clara about this task">'
+      +   '<span class="td-row-ask-clara-icon" aria-hidden="true">' + TD_ASK_CLARA_ICON + '</span>'
+      +   '<span class="td-row-ask-clara-label">Ask Clara</span>'
+      + '</button>';
+
   row.innerHTML = ''
     + '<span class="td-row-accent" aria-hidden="true"></span>'
     + '<div class="td-row-main">'
@@ -1013,6 +1061,7 @@ function _buildTdListCard(task, idx, opts) {
     +   '<div class="td-row-actions">'
     +     threadCountHtml
     +     approveBtnHtml
+    +     askClaraBtnHtml
     +     discardBtnHtml
     +   '</div>'
     + '</div>';
@@ -1028,6 +1077,7 @@ function _buildTdListCard(task, idx, opts) {
   const statusPill = row.querySelector('.td-row-status');
   const discardBtn = row.querySelector('.td-row-discard');
   const approveBtn = row.querySelector('.td-row-approve');
+  const askClaraBtn = row.querySelector('.td-row-ask-clara');
 
   // Status circle: cycles todo \u2192 in_progress \u2192 done \u2192 todo.
   // Stops propagation so clicking the circle doesn't also fire the
@@ -1063,6 +1113,23 @@ function _buildTdListCard(task, idx, opts) {
         _saveState();
       }
       _rerenderToday();
+    });
+  }
+
+  // "Ask Clara" pill \u2014 shortcut into the task's detail page
+  // with the Clara thread pre-opened + input focused. Bypasses
+  // the "\u2726 Discuss with Clara" trigger step entirely, so the
+  // user goes from "I have a question about this task" to
+  // "typing to Clara" in one click.
+  //
+  // stopPropagation prevents the row's click-to-detail handler
+  // from firing a second time \u2014 _openTaskDetail is idempotent
+  // in effect but calling it twice would re-seed the opening
+  // message which we don't want.
+  if (askClaraBtn) {
+    askClaraBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      _openTaskDetail(task, { openThread: true });
     });
   }
 
@@ -1163,7 +1230,14 @@ function _taskSteps(task) {
   ];
 }
 
-function _openTaskDetail(task) {
+// Open a task's detail view. `opts.openThread`, when true, is the
+// signal from the row-level "Ask Clara" pill: seed Clara's opening
+// message so the trigger button is skipped and the thread section
+// renders expanded, and mark this task for auto-focus on mount so
+// the input claims focus as soon as the detail paints. Missing
+// `opts` (regular row click) preserves the original behaviour \u2014
+// trigger button shown, no auto-focus.
+function _openTaskDetail(task, opts) {
   const c = getActiveConcept();
   if (!c || !task) return;
   if (!c.today) c.today = { tasks: [], viewingTaskId: null, viewingInsightId: null };
@@ -1172,18 +1246,37 @@ function _openTaskDetail(task) {
   c.today.viewingInsightId = null;
   c.today.viewingTaskId = task.id;
 
-  // Thread stays empty on open now \u2014 the detail page shows a
-  // "\u2726 Discuss with Clara" trigger button when the transcript
-  // is empty. Clicking that button is what seeds Clara's opening
-  // message. Any task whose thread already has turns (returning
-  // user) skips the trigger and renders the transcript directly.
-  // Normalising the array is still worth doing so downstream
-  // reads never trip on a legacy undefined.
+  const wantOpenThread = !!(opts && opts.openThread);
+
+  // Locate the live task record on state so any mutation (thread
+  // seed) actually persists. Detail-renderer reads the same idx.
   const idx = c.today.tasks.findIndex(function (t) { return t.id === task.id; });
   if (idx >= 0) {
     const persisted = c.today.tasks[idx];
     if (!Array.isArray(persisted.thread)) persisted.thread = [];
+
+    // "Ask Clara" entry path: seed Clara's opening line right now
+    // so the detail render sees a non-empty thread and skips the
+    // "\u2726 Discuss with Clara" trigger button. Also survives a
+    // mid-conversation reload \u2014 thread.length > 0 keeps the
+    // section expanded via the existing render conditional. Guard
+    // on length so a repeat click on Ask Clara for the same task
+    // doesn't push a duplicate opening.
+    if (wantOpenThread
+        && persisted.thread.length === 0
+        && typeof window._claraThreadOpening === 'function') {
+      persisted.thread.push({
+        role: 'clara',
+        text: window._claraThreadOpening(persisted, c),
+        timestamp: Date.now()
+      });
+    }
   }
+
+  // Focus signal is module-scoped, not persisted. See the comment
+  // on _tdPendingThreadFocusTaskId for the reasoning \u2014 a reload
+  // shouldn't yank focus.
+  _tdPendingThreadFocusTaskId = wantOpenThread ? task.id : null;
 
   _saveState();
   _rerenderToday();
@@ -1193,6 +1286,10 @@ function _closeTaskDetail() {
   const c = getActiveConcept();
   if (!c || !c.today) return;
   c.today.viewingTaskId = null;
+  // Defensive: drop any un-consumed auto-focus flag so navigating
+  // back to Today then re-opening a task via a plain row click
+  // can never inherit the previous open's "Ask Clara" behaviour.
+  _tdPendingThreadFocusTaskId = null;
   _saveState();
   _rerenderToday();
 }
@@ -1538,6 +1635,30 @@ function _renderTdDetail(container, task, c) {
       e.preventDefault();
       _tdThreadHandleSend(task.id, threadListEl, threadInputEl);
     });
+  }
+
+  // ------------------------------------------------------------
+  // Auto-focus the thread input when the detail was opened via
+  // the row-level "Ask Clara" pill. The pending flag is consumed
+  // here (cleared after the setTimeout is scheduled) so a re-
+  // render or navigation-back cycle can't re-fire the focus grab.
+  //
+  // The 60ms delay is a hedge against the browser's own focus
+  // management \u2014 the previous focus target (the row that was
+  // clicked) is still being unmounted synchronously, and some
+  // browsers restore focus to <body> before honouring our
+  // programmatic focus() call. A short queue-jump avoids that.
+  // ------------------------------------------------------------
+  if (_tdPendingThreadFocusTaskId === task.id && threadInputEl) {
+    _tdPendingThreadFocusTaskId = null;
+    setTimeout(function () {
+      // Guard against the input being unmounted between the
+      // scheduling and the fire (e.g. concept switch mid-flight).
+      const live = document.getElementById('tdThreadInput');
+      if (!live) return;
+      try { live.focus({ preventScroll: true }); }
+      catch (_) { live.focus(); }
+    }, 60);
   }
 
   // ------------------------------------------------------------

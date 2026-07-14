@@ -523,6 +523,85 @@
   justify-content: center;
 }
 
+/* --- "Ask Clara" pill --- Row-level shortcut into a task's detail
+   page with the Clara thread already open + input focused. Sits
+   inside .td-row-actions, to the LEFT of the Discard link (which
+   is always the last child so the deletion affordance stays in
+   the natural right-most "danger" corner). Amber outline pill so
+   the shortcut reads as a Clara-adjacent action without competing
+   with the primary row target (the whole row is clickable). */
+
+.td-row-ask-clara {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: transparent;
+  border: 1px solid rgba(245, 166, 35, 0.4);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 120ms ease,
+    box-shadow 160ms ease;
+}
+
+.td-row-ask-clara:hover {
+  background: rgba(245, 166, 35, 0.10);
+  border-color: rgba(245, 166, 35, 1);
+  color: var(--accent);
+  box-shadow: 0 0 12px rgba(245, 166, 35, 0.20);
+  transform: translateY(-0.5px);
+}
+
+.td-row-ask-clara:active {
+  transform: translateY(0);
+}
+
+.td-row-ask-clara:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
+.td-row-ask-clara-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  color: currentColor;
+  /* The 4-line spark rotates gently on hover so the affordance
+     feels alive without introducing a heavy motion. */
+  transition: transform 260ms ease;
+}
+
+.td-row-ask-clara:hover .td-row-ask-clara-icon {
+  transform: rotate(90deg);
+}
+
+.td-row-ask-clara-label {
+  line-height: 1;
+}
+
+/* Narrow-viewport compression \u2014 keep the pill visible on touch
+   (spec: "on mobile: always visible, not hover-only") but drop the
+   text label so the actions column doesn't crowd the row body.
+   Icon-only pill is still a legitimate affordance because the row
+   itself remains clickable to open detail. */
+@media (max-width: 560px) {
+  .td-row-ask-clara { padding: 4px 8px; gap: 0; }
+  .td-row-ask-clara-label { display: none; }
+}
+
 /* --- Status-cycling checkbox (leftmost item on every row) --- */
 
 /* Row status circle. 24px per spec. The SVG glyph rendered inside
@@ -1738,21 +1817,29 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 4px;
+  padding: 2px 6px;
   margin-right: 2px;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  opacity: 0.7;
+  font-weight: 600;
+  color: var(--accent);
   line-height: 1;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.22);
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.14);
   font-variant-numeric: tabular-nums;
-  transition: opacity 160ms ease, color 160ms ease;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
   pointer-events: none;
 }
 
 .td-row:hover .td-row-thread-count {
-  opacity: 1;
-  color: var(--text);
+  background: rgba(245, 166, 35, 0.14);
+  border-color: rgba(245, 166, 35, 0.4);
+  box-shadow: 0 0 12px rgba(245, 166, 35, 0.22);
 }
 
 .td-row-thread-count-icon {
@@ -2534,11 +2621,24 @@
 .td-rows-readonly .td-row-meta-time-text {
   opacity: 0.72;
 }
-/* Thread-count pill on read-only rows: muted, not tappable
-   (the archive doesn't open the detail page). */
+/* Thread-count pill on read-only rows: strip the amber tint that
+   live rows use (per the "unread messages" cue) since past-date
+   archives are informational-only \u2014 there's no "unread" state
+   to signal, and the amber glow would incorrectly imply the
+   thread is still awaiting the user. Renders as a muted grey
+   pill instead. */
 .td-rows-readonly .td-row-thread-count {
   pointer-events: none;
-  opacity: 0.55;
+  background: rgba(255, 240, 220, 0.04);
+  border-color: var(--border);
+  color: var(--muted);
+  box-shadow: none;
+  opacity: 0.7;
+}
+.td-rows-readonly .td-row:hover .td-row-thread-count {
+  background: rgba(255, 240, 220, 0.04);
+  border-color: var(--border);
+  box-shadow: none;
 }
 
 .td-past-empty {
