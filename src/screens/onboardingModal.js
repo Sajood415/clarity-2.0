@@ -96,8 +96,12 @@ function _obStepIndex(step) {
 
 const _obState = {
   currentStep: 'q1',
-  // Snapshot of the multi-select selection between clicks so we can
-  // toggle without hitting appState on every keystroke.
+  // Snapshot of the multi-select selections between clicks so we can
+  // toggle without hitting appState on every keystroke. Q2 (goals)
+  // and Q4 (channels) both use the multi-chip renderer; each has its
+  // own draft so switching between them during Back/Forward navigation
+  // doesn't cross-contaminate.
+  goalsDraft: [],
   channelsDraft: [],
   // Locks the flow while a fade/thinking timer is active so double
   // clicks and rapid Enter presses can't skip ahead.
@@ -147,9 +151,10 @@ function renderOnboardingModal(host) {
     _obState.currentStep = 'q1';
   }
 
-  // Prime the multi-select draft from any prior save so users returning
-  // to Q4 see their previous picks pre-selected.
+  // Prime the multi-select drafts from any prior save so users
+  // returning to Q2 / Q4 see their previous picks pre-selected.
   const business = getBusiness();
+  _obState.goalsDraft    = Array.isArray(business.goals)    ? business.goals.slice()    : [];
   _obState.channelsDraft = Array.isArray(business.channels) ? business.channels.slice() : [];
   _obState.transitioning = false;
 
@@ -326,11 +331,17 @@ function _obRenderAnswer(step) {
       break;
 
     case 'q2':
-      _obRenderChips({
+      // Q2 was originally single-select; it's now multi-select using
+      // the same renderer as Q4. No escape option \u2014 every option
+      // is a legitimate goal \u2014 so the "exclusive escape" branch in
+      // _obRenderMultiChips is dormant here. Draft syncing goes into
+      // _obState.goalsDraft via onChange.
+      _obRenderMultiChips({
         host: host,
         options: CL_OPTIONS_Q2,
-        selectedLabel: getBusiness().goal || '',
-        onPick: _obHandleQ2
+        selected: _obState.goalsDraft.slice(),
+        onChange: function (list) { _obState.goalsDraft = list.slice(); },
+        onCommit: _obHandleQ2
       });
       break;
 
@@ -358,6 +369,7 @@ function _obRenderAnswer(step) {
         options: CL_OPTIONS_Q4,
         escape: CL_Q4_ESCAPE,
         selected: _obState.channelsDraft.slice(),
+        onChange: function (list) { _obState.channelsDraft = list.slice(); },
         onCommit: _obHandleQ4
       });
       break;
@@ -417,7 +429,16 @@ function _obRenderChips(opts) {
   });
 }
 
-// --- Multi-select chips (Q4) ---
+// --- Multi-select chips (Q2 goals + Q4 channels) ---
+//
+// Shared renderer for any multi-select step. `escape` is optional \u2014
+// pass it when the option list has a mutually-exclusive "opt-out"
+// entry (Q4's "Not marketing yet"). `onChange` is called with the
+// live selection on every chip click so the caller can mirror it into
+// its own draft slot (`_obState.goalsDraft` / `_obState.channelsDraft`).
+// `onCommit` fires once when the user presses Continue with the final
+// list \u2014 with the escape-only case flattened to an empty array
+// since "just the opt-out" means "no picks".
 
 function _obRenderMultiChips(opts) {
   const options = opts.options || [];
@@ -445,18 +466,20 @@ function _obRenderMultiChips(opts) {
       btn.addEventListener('click', function () {
         if (_obState.transitioning) return;
         const label = btn.getAttribute('data-label');
-        if (label === escape) {
+        if (escape && label === escape) {
           // Escape option is exclusive: clear everything else, keep only
           // the escape selected. Tap it again to unselect.
           state.selected = state.selected.indexOf(label) !== -1 ? [] : [label];
         } else {
-          // Any real channel deselects the escape option automatically.
-          state.selected = state.selected.filter(function (l) { return l !== escape; });
+          // Any real option deselects the escape option automatically.
+          if (escape) {
+            state.selected = state.selected.filter(function (l) { return l !== escape; });
+          }
           const idx = state.selected.indexOf(label);
           if (idx === -1) state.selected.push(label);
           else state.selected.splice(idx, 1);
         }
-        _obState.channelsDraft = state.selected.slice();
+        if (typeof opts.onChange === 'function') opts.onChange(state.selected.slice());
         _render();
       });
     });
@@ -466,9 +489,10 @@ function _obRenderMultiChips(opts) {
       continueBtn.addEventListener('click', function () {
         if (_obState.transitioning || state.selected.length === 0) return;
         // If the escape option is the ONLY selection, commit an empty
-        // array to business.channels (matches the "no channels yet"
-        // semantic used elsewhere).
-        const commitList = (state.selected.length === 1 && state.selected[0] === escape)
+        // array (matches the "no channels yet" semantic used by Q4).
+        // With no escape configured (e.g. Q2), we always commit the
+        // raw selection.
+        const commitList = (escape && state.selected.length === 1 && state.selected[0] === escape)
           ? []
           : state.selected.slice();
         _obState.transitioning = true;
@@ -620,9 +644,22 @@ function _obHandleQName(text) {
   _obGoNext(_obAfterEdit('q2'));
 }
 
-function _obHandleQ2(label) {
+function _obHandleQ2(goals) {
   const b = getBusiness();
-  b.goal = label;
+  const clean = (Array.isArray(goals) ? goals : [])
+    .map(function (g) { return String(g || '').trim(); })
+    .filter(function (g) { return g.length > 0; });
+  b.goals = clean;
+  // Legacy string form kept in sync so downstream substring-matchers
+  // (respond.js, tasks.js, overview.js, customerTemplates._claraGoalKey)
+  // and Clara's inline echoes ("your goal to \u2026") keep working
+  // without per-file changes. state.js exposes _formatGoalsString for
+  // exactly this reason \u2014 fall back to a plain join if the helper
+  // hasn't loaded yet (defensive; script load order should have it
+  // available by the time onboarding runs).
+  b.goal = (typeof window._formatGoalsString === 'function')
+    ? window._formatGoalsString(clean)
+    : clean.join(', ');
   _saveState();
   _obGoNext(_obAfterEdit('q3'));
 }
@@ -1437,15 +1474,30 @@ function _obReviewRows() {
     empty: !name
   });
 
-  // Q2 \u2014 stored as the raw approved label already, so just echo it.
-  const goal = (b.goal || '').trim();
+  // Q2 \u2014 multi-select. Render one chip per selected goal (same
+  // treatment as Q4 channels). Fall back to the legacy joined string
+  // only when goals is empty but the string field has content (guards
+  // legacy concepts from pre-multi-select migrations).
+  const goalsArr = Array.isArray(b.goals) ? b.goals : [];
+  let goalValueHtml;
+  let goalEmpty = false;
+  if (goalsArr.length > 0) {
+    goalValueHtml = '<div class="ob-review-chips">'
+      + goalsArr.map(function (g) {
+          return '<span class="ob-review-chip">' + _escape(g) + '</span>';
+        }).join('')
+      + '</div>';
+  } else if ((b.goal || '').trim()) {
+    goalValueHtml = '<span class="ob-review-value-text">' + _escape(b.goal.trim()) + '</span>';
+  } else {
+    goalValueHtml = _obReviewEmptyValueHtml();
+    goalEmpty = true;
+  }
   rows.push({
     step: 'q2',
-    label: 'Goal',
-    valueHtml: goal
-      ? '<span class="ob-review-value-text">' + _escape(goal) + '</span>'
-      : _obReviewEmptyValueHtml(),
-    empty: !goal
+    label: goalsArr.length > 1 ? 'Goals' : 'Goal',
+    valueHtml: goalValueHtml,
+    empty: goalEmpty
   });
 
   // Q3 \u2014 free text, potentially long. Multi-line safe via CSS
@@ -1582,8 +1634,15 @@ function _obEditStep(step) {
   if (_obState.transitioning) return;
   if (!_obKnownStep(step)) return;
   _obState.editReturnToReview = true;
+  // Re-prime any multi-select draft from committed state before we
+  // jump into the step. Without this, a user who edits Q2/Q4 could
+  // see chip highlights driven by a stale in-session draft that no
+  // longer matches business.goals / business.channels.
+  const b = getBusiness();
+  if (step === 'q2') {
+    _obState.goalsDraft = Array.isArray(b.goals) ? b.goals.slice() : [];
+  }
   if (step === 'q4') {
-    const b = getBusiness();
     _obState.channelsDraft = Array.isArray(b.channels) ? b.channels.slice() : [];
   }
   const chat = getChat();

@@ -127,6 +127,15 @@ function _defaultBusiness() {
     type: '',
     typeDescription: '',
     product: '',
+    // Q2 was single-select in the first version of onboarding, so the
+    // canonical field was a raw string. It now allows multi-select, and
+    // the structured source of truth is `goals` (array of raw labels).
+    // `goal` is kept as a derived, human-readable joined string so
+    // downstream substring-matchers (respond.js, tasks.js, overview.js,
+    // customerTemplates._claraGoalKey) keep working without per-file
+    // changes. The normalizer re-derives `goal` from `goals` on every
+    // load so the two fields never drift.
+    goals: [],
     goal: '',
     customer: '',
     channels: [],
@@ -160,6 +169,25 @@ function _formatLocationsString(locations) {
     else if (country) parts.push(country);
   }
   return parts.join(' \u00b7 ');
+}
+
+// Renders the array of Q2 goal labels into the legacy single-string
+// form. Kept as a natural-language join ("A", "A and B", "A, B, and
+// C") because business.goal is echoed inline in Clara's respond.js
+// replies ("your goal to A and B \u2026") and reads badly with a raw
+// comma list. Downstream substring-matchers (respond.js, tasks.js,
+// overview.js, customerTemplates._claraGoalKey) continue to work
+// because the first matching keyword still wins on the joined string.
+// Empty / non-array input returns '' which clears any stale legacy
+// string.
+function _formatGoalsString(goals) {
+  const arr = (Array.isArray(goals) ? goals : [])
+    .map(function (g) { return String(g || '').trim(); })
+    .filter(function (g) { return g.length > 0; });
+  if (arr.length === 0) return '';
+  if (arr.length === 1) return arr[0];
+  if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+  return arr.slice(0, -1).join(', ') + ', and ' + arr[arr.length - 1];
 }
 
 // Backfills business.locations from a legacy business.location string.
@@ -717,6 +745,32 @@ function _normalizeState() {
       const remappedGoal = window.CL_Q2_LEGACY_GOAL_MAP[c.business.goal];
       if (remappedGoal) c.business.goal = remappedGoal;
     }
+
+    // Q2 restructure: business.goals (array) is the new structured
+    // source of truth, business.goal (string) is the derived
+    // human-readable phrase. Steps:
+    //   1. Guarantee `goals` is an array of trimmed strings.
+    //   2. Apply the legacy-label remap to each entry so an old
+    //      concept saved with a pre-approval label lands on the
+    //      current wording (parallels the singular remap above).
+    //   3. If `goals` is empty but the string `goal` has content,
+    //      backfill from the string so returning users don't lose
+    //      their answer.
+    //   4. Re-derive `goal` from `goals` unconditionally so the two
+    //      fields never drift after this pass.
+    if (!Array.isArray(c.business.goals)) c.business.goals = [];
+    c.business.goals = c.business.goals
+      .map(function (g) { return String(g || '').trim(); })
+      .filter(function (g) { return g.length > 0; });
+    if (typeof window.CL_Q2_LEGACY_GOAL_MAP === 'object') {
+      c.business.goals = c.business.goals.map(function (g) {
+        return window.CL_Q2_LEGACY_GOAL_MAP[g] || g;
+      });
+    }
+    if (c.business.goals.length === 0 && c.business.goal) {
+      c.business.goals = [c.business.goal];
+    }
+    c.business.goal = _formatGoalsString(c.business.goals);
     // Same story for Q4 channels: any 'In-person' / 'Word of mouth' /
     // 'Not marketing yet' entries get remapped to the approved wording
     // (used by both the CL_Q4_LOCAL_CHANNELS reach inference and by
@@ -1189,6 +1243,7 @@ window._defaultResearch = _defaultResearch;
 window._defaultInsights = _defaultInsights;
 window._formatLocationsString = _formatLocationsString;
 window._parseLegacyLocation = _parseLegacyLocation;
+window._formatGoalsString = _formatGoalsString;
 window._defaultTaskBoard = _defaultTaskBoard;
 window._newTaskId = _newTaskId;
 window._newBoardId = _newBoardId;

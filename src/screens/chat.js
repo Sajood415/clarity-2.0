@@ -391,7 +391,15 @@ function _commitSingleAnswer(label) {
   }
 
   if (step === 'q2') {
-    getBusiness().goal = label;
+    // Legacy chat-driven onboarding is still single-pick. Mirror the
+    // choice into business.goals so the (now multi-select) modal flow
+    // and downstream schema stay consistent. The state normalizer
+    // re-derives business.goal from goals on next load anyway, but
+    // setting both here keeps them aligned during the in-flight
+    // session too.
+    const bLegacy = getBusiness();
+    bLegacy.goal = label;
+    bLegacy.goals = [label];
     _saveState();
     _advanceStep('q3');
     const ack = CL_Q2_ACK[label] || "Got it.";
