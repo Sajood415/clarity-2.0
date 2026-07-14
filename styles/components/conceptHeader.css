@@ -289,13 +289,22 @@
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
-  transition: background 120ms ease;
+  opacity: 1;
+  transition: background 120ms ease, opacity 220ms ease;
 }
 
 .ch-notif-item:last-child { border-bottom: none; }
 
 .ch-notif-item:hover {
   background: rgba(255, 240, 220, 0.03);
+}
+
+/* Notifications the user has already seen fade to 60% so the unread
+   ones read at a glance on the next open. Applied via JS immediately
+   after the panel becomes visible; the transition above carries the
+   fade smoothly instead of snapping. */
+.ch-notif-item-read {
+  opacity: 0.6;
 }
 
 .ch-notif-item:focus-visible {

@@ -93,6 +93,13 @@ function _defaultState() {
     // message and appState.activeView !== 'chat'. Cleared on Chat nav
     // click (sidebar) and by renderChat as a defensive fallback.
     chatUnread: 0,
+    // Concept-header notification bell inbox. App-level (not
+    // concept-level) so the badge state follows the user rather than
+    // the active concept. Empty by default; seeded on first
+    // _normalizeState() from window.CH_NOTIFICATIONS. Each entry:
+    // { id, icon, title, desc, time, read }. Persisted so the read
+    // state survives reload.
+    notifications: [],
     concepts: {}
   };
 }
@@ -699,6 +706,41 @@ function _normalizeState() {
   } else {
     appState.chatUnread = Math.min(99, Math.floor(appState.chatUnread));
   }
+
+  // Notification bell inbox. First-ever load (or a legacy state
+  // without the field) gets seeded from window.CH_NOTIFICATIONS \u2014
+  // conceptHeader.js is loaded synchronously by index.html before
+  // DOMContentLoaded fires, so by the time _restoreState() /
+  // _normalizeState() run the global is safely available. If the
+  // global is missing for any reason (test harness, hot-swap during
+  // dev) we bail to an empty array rather than crash. Existing
+  // arrays are left alone \u2014 that's what makes read state
+  // persistent across reloads.
+  if (!Array.isArray(appState.notifications)) {
+    appState.notifications = [];
+  }
+  if (appState.notifications.length === 0
+      && Array.isArray(window.CH_NOTIFICATIONS)) {
+    appState.notifications = window.CH_NOTIFICATIONS.map(function (n) {
+      return {
+        id:    n.id,
+        icon:  n.icon,
+        title: n.title,
+        desc:  n.desc,
+        time:  n.time,
+        read:  false
+      };
+    });
+  } else {
+    // Defensive shape normalisation on persisted entries: every item
+    // must have a boolean `read` flag so the unread-count filter
+    // can't hit an undefined truthy edge case.
+    appState.notifications.forEach(function (n) {
+      if (!n || typeof n !== 'object') return;
+      if (typeof n.read !== 'boolean') n.read = false;
+    });
+  }
+
   if (!appState.concepts || typeof appState.concepts !== 'object') appState.concepts = {};
 
   // Normalize each concept

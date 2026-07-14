@@ -18,35 +18,36 @@
 // ---------------------------------------------
 //
 // Small dropdown-with-badge that lives in the top-right slot of the
-// topbar. Notifications are hardcoded for now \u2014 no state, no
-// dismissal, no persistence. When we plug this into real signals the
-// data source can move behind a getNotifications() call without
-// touching the render path.
+// topbar. This array is the SEED data \u2014 state.js copies it into
+// `appState.notifications` on first-ever load and every entry there
+// carries a `read` flag that gets flipped true the moment the user
+// opens the panel. All rendering below reads live from
+// appState.notifications so the badge/copy stay in sync with
+// persistence, not this constant.
 //
-// Open/close state is tracked module-locally on _chBellState and
-// reset on every _renderConceptHeader() (renderApp() rebuilds the
-// topbar innerHTML so any prior open state is dropped anyway).
+// Field names (desc/time) match the canonical schema in state.js so
+// the seed \u2192 store \u2192 render pipeline uses one shape throughout.
 const CH_NOTIFICATIONS = [
   {
     id: 'n1',
     icon: 'insight',
     title: 'New market insight',
-    body: '62% of first sales now start from a single social post.',
-    ago:  '2h ago'
+    desc: '62% of first sales now start from a single social post.',
+    time: '2h ago'
   },
   {
     id: 'n2',
     icon: 'post',
     title: 'Your post went live',
-    body: 'Your scheduled post published at its peak time.',
-    ago:  '5h ago'
+    desc: 'Your scheduled post published at its peak time.',
+    time: '5h ago'
   },
   {
     id: 'n3',
     icon: 'spark',
     title: 'Clara refreshed your moves',
-    body: '3 new highest-leverage moves are ready in Today.',
-    ago:  '1d ago'
+    desc: '3 new highest-leverage moves are ready in Today.',
+    time: '1d ago'
   }
 ];
 
@@ -79,44 +80,125 @@ const CH_NOTIF_ICONS = {
     + '</svg>'
 };
 
+// Live read of the persisted notification array. Falls back to the
+// seed if state.js hasn't populated appState.notifications yet (only
+// happens in the narrow window between script-parse and the
+// DOMContentLoaded normaliser \u2014 no user-visible impact).
+function _chGetNotifications() {
+  if (Array.isArray(appState.notifications) && appState.notifications.length > 0) {
+    return appState.notifications;
+  }
+  return CH_NOTIFICATIONS;
+}
+
+function _chUnreadCount() {
+  const list = _chGetNotifications();
+  let n = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] && !list[i].read) n++;
+  }
+  return n;
+}
+
+// Copy label shown in the panel header. "3 new" reads as fresh
+// activity; "All caught up" is the empty state after the user has
+// marked everything read (or on any subsequent visit with no
+// backlog).
+function _chCountLabel(unread) {
+  return unread > 0 ? (unread + ' new') : 'All caught up';
+}
+
 // Renders the entire bell-and-dropdown fragment. Sits inside the
 // topbar's right slot on every view that uses .ch-topbar-right. The
 // dropdown starts closed (aria-hidden="true", no open class) and is
 // toggled by _bindConceptHeaderEvents wiring.
 function _chRenderBell() {
-  const count = CH_NOTIFICATIONS.length;
+  const list = _chGetNotifications();
+  const unread = _chUnreadCount();
 
-  const itemsHtml = CH_NOTIFICATIONS.map(function (n) {
+  const itemsHtml = list.map(function (n) {
     const iconSvg = CH_NOTIF_ICONS[n.icon] || CH_NOTIF_ICONS.insight;
+    const readClass = n.read ? ' ch-notif-item-read' : '';
     return (
-      '<div class="ch-notif-item" role="menuitem" tabindex="0">'
+      '<div class="ch-notif-item' + readClass + '" role="menuitem" tabindex="0" data-notif-id="' + _escape(n.id) + '">'
       +   '<div class="ch-notif-icon ch-notif-icon-' + _escape(n.icon) + '" aria-hidden="true">' + iconSvg + '</div>'
       +   '<div class="ch-notif-body">'
       +     '<div class="ch-notif-item-title">' + _escape(n.title) + '</div>'
-      +     '<div class="ch-notif-item-desc">'  + _escape(n.body)  + '</div>'
-      +     '<div class="ch-notif-item-ago">'   + _escape(n.ago)   + '</div>'
+      +     '<div class="ch-notif-item-desc">'  + _escape(n.desc)  + '</div>'
+      +     '<div class="ch-notif-item-ago">'   + _escape(n.time)  + '</div>'
       +   '</div>'
       + '</div>'
     );
   }).join('');
 
+  // Badge is omitted entirely when unread === 0 so the bell reads as
+  // "quiet" rather than "0". aria-label only matters when the badge
+  // is present.
+  const badgeHtml = unread > 0
+    ? '<span class="ch-bell-badge" aria-label="' + unread + ' unread notifications">' + unread + '</span>'
+    : '';
+
   return (
     '<div class="ch-notif-wrap">'
     +   '<button type="button" class="ch-bell" id="chBell" aria-label="Notifications" aria-haspopup="menu" aria-expanded="false">'
     +     '<span class="ch-bell-icon">' + CH_ICON_BELL + '</span>'
-    +     (count > 0
-        ? '<span class="ch-bell-badge" aria-label="' + count + ' unread notifications">' + count + '</span>'
-        : '')
+    +     badgeHtml
     +   '</button>'
     +   '<div class="ch-notif-panel" id="chNotifPanel" role="menu" aria-hidden="true" aria-labelledby="chBell">'
     +     '<div class="ch-notif-head">'
     +       '<div class="ch-notif-title">Notifications</div>'
-    +       '<div class="ch-notif-count">' + count + ' new</div>'
+    +       '<div class="ch-notif-count">' + _escape(_chCountLabel(unread)) + '</div>'
     +     '</div>'
     +     '<div class="ch-notif-list">' + itemsHtml + '</div>'
     +   '</div>'
     + '</div>'
   );
+}
+
+// Mark every notification read + persist + refresh visible bell UI.
+// Called by _chOpenBell right after the panel becomes visible so the
+// badge disappears and items fade to the read-state opacity as soon
+// as the user has "seen" them.
+function _chMarkAllRead() {
+  if (!Array.isArray(appState.notifications)) return;
+  let changed = false;
+  for (let i = 0; i < appState.notifications.length; i++) {
+    const n = appState.notifications[i];
+    if (n && !n.read) { n.read = true; changed = true; }
+  }
+  if (!changed) return;
+  if (typeof _saveState === 'function') _saveState();
+  _chRefreshBellUI();
+}
+
+// Surgical DOM update after mark-all-read. Full topbar re-render
+// would tear down the just-opened panel; instead we mutate the badge,
+// the "N new" label, and each row's read class in place \u2014 the CSS
+// opacity transition on .ch-notif-item does the visual fade.
+function _chRefreshBellUI() {
+  const bellBtn = document.getElementById('chBell');
+  const unread  = _chUnreadCount();
+  if (bellBtn) {
+    const oldBadge = bellBtn.querySelector('.ch-bell-badge');
+    if (oldBadge) oldBadge.remove();
+    if (unread > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'ch-bell-badge';
+      badge.setAttribute('aria-label', unread + ' unread notifications');
+      badge.textContent = String(unread);
+      bellBtn.appendChild(badge);
+    }
+  }
+  const countEl = document.querySelector('#chNotifPanel .ch-notif-count');
+  if (countEl) countEl.textContent = _chCountLabel(unread);
+  const items = document.querySelectorAll('#chNotifPanel .ch-notif-item');
+  items.forEach(function (el) {
+    const id = el.getAttribute('data-notif-id');
+    if (!id) return;
+    const n = appState.notifications.find(function (x) { return x && x.id === id; });
+    if (n && n.read) el.classList.add('ch-notif-item-read');
+    else el.classList.remove('ch-notif-item-read');
+  });
 }
 
 // ---------------------------------------------
@@ -407,6 +489,12 @@ function _chOpenBell() {
   panel.classList.add('ch-notif-panel-open');
   panel.setAttribute('aria-hidden', 'false');
 
+  // Mark everything read the moment the panel becomes visible. Runs
+  // AFTER the panel is added to the DOM so the read-class fade
+  // transitions from the freshly-rendered unread state (full opacity)
+  // to the read state (60% opacity) rather than starting muted.
+  _chMarkAllRead();
+
   // Outside-click closes the panel. Fires on mousedown (capture)
   // so a click that also opens something else still gets the
   // close-first behavior. Uses .closest so clicks inside a nested
@@ -545,3 +633,7 @@ function _bindConceptHeaderEvents() {
 window._renderConceptHeader = _renderConceptHeader;
 window._bindConceptHeaderEvents = _bindConceptHeaderEvents;
 window.CH_VIEW_LABELS = CH_VIEW_LABELS;
+// Exposed so state.js can seed appState.notifications from the same
+// source on first load. Read-only \u2014 do not mutate this array from
+// callers; mutate appState.notifications instead.
+window.CH_NOTIFICATIONS = CH_NOTIFICATIONS;
