@@ -486,6 +486,127 @@
   font-weight: 500;
 }
 
+/* ---------------------------------------------
+   Step 2 \u2014 "I have my own idea" mode-swap pill
+   ---------------------------------------------
+   Full-width pill button that sits between the brief textarea and
+   the Generate button. Two visual states:
+     \u2022 Default \u2014 amber outline + amber text, spark on the left,
+       arrow on the right. Offers the escape hatch from Clara's
+       Editable brief into the user's own-idea textarea.
+     \u2022 Open (custom mode active) \u2014 muted grey outline + muted
+       text, back-arrow on the left, offers the way back to Clara's
+       brief. Same button element, same DOM position \u2014 only the
+       content and a modifier class change.
+   Clicking flips useCustomAngle on state; a full re-render then
+   swaps the brief-head + textarea + count in place. The pill itself
+   never moves. */
+
+.cr-custom-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  margin: 4px 0 20px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+}
+
+.cr-custom-toggle:hover {
+  background: rgba(245, 166, 35, 0.08);
+  transform: translateY(-1px);
+}
+
+.cr-custom-toggle:active {
+  transform: translateY(0);
+}
+
+.cr-custom-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+.cr-custom-toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Muted "back to brief" state \u2014 same pill silhouette so nothing
+   jumps, just quieter chrome so the amber default reads as the
+   primary offer. */
+.cr-custom-toggle-open {
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.cr-custom-toggle-open:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-strong);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.cr-custom-toggle-open:focus-visible {
+  box-shadow: 0 0 0 3px rgba(245, 240, 232, 0.06);
+}
+
+.cr-custom-toggle-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cr-custom-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  line-height: 1;
+}
+
+.cr-custom-toggle-arrow {
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.9;
+  transition: transform 180ms ease;
+}
+
+.cr-custom-toggle:hover .cr-custom-toggle-arrow {
+  transform: translateX(2px);
+}
+
+.cr-custom-toggle-open:hover .cr-custom-toggle-arrow {
+  transform: translateX(-2px);
+}
+
+/* Custom-mode character hint reuses the .cr-brief-count slot so the
+   visual footprint matches "128 / 320 characters" in brief mode
+   \u2014 same size, same position, same margin. Turns amber once
+   the threshold is met. */
+.cr-custom-hint {
+  color: rgba(245, 240, 232, 0.35);
+  font-weight: 500;
+  transition: color 180ms ease;
+}
+
+.cr-custom-hint-ok {
+  color: var(--accent);
+}
+
 /* ==========================================
    Generation loading state (Step 2 \u2192 Step 3)
    Amber dots on the shared cl-bounce keyframes so the rhythm
@@ -695,67 +816,25 @@
 .cr-variation-card-active .cr-copy-btn { margin-right: 28px; }
 
 /* ---------------------------------------------
-   4th variation card \u2014 "Your idea" (custom textarea)
+   Solo custom variation \u2014 Step 3 when Clara
+   generated a single card from the user's own brief
    ---------------------------------------------
-   Structural notes:
-     \u2022 Spans the full grid row via grid-column: 1 / -1 so it sits
-       on its own row underneath the 3 auto-generated cards. Gives
-       the textarea room to breathe without cramming a 4th column
-       onto small viewports.
-     \u2022 Same .cr-variation-card frame (border, hover, active state,
-       checkmark badge) so the row reads as a peer, not a footer.
-     \u2022 No copy button (nothing to copy until the user has typed
-       something) \u2014 the head row still uses the same layout so
-       the label + subtitle sit exactly where they do on cards 1-3. */
+   When Step 2's "I have my own idea" panel is used, Step 3 renders
+   a single card instead of three. The grid parent widens the card
+   to its natural full-row width and centers it; the card itself
+   loses the copy button (there's no benchmark to compare against
+   and the user already wrote the source content, so copying the
+   generated draft is a Step 4 concern). */
 
-.cr-variation-card-custom {
+.cr-variations-grid-solo {
+  grid-template-columns: 1fr !important;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cr-variation-card-custom-solo {
   grid-column: 1 / -1;
-}
-
-.cr-variation-custom-textarea {
-  width: 100%;
-  min-height: 120px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.28);
-  border: none;
-  border-radius: 10px;
-  color: var(--text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  font-size: 14px;
-  line-height: 1.55;
-  letter-spacing: -0.005em;
-  resize: vertical;
-  outline: none;
-  transition: background 150ms ease, box-shadow 150ms ease;
-}
-
-.cr-variation-custom-textarea::placeholder {
-  color: var(--muted);
-  opacity: 0.85;
-}
-
-.cr-variation-custom-textarea:focus {
-  background: rgba(0, 0, 0, 0.38);
-  box-shadow: inset 0 0 0 1px rgba(245, 166, 35, 0.28);
-}
-
-/* Card body clicks propagate up to the card wrapper (which handles
-   selection). The textarea itself is inline-interactive \u2014 clicks
-   land on the input, not on the card selector. The click handler in
-   _crBindStep3 checks .cr-variation-custom-textarea and bails, so
-   caret placement is preserved. */
-
-.cr-variation-char-hint {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--muted);
-  letter-spacing: 0.02em;
-  margin-top: 6px;
-  transition: color 180ms ease;
-}
-
-.cr-variation-char-hint-ok {
-  color: var(--accent);
 }
 
 .cr-copy-btn {
@@ -1317,38 +1396,6 @@
 .cr-publish-body .cr-visual-email-subject,
 .cr-publish-body .cr-visual-newsletter-headline {
   font-size: 16px;
-}
-
-/* "Your idea" angle note \u2014 rendered on Step 4 for image / video /
-   audio custom variations. The format-specific preview still renders
-   above (blank fields, since customText is a brief not the content);
-   this note pins the user's angle description below. A hairline top
-   border separates it from the mockup without breaking the preview
-   card's framing. */
-.cr-publish-angle-note {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cr-publish-angle-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--accent);
-}
-
-.cr-publish-angle-text {
-  font-size: 13px;
-  font-style: italic;
-  color: var(--muted);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 /* Container that holds the platform badge + confidence chip side by

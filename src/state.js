@@ -241,16 +241,22 @@ function _defaultCreate() {
     // Step 2 pre-fills a Clara-authored brief the user can edit before
     // hitting Generate. Empty until Step 2 renders for the first time.
     customBrief: '',
-    // Step 3 "Your idea" (4th) card — free-form textarea for the user
-    // to write their own angle. Persisted separately from
-    // selectedVariation so switching between the 3 Clara-generated
-    // cards and the custom card doesn't wipe the user's typing;
-    // selectedVariation.customText is mirrored from this field when
-    // the custom card is the active pick. Cleared alongside variations
-    // whenever contentType / subFormat / regenerationCount changes
-    // (matching the reset semantics of the sibling fields), and on
-    // any full wizard reset (_resetCreate / Publish success).
+    // Step 2 "I have my own idea" expandable option — free-form
+    // textarea for the user to write their own angle instead of using
+    // Clara's seeded brief. Persisted so the panel stays populated
+    // across back-nav; cleared alongside variations whenever
+    // contentType / subFormat changes (matching the reset semantics
+    // of the sibling fields), and on any full wizard reset
+    // (_resetCreate / Publish success). When useCustomAngle is true
+    // AND this passes the min-char threshold, Generate feeds this
+    // into _crGenerateFromCustomBrief instead of picking from the
+    // Clara-authored pool.
     customText: '',
+    // Whether the user has expanded the "I have my own idea" panel
+    // on Step 2. Persists so back-nav from Step 3 keeps the panel
+    // open. Reset on contentType / subFormat change and on full
+    // wizard reset.
+    useCustomAngle: false,
     variations: [],
     // If the user arrived here via a Today task, this holds the task
     // so _crInit can pre-select sensible defaults for contentType,
@@ -1091,6 +1097,9 @@ function _normalizeState() {
     // step) would still slip through \u2014 coerce here so the
     // Step 3 textarea can always read a string.
     if (typeof c.create.customText !== 'string') c.create.customText = '';
+    // Boolean coercion so a corrupted string / number from a bad
+    // hand-edit still reads as a valid flag.
+    c.create.useCustomAngle = !!c.create.useCustomAngle;
     // Transient flags always false on load.
     c.create.publishing = false;
     c.create.generating = false;

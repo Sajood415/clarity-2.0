@@ -90,13 +90,15 @@ const CR_SUB_FORMATS = [
 // Angle labels sit in place of the old "VARIATION A / B / C". Each
 // variation carries an `angle` field that maps into this. Direct =
 // declarative, Story = customer-voice, Question = hook. `Custom` is
-// the 4th "Your idea" escape hatch \u2014 rendered separately with a
-// textarea inside the card instead of a preview body.
+// the 4th "Your idea" escape hatch \u2014 the user writes an angle /
+// brief in a textarea instead of picking a Clara-authored one, and
+// Clara then generates a proper variation from it on Continue. Same
+// data shape as pool variations, so Step 4 renders it the same way.
 const CR_ANGLE_META = {
   Direct:   { label: 'Direct',   sub: 'Declarative, no hedging' },
   Story:    { label: 'Story',    sub: 'From a customer\u2019s mouth' },
   Question: { label: 'Question', sub: 'Opens with a hook' },
-  Custom:   { label: 'Your idea', sub: 'Write your own angle' }
+  Custom:   { label: 'My idea', sub: 'Clara will generate your content from this' }
 };
 
 // Minimum character count for the "Your idea" custom textarea before
@@ -178,6 +180,14 @@ const CR_REGEN_ICON =
   + '<polyline points="23 4 23 10 17 10"/>'
   + '<polyline points="1 20 1 14 7 14"/>'
   + '<path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>'
+  + '</svg>';
+
+// Four-point spark used inside the "I have my own idea" pill button
+// on Step 2. Filled amber via currentColor so the pill's color state
+// (accent when default / muted when active) carries through.
+const CR_SPARK_ICON =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+  + '<path d="M12 2l1.6 6.4L20 10l-6.4 1.6L12 18l-1.6-6.4L4 10l6.4-1.6L12 2z"/>'
   + '</svg>';
 
 // Task -> Create defaults. Keeps the tap-through from Today working:
@@ -718,47 +728,13 @@ function _crRenderThreadPreview(v) {
 
 // Plain-text serializer for saving into results.items so the stored
 // copy keeps its structure. Also used by the "Copy" button on Step 3
-// and Step 4 to put a clean version onto the clipboard.
+// and Step 4 to put a clean version onto the clipboard. "Your idea"
+// (Custom angle) variations are serialized by their format field the
+// same way pool variations are \u2014 by the time they reach this
+// helper they've been through _crGenerateFromCustomBrief and carry
+// the same caption/hook/body/lines fields.
 function _crVariationPreviewText(v) {
   if (!v) return '';
-  // "Your idea" (4th card) \u2014 the plaintext export mirrors the on-
-  // screen preview: for text formats the customText IS the body, so we
-  // wrap it in the same SUBJECT/HEADLINE/etc. scaffolding a Clara-
-  // authored variation would use. For image/video/audio the customText
-  // is a brief, so we emit the format's normal fields (empty since we
-  // never generated them) followed by a YOUR ANGLE note. Clipboard,
-  // published results.items, and draft results.items all pass through
-  // here so downstream storage stays consistent with what the user saw.
-  if (v.angle === 'Custom' || v.id === 'custom') {
-    const customText = v.customText || '';
-    const effective = _crCustomEffectiveFormat(v);
-    if (effective === 'email')      return 'SUBJECT: \n\nBODY: ' + customText;
-    if (effective === 'newsletter') return 'HEADLINE: \n\nBODY: ' + customText;
-    if (effective === 'thread') {
-      const lines = customText.split(/\n{2,}/).map(function (s) { return s.trim(); }).filter(Boolean);
-      if (!lines.length) return customText;
-      return lines.map(function (l, i) { return (i + 1) + '. ' + l; }).join('\n');
-    }
-    if (effective === 'image') {
-      return 'CAPTION: ' + (v.caption || '')
-        + '\n\nVISUAL: ' + (v.visual || '')
-        + (customText ? '\n\nYOUR ANGLE: ' + customText : '');
-    }
-    if (effective === 'video') {
-      return 'HOOK: ' + (v.hook || '')
-        + '\n\nMIDDLE: ' + (v.middle || '')
-        + '\n\nCTA: ' + (v.cta || '')
-        + (customText ? '\n\nYOUR ANGLE: ' + customText : '');
-    }
-    if (effective === 'audio') {
-      return 'HOOK: ' + (v.hook || '')
-        + '\n\nSPOT: ' + (v.spot || '')
-        + '\n\nCTA: ' + (v.cta || '')
-        + (customText ? '\n\nYOUR ANGLE: ' + customText : '');
-    }
-    // post / text / unknown \u2192 customText is the whole body.
-    return customText;
-  }
   if (v.format === 'image')      return 'CAPTION: ' + (v.caption || '') + '\n\nVISUAL: ' + (v.visual || '');
   if (v.format === 'video')      return 'HOOK: ' + (v.hook || '') + '\n\nMIDDLE: ' + (v.middle || '') + '\n\nCTA: ' + (v.cta || '');
   if (v.format === 'audio')      return 'HOOK: ' + (v.hook || '') + '\n\nSPOT: ' + (v.spot || '') + '\n\nCTA: ' + (v.cta || '');
@@ -806,6 +782,7 @@ function _resetCreate() {
   c.selectedVariation = null;
   c.customBrief = '';
   c.customText = '';
+  c.useCustomAngle = false;
   c.variations = [];
   c.fromTask = null;
   c.generating = false;
@@ -988,11 +965,13 @@ function _crBindStep1() {
         c.variations = [];
         c.selectedVariation = null;
         c.customBrief = '';
-        // The "Your idea" text was drafted for the old format \u2014 a
+        // The "own idea" text was drafted for the old format \u2014 a
         // switch to a different content type is a fresh brief, so
-        // wipe it alongside variations / customBrief. Matches the
-        // "we're restarting Step 3" intent.
+        // wipe it alongside variations / customBrief and collapse
+        // the disclosure. Matches the "we're restarting Step 3"
+        // intent.
         c.customText = '';
+        c.useCustomAngle = false;
         c.regenerationCount = 0;
       }
       _saveState();
@@ -1056,9 +1035,80 @@ function _crRenderStep2() {
   const briefLen = (c.customBrief || '').length;
   const overSoft = briefLen > CR_BRIEF_SOFT_MAX;
 
+  // Custom-angle mode SWAPS the "YOUR BRIEF" section for a "YOUR IDEA"
+  // section \u2014 same visual slot, different content. Toggle pill
+  // below both modes flips between them. Persisted via
+  // c.useCustomAngle so back-nav from Step 3 lands in the same state.
+  const customActive = !!c.useCustomAngle;
+  const customAngleText = typeof c.customText === 'string' ? c.customText : '';
+  const customAngleLen = customAngleText.length;
+  const customAngleOk = customAngleLen >= CR_CUSTOM_MIN_CHARS;
+
+  // Brief-slot content \u2014 either Clara's editable brief or the
+  // user's own-idea textarea. Both use the same .cr-brief-head /
+  // textarea / hint layout so the swap doesn't reflow the page.
+  const briefSlot = customActive
+    ? (''
+        + '<div class="cr-brief-head">'
+        +   '<span class="cr-brief-label">YOUR IDEA</span>'
+        +   '<span class="cr-brief-hint">Tell Clara what to write about.</span>'
+        + '</div>'
+        + '<textarea class="cr-brief-input" id="crCustomAngleInput" rows="4" spellcheck="true"'
+        +        ' placeholder="e.g. I want to talk about why I started this bakery"'
+        +        (c.generating ? ' disabled' : '')
+        +        '>' + _escape(customAngleText) + '</textarea>'
+        + '<div class="cr-brief-count cr-custom-hint' + (customAngleOk ? ' cr-custom-hint-ok' : '') + '" id="crCustomAngleHint" aria-live="polite">'
+        +   String(CR_CUSTOM_MIN_CHARS) + ' characters minimum'
+        + '</div>'
+      )
+    : (''
+        + '<div class="cr-brief-head">'
+        +   '<span class="cr-brief-label">YOUR BRIEF</span>'
+        +   '<span class="cr-brief-hint">Clara wrote this. Edit if you want.</span>'
+        + '</div>'
+        + '<textarea class="cr-brief-input" id="crBriefInput" rows="4" spellcheck="true"'
+        +        (c.generating ? ' disabled' : '')
+        +        '>' + _escape(c.customBrief) + '</textarea>'
+        + '<div class="cr-brief-count' + (overSoft ? ' cr-brief-count-warn' : '') + '" id="crBriefCount">'
+        +   briefLen + ' / ' + CR_BRIEF_SOFT_MAX + ' characters' + (overSoft ? ' \u00b7 tighter is better' : '')
+        + '</div>'
+      );
+
+  // Mode-swap pill. Default state is amber (offer the escape hatch),
+  // active state is muted grey (offer the way back). Same button
+  // element in both modes \u2014 only the content + a modifier class
+  // differ, so screen-reader focus and click behavior stay stable
+  // across toggles.
+  const toggleContent = customActive
+    ? (''
+        + '<span class="cr-custom-toggle-left">'
+        +   '<span class="cr-custom-toggle-arrow">\u2190</span>'
+        +   '<span class="cr-custom-toggle-label">Back to Clara\u2019s brief</span>'
+        + '</span>'
+      )
+    : (''
+        + '<span class="cr-custom-toggle-left">'
+        +   '<span class="cr-custom-toggle-icon">' + CR_SPARK_ICON + '</span>'
+        +   '<span class="cr-custom-toggle-label">I have my own idea</span>'
+        + '</span>'
+        + '<span class="cr-custom-toggle-arrow">\u2192</span>'
+      );
+  const toggleBtn = ''
+    + '<button type="button" class="cr-custom-toggle' + (customActive ? ' cr-custom-toggle-open' : '') + '"'
+    +        ' id="crCustomAngleToggle" aria-pressed="' + (customActive ? 'true' : 'false') + '"'
+    +        (c.generating ? ' disabled' : '') + '>'
+    +   toggleContent
+    + '</button>';
+
+  // Generate label + disabled state track the active mode. Custom
+  // mode holds Generate off until the textarea passes the min-char
+  // threshold; brief mode has no threshold so the button is always
+  // clickable outside of the loading beat.
+  const genLabel = customActive ? 'Generate my angle \u2192' : 'Generate \u2192';
+  const genDisabled = c.generating || (customActive && !customAngleOk);
   const primary = c.generating
     ? _crRenderLoadingBlock()
-    : '<button type="button" class="cr-continue-btn" id="crGenerateBtn">Generate \u2192</button>';
+    : ('<button type="button" class="cr-continue-btn" id="crGenerateBtn"' + (genDisabled ? ' disabled' : '') + '>' + genLabel + '</button>');
 
   return ''
     + '<button type="button" class="cr-back-link" id="crBackBtn"' + (c.generating ? ' disabled' : '') + '>\u2190 Back</button>'
@@ -1067,14 +1117,8 @@ function _crRenderStep2() {
     + subFormatRow
     + '<div class="cr-field-label">Platform</div>'
     + '<div class="cr-platform-row">' + chipsHtml + '</div>'
-    + '<div class="cr-brief-head">'
-    +   '<span class="cr-brief-label">YOUR BRIEF</span>'
-    +   '<span class="cr-brief-hint">Clara wrote this. Edit if you want.</span>'
-    + '</div>'
-    + '<textarea class="cr-brief-input" id="crBriefInput" rows="4" spellcheck="true"' + (c.generating ? ' disabled' : '') + '>' + _escape(c.customBrief) + '</textarea>'
-    + '<div class="cr-brief-count' + (overSoft ? ' cr-brief-count-warn' : '') + '" id="crBriefCount">'
-    +   briefLen + ' / ' + CR_BRIEF_SOFT_MAX + ' characters' + (overSoft ? ' \u00b7 tighter is better' : '')
-    + '</div>'
+    + briefSlot
+    + toggleBtn
     + primary;
 }
 
@@ -1114,8 +1158,10 @@ function _crBindStep2() {
       cur.selectedVariation = null;
       // Sub-format change (post \u2192 email etc.) is another
       // "we're restarting Step 3" moment \u2014 wipe the custom
-      // textarea state along with the auto-generated variations.
+      // textarea state and collapse the disclosure along with the
+      // auto-generated variations.
       cur.customText = '';
+      cur.useCustomAngle = false;
       cur.regenerationCount = 0;
       _saveState();
       renderCreate(document.getElementById('homeContent'));
@@ -1159,12 +1205,71 @@ function _crBindStep2() {
     });
   }
 
+  // "I have my own idea" toggle \u2014 flips useCustomAngle and re-
+  // renders so the panel expands / collapses. State is persisted so
+  // back-nav from Step 3 lands in the same visual state.
+  const toggle = document.getElementById('crCustomAngleToggle');
+  if (toggle && !c.generating) {
+    toggle.addEventListener('click', function () {
+      const cur = getCreate();
+      cur.useCustomAngle = !cur.useCustomAngle;
+      _saveState();
+      renderCreate(document.getElementById('homeContent'));
+    });
+  }
+
+  // Custom-angle textarea \u2014 mirrors keystrokes into c.customText
+  // and imperatively updates the character hint + Generate button's
+  // disabled flag. Full re-render on every keystroke would reset the
+  // caret to the end of the string, so we do everything in place.
+  // Also owns its own auto-grow pass so the "YOUR IDEA" textarea
+  // matches the "YOUR BRIEF" slot's behavior when the user types.
+  const customInput = document.getElementById('crCustomAngleInput');
+  if (customInput) {
+    const hintEl = document.getElementById('crCustomAngleHint');
+    const genEl  = document.getElementById('crGenerateBtn');
+    const growCustom = function () {
+      customInput.style.height = 'auto';
+      customInput.style.height = Math.min(customInput.scrollHeight, 320) + 'px';
+    };
+    requestAnimationFrame(growCustom);
+    const syncCustomUI = function () {
+      const val = customInput.value;
+      const ok = val.length >= CR_CUSTOM_MIN_CHARS;
+      const cur = getCreate();
+      cur.customText = val;
+      _saveState();
+      growCustom();
+      if (hintEl) hintEl.classList.toggle('cr-custom-hint-ok', ok);
+      if (genEl) {
+        if (ok) genEl.removeAttribute('disabled');
+        else    genEl.setAttribute('disabled', '');
+      }
+    };
+    customInput.addEventListener('input', syncCustomUI);
+    // Blur belt-and-braces \u2014 covers the rare browsers where a
+    // paste event doesn't dispatch an input.
+    customInput.addEventListener('blur', syncCustomUI);
+  }
+
   const gen = document.getElementById('crGenerateBtn');
   if (gen) {
     gen.addEventListener('click', function () {
-      const input = document.getElementById('crBriefInput');
       const cur = getCreate();
-      if (input) cur.customBrief = input.value;
+      // Belt-and-braces guard for the custom mode threshold. The
+      // button is already rendered disabled in this state, but a
+      // rapid click on stale DOM could still slip through.
+      if (cur.useCustomAngle && (cur.customText || '').length < CR_CUSTOM_MIN_CHARS) return;
+
+      // Persist the latest textarea values before flipping to
+      // loading. Brief always saves; custom saves only when the
+      // panel is open (otherwise the DOM element doesn't exist).
+      const briefEl = document.getElementById('crBriefInput');
+      if (briefEl) cur.customBrief = briefEl.value;
+      if (cur.useCustomAngle) {
+        const angleEl = document.getElementById('crCustomAngleInput');
+        if (angleEl) cur.customText = angleEl.value;
+      }
       cur.generating = true;
       _saveState();
       renderCreate(document.getElementById('homeContent'));
@@ -1175,7 +1280,13 @@ function _crBindStep2() {
     if (_crBindStep2._labelInterval) clearInterval(_crBindStep2._labelInterval);
     if (_crBindStep2._advanceTimeout) clearTimeout(_crBindStep2._advanceTimeout);
 
-    const labels = ['Reading your brief\u2026', 'Crafting your variations\u2026', 'Almost ready\u2026'];
+    // Loading copy changes so the user knows which pipeline is
+    // running \u2014 pool selection vs custom-brief expansion.
+    const customMode = !!c.useCustomAngle
+                    && (c.customText || '').length >= CR_CUSTOM_MIN_CHARS;
+    const labels = customMode
+      ? ['Reading your angle\u2026', 'Shaping your draft\u2026', 'Almost ready\u2026']
+      : ['Reading your brief\u2026', 'Crafting your variations\u2026', 'Almost ready\u2026'];
     let idx = 0;
     _crBindStep2._labelInterval = setInterval(function () {
       idx = (idx + 1) % labels.length;
@@ -1193,8 +1304,16 @@ function _crBindStep2() {
       const cur = getCreate();
       if (!cur.generating) return;
       cur.regenerationCount = 0;
-      cur.variations = _crVariationsFor(cur.contentType, cur.subFormat, 0);
-      cur.selectedVariation = null;
+      if (cur.useCustomAngle && (cur.customText || '').length >= CR_CUSTOM_MIN_CHARS) {
+        // Custom pipeline: brief \u2192 single variation, auto-selected
+        // so Step 3 renders one card that\u2019s already picked.
+        const v = _crGenerateFromCustomBrief(cur.customText, cur.contentType, cur.subFormat);
+        cur.variations = [v];
+        cur.selectedVariation = v;
+      } else {
+        cur.variations = _crVariationsFor(cur.contentType, cur.subFormat, 0);
+        cur.selectedVariation = null;
+      }
       cur.generating = false;
       _saveState();
       _crGoTo(3);
@@ -1218,87 +1337,66 @@ function _crRenderStep3() {
   }
 
   const selectedId = c.selectedVariation ? c.selectedVariation.id : null;
-  // In the 3-item grid two variations can share an id character (both
-  // "A" from different pool windows), so we also match on `angle` +
-  // position when checking selection. Cheapest cross-check is a stored
-  // key on the variation itself.
+  // Two pool variations can share an id character ("A" from window 1
+  // AND window 2), so we cross-check on angle + position via a
+  // synthetic key. Custom-generated single variations set both
+  // id + angle to 'custom' / 'Custom' which never collides.
   const selectedKey = c.selectedVariation ? c.selectedVariation.id + '|' + (c.selectedVariation.angle || '') : null;
-  const isCustomSelected = !!(c.selectedVariation && c.selectedVariation.angle === 'Custom');
+
+  // Custom mode: exactly one variation in the grid (the one Clara
+  // generated from the user's brief on Step 2). Skip the copy
+  // button and paint the card full-width so it doesn't look
+  // orphaned in the 3-across layout.
+  const isCustomGrid = variations.length === 1
+                     && variations[0]
+                     && variations[0].angle === 'Custom';
 
   const cardsHtml = variations.map(function (v, i) {
     const key = v.id + '|' + (v.angle || '');
     const on = selectedKey ? key === selectedKey : (selectedId && v.id === selectedId);
     const meta = CR_ANGLE_META[v.angle] || { label: v.angle || 'Variation', sub: '' };
+    const isCustom = v.angle === 'Custom';
     return ''
-      + '<div class="cr-variation-card' + (on ? ' cr-variation-card-active' : '') + '" data-variation-index="' + i + '" data-angle="' + _escape(v.angle || '') + '">'
+      + '<div class="cr-variation-card' + (on ? ' cr-variation-card-active' : '') + (isCustom ? ' cr-variation-card-custom-solo' : '') + '" data-variation-index="' + i + '" data-angle="' + _escape(v.angle || '') + '">'
       +   '<div class="cr-variation-head">'
       +     '<div class="cr-variation-head-text">'
       +       '<div class="cr-variation-angle">' + _escape(meta.label.toUpperCase()) + '</div>'
       +       '<div class="cr-variation-sub">' + _escape(meta.sub) + '</div>'
       +     '</div>'
-      +     '<button type="button" class="cr-copy-btn" data-copy-index="' + i + '" aria-label="Copy this variation">'
-      +       '<span class="cr-copy-icon">' + CR_COPY_ICON + '</span>'
-      +     '</button>'
+      +     (isCustom
+            ? ''
+            : ('<button type="button" class="cr-copy-btn" data-copy-index="' + i + '" aria-label="Copy this variation">'
+                + '<span class="cr-copy-icon">' + CR_COPY_ICON + '</span>'
+                + '</button>'))
       +   '</div>'
       +   _crRenderVariationBody(v)
       + '</div>';
   }).join('');
 
-  // Fourth card \u2014 "Your idea" escape hatch. Uses the same
-  // .cr-variation-card frame as the pool cards but skips the copy
-  // button and swaps the format-specific preview body for a
-  // free-form textarea + character hint. `data-variation-index` is
-  // the string "custom" so the click handler in _crBindStep3 can
-  // branch on it. Textarea rehydrates from `c.customText`, so
-  // toggling between the pool cards and this one preserves the
-  // user's typing.
-  const customMeta = CR_ANGLE_META.Custom;
-  const customText = typeof c.customText === 'string' ? c.customText : '';
-  const customLen = customText.length;
-  const hintOkClass = customLen >= CR_CUSTOM_MIN_CHARS ? ' cr-variation-char-hint-ok' : '';
-  const customCardActiveClass = isCustomSelected ? ' cr-variation-card-active' : '';
-  const customCardHtml = ''
-    + '<div class="cr-variation-card cr-variation-card-custom' + customCardActiveClass + '"'
-    +      ' data-variation-index="custom" data-angle="Custom">'
-    +   '<div class="cr-variation-head">'
-    +     '<div class="cr-variation-head-text">'
-    +       '<div class="cr-variation-angle">' + _escape(customMeta.label.toUpperCase()) + '</div>'
-    +       '<div class="cr-variation-sub">' + _escape(customMeta.sub) + '</div>'
-    +     '</div>'
-    +   '</div>'
-    +   '<textarea class="cr-variation-custom-textarea" id="crCustomTextarea"'
-    +          ' placeholder="Describe your angle or paste your own content..."'
-    +          ' rows="5"'
-    +          ' aria-label="Your own angle">' + _escape(customText) + '</textarea>'
-    +   '<div class="cr-variation-char-hint' + hintOkClass + '" id="crCustomHint" aria-live="polite">'
-    +     _escape(String(CR_CUSTOM_MIN_CHARS)) + ' characters minimum'
-    +   '</div>'
-    + '</div>';
-
-  // Continue-button enablement:
-  //   \u2022 One of the first-3 cards picked   \u2192 always enabled
-  //   \u2022 The "Your idea" card picked        \u2192 only when the
-  //     textarea has \u2265 CR_CUSTOM_MIN_CHARS characters
-  //   \u2022 Nothing picked                      \u2192 disabled
-  // Re-computed imperatively on every textarea input event so users
-  // don't have to re-click the card to unlock the button.
-  const canContinue = isCustomSelected
-    ? customLen >= CR_CUSTOM_MIN_CHARS
-    : !!selectedId;
+  const canContinue = !!selectedId;
+  // Copy tuned to the current mode: pool = 3 angles, custom = one
+  // generated draft. Regenerate stays available in both modes so the
+  // user can spin a fresh window (custom re-generates from the same
+  // brief \u2014 hardcoded templates are deterministic on brief text,
+  // but the extra click is cheap and matches the user's expectation).
+  const heading = isCustomGrid ? 'Here\u2019s what Clara made.' : 'Pick one to publish.';
+  const sub     = isCustomGrid
+    ? 'Generated from your angle. Regenerate for a fresh take, or continue to publish.'
+    : 'Three angles on the same brief. Tap Copy to save any of them.';
 
   return ''
     + '<button type="button" class="cr-back-link" id="crBackBtn">\u2190 Back</button>'
     + '<div class="cr-step3-head">'
     +   '<div>'
-    +     '<h1 class="cr-heading cr-heading-sm">Pick one to publish.</h1>'
-    +     '<p class="cr-subheading">Three angles on the same brief \u2014 or write your own. Tap Copy to save any of them.</p>'
+    +     '<h1 class="cr-heading cr-heading-sm">' + _escape(heading) + '</h1>'
+    +     '<p class="cr-subheading">' + _escape(sub) + '</p>'
     +   '</div>'
     +   '<button type="button" class="cr-regen-btn" id="crRegenBtn">'
     +     '<span class="cr-regen-icon">' + CR_REGEN_ICON + '</span>'
     +     '<span>Regenerate</span>'
     +   '</button>'
     + '</div>'
-    + '<div class="cr-variations cr-variations-grid">' + cardsHtml + customCardHtml + '</div>'
+    + '<div class="cr-variations cr-variations-grid' + (isCustomGrid ? ' cr-variations-grid-solo' : '') + '">' + cardsHtml + '</div>'
     + '<button type="button" class="cr-continue-btn" id="crContinueBtn"' + (canContinue ? '' : ' disabled') + '>'
     +   'Continue \u2192'
     + '</button>';
@@ -1315,27 +1413,11 @@ function _crBindStep3() {
       // originated inside the copy button.
       if (e.target && e.target.closest && e.target.closest('.cr-copy-btn')) return;
 
-      const rawIdx = card.getAttribute('data-variation-index');
-
-      // Fourth card \u2014 "Your idea" branch. Different selection
-      // shape (custom object) and different UI update path (imperative
-      // \u2014 no full re-render, so the textarea keeps focus / caret
-      // position if the click happened via keyboard tabbing).
-      if (rawIdx === 'custom') {
-        // Clicks that originated inside the textarea itself are
-        // handled by its input event, not by this card click.
-        // Otherwise selecting the card from a background click would
-        // race with the caret placement inside the textarea.
-        if (e.target && e.target.closest && e.target.closest('.cr-variation-custom-textarea')) return;
-        _crSelectCustomCard();
-        return;
-      }
-
-      const idx = parseInt(rawIdx, 10);
-      const c = getCreate();
-      const v = (c.variations || [])[idx];
+      const idx = parseInt(card.getAttribute('data-variation-index'), 10);
+      const cur = getCreate();
+      const v = (cur.variations || [])[idx];
       if (!v) return;
-      c.selectedVariation = v;
+      cur.selectedVariation = v;
       _saveState();
       renderCreate(document.getElementById('homeContent'));
     });
@@ -1345,8 +1427,8 @@ function _crBindStep3() {
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       const idx = parseInt(btn.getAttribute('data-copy-index'), 10);
-      const c = getCreate();
-      const v = (c.variations || [])[idx];
+      const cur = getCreate();
+      const v = (cur.variations || [])[idx];
       if (!v) return;
       _crCopyToClipboard(_crVariationPreviewText(v)).then(function (ok) {
         if (!ok) return;
@@ -1355,38 +1437,26 @@ function _crBindStep3() {
     });
   });
 
-  // Textarea input \u2014 mirrors typing into c.customText and auto-
-  // selects the custom card so the user never has to click twice to
-  // unlock Continue. All UI updates run imperatively to preserve
-  // focus + caret position; a re-render on every keystroke would
-  // reset the caret to the end of the string on every fire.
-  const customTextarea = document.getElementById('crCustomTextarea');
-  if (customTextarea) {
-    customTextarea.addEventListener('input', function () {
-      _crOnCustomInput(customTextarea.value);
-    });
-    // Blur-time save is a belt-and-braces backup for the input
-    // listener \u2014 covers the vanishingly rare browsers where a
-    // paste event doesn't dispatch an input. Cheap because
-    // _crOnCustomInput bails when the value hasn't changed.
-    customTextarea.addEventListener('blur', function () {
-      _crOnCustomInput(customTextarea.value);
-    });
-  }
-
   const regen = document.getElementById('crRegenBtn');
   if (regen) {
     regen.addEventListener('click', function () {
-      const c = getCreate();
-      c.regenerationCount = (c.regenerationCount || 0) + 1;
-      c.variations = _crVariationsFor(c.contentType, c.subFormat, c.regenerationCount);
-      c.selectedVariation = null;
-      // Regenerate targets only the first-3 pool cards; the "Your
-      // idea" card is user-owned content and NOT wiped. If the user
-      // had picked the custom card, keep the customText in place
-      // but let the click below re-set selectedVariation \u2014 the
-      // full re-render will restore selection state from
-      // c.customText the next time the user interacts.
+      const cur = getCreate();
+      // Custom mode: re-run the brief \u2192 variation generator on
+      // the same customText. Templates are deterministic on the
+      // brief, so the output is identical \u2014 but it matches the
+      // user's expectation that "Regenerate" always does something,
+      // and keeps a single-card grid when the user hits it. Pool
+      // mode: cycle the 3-item window into the format's 6-item pool.
+      if ((cur.useCustomAngle || (cur.selectedVariation && cur.selectedVariation.angle === 'Custom'))
+          && (cur.customText || '').length >= CR_CUSTOM_MIN_CHARS) {
+        const v = _crGenerateFromCustomBrief(cur.customText, cur.contentType, cur.subFormat);
+        cur.variations = [v];
+        cur.selectedVariation = v;
+      } else {
+        cur.regenerationCount = (cur.regenerationCount || 0) + 1;
+        cur.variations = _crVariationsFor(cur.contentType, cur.subFormat, cur.regenerationCount);
+        cur.selectedVariation = null;
+      }
       _saveState();
       renderCreate(document.getElementById('homeContent'));
     });
@@ -1395,90 +1465,9 @@ function _crBindStep3() {
   const cont = document.getElementById('crContinueBtn');
   if (cont) {
     cont.addEventListener('click', function () {
-      const c = getCreate();
-      if (!c.selectedVariation) return;
-      // Second guard for the custom card: block advancement if the
-      // textarea is still under the character threshold. Belt-and-
-      // braces against a race between imperative disabled-flip and
-      // click firing on stale DOM.
-      if (c.selectedVariation.angle === 'Custom'
-          && (c.customText || '').length < CR_CUSTOM_MIN_CHARS) return;
+      if (!getCreate().selectedVariation) return;
       _crGoTo(4);
     });
-  }
-}
-
-// ---------------------------------------------
-// Step 3 \u2014 "Your idea" custom card helpers
-// ---------------------------------------------
-//
-// Both paths (click-to-select + type-to-select) funnel through these
-// helpers so the state shape stays consistent. All UI updates are
-// imperative so the textarea's focus + caret position survive.
-
-function _crSelectCustomCard() {
-  const textarea = document.getElementById('crCustomTextarea');
-  const c = getCreate();
-  const value = textarea ? textarea.value : (c.customText || '');
-  c.customText = value;
-  c.selectedVariation = {
-    id: 'custom',
-    angle: 'Custom',
-    format: c.contentType,
-    customText: value
-  };
-  _saveState();
-  _crRefreshCustomCardUI(value);
-  // Give the textarea focus when the user picked the card by clicking
-  // its background \u2014 they're clearly about to type. Guarded so we
-  // don't yank focus if the card was already active (e.g. re-click).
-  if (textarea && document.activeElement !== textarea) {
-    try { textarea.focus({ preventScroll: true }); } catch (_) { textarea.focus(); }
-  }
-}
-
-function _crOnCustomInput(value) {
-  const c = getCreate();
-  // Skip the write when nothing actually changed (fires on blur even
-  // when the value didn't move). Keeps localStorage writes proportional
-  // to real edits.
-  if (c.customText === value
-      && c.selectedVariation
-      && c.selectedVariation.angle === 'Custom') {
-    _crRefreshCustomCardUI(value);
-    return;
-  }
-  c.customText = value;
-  c.selectedVariation = {
-    id: 'custom',
-    angle: 'Custom',
-    format: c.contentType,
-    customText: value
-  };
-  _saveState();
-  _crRefreshCustomCardUI(value);
-}
-
-// Imperative pass \u2014 flips the active class between cards, updates
-// the char-hint color, and syncs the Continue button's disabled flag.
-// Called from both the click and input paths. No re-render.
-function _crRefreshCustomCardUI(value) {
-  const len = (typeof value === 'string' ? value : '').length;
-  const ok = len >= CR_CUSTOM_MIN_CHARS;
-
-  // Move .cr-variation-card-active to the custom card only.
-  document.querySelectorAll('.cr-variation-card').forEach(function (card) {
-    const isCustom = card.getAttribute('data-variation-index') === 'custom';
-    card.classList.toggle('cr-variation-card-active', isCustom);
-  });
-
-  const hint = document.getElementById('crCustomHint');
-  if (hint) hint.classList.toggle('cr-variation-char-hint-ok', ok);
-
-  const cont = document.getElementById('crContinueBtn');
-  if (cont) {
-    if (ok) cont.removeAttribute('disabled');
-    else    cont.setAttribute('disabled', '');
   }
 }
 
@@ -1506,15 +1495,16 @@ function _crConfidence(v, platform) {
   const angle = v.angle || 'Direct';
   const platformLabel = _crPlatformLabel(platform);
 
-  // "Your idea" (custom textarea) has no Clara-authored angle for us
-  // to benchmark against, so there's no confidence rating to show.
-  // We still return a chip so Step 4's layout stays intact \u2014 just
-  // in a neutral level with muted styling and no colored dot.
+  // "Your idea" (custom textarea) \u2014 the angle came from the user,
+  // not from a Clara pool, so there's no historical benchmark to
+  // compare it against. We still return a chip so Step 4's layout
+  // stays intact, just in a neutral level with muted styling and no
+  // colored dot.
   if (angle === 'Custom') {
     return {
       level: 'custom',
       label: 'Your own take',
-      copy: 'You wrote this yourself. Clara has no benchmark for it \u2014 but a personal angle often lands harder than a template.'
+      copy: 'You wrote the angle. Clara turned it into a draft \u2014 no benchmark yet, but a personal angle often lands harder than a template.'
     };
   }
 
@@ -1539,50 +1529,155 @@ function _crConfidence(v, platform) {
   };
 }
 
-// Effective sub-format for a "Your idea" variation. For text content
-// types it's the chosen subFormat (post/email/newsletter/thread); for
-// image / video / audio it's just the contentType. Falls back to the
-// variation's own format field for defensive rendering when create
-// state has been reset out from under us.
-function _crCustomEffectiveFormat(variation) {
-  const c = getCreate();
-  if (c && c.contentType === 'text') return c.subFormat || 'post';
-  if (c && c.contentType)             return c.contentType;
-  return (variation && variation.format) || '';
+// ---------------------------------------------
+// "Your idea" \u2014 brief \u2192 variation generator
+// ---------------------------------------------
+//
+// The 4th card treats customText as a brief / angle, not as final
+// content. When the user hits Continue on Step 3, this generator
+// turns the brief into a full variation object matching the exact
+// shape a pool variation would have \u2014 caption / hook / body /
+// lines etc. \u2014 so Step 4 can render it via the normal
+// _crRenderVariationBody path with zero special-casing.
+//
+// Templates are hardcoded (same pattern as the pool functions) and
+// interpolate the brief, business name, product, and a goal-shaped
+// CTA. No API calls.
+
+function _crBriefTruncate(brief, maxLen) {
+  const s = String(brief || '').trim();
+  if (!s) return '';
+  if (s.length <= maxLen) return s;
+  const cut = s.slice(0, maxLen).replace(/\s+\S*$/, '');
+  return (cut || s.slice(0, maxLen)) + '\u2026';
 }
 
-// Builds a synthetic variation shape for the "Your idea" card when the
-// selected content type is text-based. The user's raw textarea value
-// slots into the format's primary body field so _crRenderVariationBody
-// produces the same mockup a Clara-authored variation would \u2014 for
-// text formats the customText IS the content, not a brief.
-function _crBuildCustomTextVariation(original, effective, customText) {
-  const text = customText || '';
-  const base = Object.assign({}, original || {}, { id: 'custom' });
-  if (effective === 'email') {
-    return Object.assign(base, { format: 'email', subject: '', body: text });
-  }
-  if (effective === 'newsletter') {
-    return Object.assign(base, { format: 'newsletter', headline: '', body: text });
-  }
-  if (effective === 'thread') {
-    // Blank-line separated paragraphs each become a numbered tweet.
-    // A single-paragraph brief falls back to a one-line thread so the
-    // preview still frames correctly.
-    const lines = text.split(/\n{2,}/).map(function (s) { return s.trim(); }).filter(Boolean);
-    return Object.assign(base, { format: 'thread', lines: lines.length ? lines : [text] });
-  }
-  // post / text / unknown \u2192 flat text post.
-  return Object.assign(base, { format: 'post', text: text });
+function _crBriefFirstSentence(brief) {
+  const s = String(brief || '').trim();
+  if (!s) return '';
+  const match = s.match(/^([^.!?\n]+[.!?])/);
+  if (match) return match[1].trim();
+  // No terminal punctuation \u2014 grab up to first newline instead so
+  // multi-paragraph briefs collapse to their opening thought.
+  const nl = s.indexOf('\n');
+  if (nl > -1) return s.slice(0, nl).trim();
+  return _crBriefTruncate(s, 90);
 }
 
-function _crIsCustomTextFormat(effective) {
-  return effective === 'post'
-      || effective === 'text'
-      || effective === 'email'
-      || effective === 'newsletter'
-      || effective === 'thread'
-      || !effective;
+// Short quotable slice used inside hooks / lines. Keeps original
+// casing so it reads as the user's own words.
+function _crBriefKeyPhrase(brief) {
+  const s = String(brief || '').trim();
+  if (!s) return '';
+  const first = _crBriefFirstSentence(s);
+  // Strip trailing punctuation for inline use (e.g. "about {phrase}").
+  return first.replace(/[.!?\u2026]+$/, '').trim() || s;
+}
+
+// Goal-shaped CTA line. Matches the keyword patterns used in
+// src/clara/tasks.js so identical phrasing surfaces across the
+// product for the same underlying goal.
+function _crGoalCta() {
+  const b = getBusiness();
+  const raw = String(b.goal || '').toLowerCase();
+  if (raw.indexOf('lead') !== -1)      return 'Reply if this resonates.';
+  if (raw.indexOf('sale') !== -1)      return 'DM us if you want to try it.';
+  if (raw.indexOf('retention') !== -1
+   || raw.indexOf('understand my customer') !== -1) return 'Come back and see what\u2019s next.';
+  if (raw.indexOf('growth') !== -1
+   || raw.indexOf('reach') !== -1
+   || raw.indexOf('awareness') !== -1) return 'Share with someone who\u2019d need this.';
+  return 'Follow along for the next one.';
+}
+
+function _crGenerateFromCustomBrief(brief, contentType, subFormat) {
+  const cleanBrief = String(brief || '').trim();
+  const name = _crBusinessName();
+  const product = _crProduct();
+  const first = _crBriefFirstSentence(cleanBrief) || cleanBrief || 'Something specific from ' + name + '.';
+  const phrase = _crBriefKeyPhrase(cleanBrief) || product;
+  const cta = _crGoalCta();
+
+  // customText is preserved on the generated variation so:
+  //   \u2022 Back \u2192 Step 3 can rehydrate the textarea (also stored
+  //     on c.customText, but keeping both keeps the variation object
+  //     self-contained for downstream consumers).
+  //   \u2022 Regenerating on the same brief remains a pure function
+  //     of what the user typed.
+  const base = {
+    id: 'custom',
+    angle: 'Custom',
+    customText: cleanBrief
+  };
+
+  if (contentType === 'image') {
+    return Object.assign(base, {
+      format: 'image',
+      caption: first + ' Sharing it in one honest photo from ' + name + '.',
+      visual: 'Straight image that supports the idea above. No staging, no filters \u2014 just the real ' + product + '.'
+    });
+  }
+
+  if (contentType === 'video') {
+    return Object.assign(base, {
+      format: 'video',
+      hook: first,
+      middle: 'Three quick cuts that show what "' + phrase + '" actually looks like at ' + name + '. Overlay each with a one-line caption.',
+      cta: cta
+    });
+  }
+
+  if (contentType === 'audio') {
+    return Object.assign(base, {
+      format: 'audio',
+      hook: 'Twenty seconds on this: ' + first,
+      spot: 'One line for who this is for at ' + name + '. One line for what ' + product + ' actually does. One line for the smallest way to try it.',
+      cta: cta
+    });
+  }
+
+  if (contentType === 'text') {
+    if (subFormat === 'email') {
+      const subject = _crBriefTruncate(cleanBrief, 60) || 'A quick note from ' + name;
+      return Object.assign(base, {
+        format: 'email',
+        subject: subject,
+        body: 'Hey \u2014 wanted to share something with you.\n\n' + cleanBrief + '\n\nIf that resonates, hit reply. I read every one myself.\n\nThanks for choosing ' + name + '.'
+      });
+    }
+    if (subFormat === 'newsletter') {
+      const headline = _crBriefTruncate(cleanBrief, 60) || 'This week at ' + name;
+      return Object.assign(base, {
+        format: 'newsletter',
+        headline: headline,
+        body: cleanBrief + '\n\nHere\u2019s what that looks like at ' + name + ' this month: (one specific detail). Reply if it lands \u2014 next issue will pick up from your notes.'
+      });
+    }
+    if (subFormat === 'thread') {
+      return Object.assign(base, {
+        format: 'thread',
+        lines: [
+          first,
+          'Here\u2019s where I think most people get this wrong: (the obvious answer).',
+          'It\u2019s actually about ' + phrase + '.',
+          'At ' + name + ', that shows up in ' + product + ' every day. (One concrete example.)',
+          'That\u2019s the difference. Not glamorous. But it\u2019s the whole game.'
+        ]
+      });
+    }
+    // post / default text \u2192 flat post body.
+    return Object.assign(base, {
+      format: 'post',
+      text: cleanBrief + '\n\nHere\u2019s the ' + product + ' angle behind it at ' + name + ': (one sentence you\u2019d only say in person).'
+    });
+  }
+
+  // Unknown content type \u2014 fall back to a flat post so downstream
+  // rendering never breaks.
+  return Object.assign(base, {
+    format: 'post',
+    text: cleanBrief
+  });
 }
 
 function _crRenderStep4() {
@@ -1594,33 +1689,11 @@ function _crRenderStep4() {
   const icon = CR_PLATFORM_ICONS[platform] || '';
   const conf = _crConfidence(c.selectedVariation, platform);
 
-  // "Your idea" preview \u2014 still uses _crRenderVariationBody so the
-  // format-specific mockup (image frame, video player, thread etc.)
-  // stays intact. For text-ish formats customText slots into the body
-  // field via a synthetic variation. For image/video/audio the
-  // customText is a brief and appears below as a "YOUR ANGLE" note.
-  const isCustom = c.selectedVariation.angle === 'Custom';
-  let bodyHtml;
-  let angleNoteHtml = '';
-  if (isCustom) {
-    const customText = c.selectedVariation.customText || '';
-    const effective = _crCustomEffectiveFormat(c.selectedVariation);
-    if (_crIsCustomTextFormat(effective)) {
-      const synth = _crBuildCustomTextVariation(c.selectedVariation, effective, customText);
-      bodyHtml = _crRenderVariationBody(synth);
-    } else {
-      bodyHtml = _crRenderVariationBody(c.selectedVariation);
-      if (customText) {
-        angleNoteHtml = ''
-          + '<div class="cr-publish-angle-note">'
-          +   '<span class="cr-publish-angle-label">YOUR ANGLE</span>'
-          +   '<div class="cr-publish-angle-text">' + _escape(customText) + '</div>'
-          + '</div>';
-      }
-    }
-  } else {
-    bodyHtml = _crRenderVariationBody(c.selectedVariation);
-  }
+  // Same preview call for every angle including Custom \u2014 the
+  // "Your idea" generator produces a fully-populated variation with
+  // matching field shape, so _crRenderVariationBody routes it the
+  // same way as any pool variation.
+  const bodyHtml = _crRenderVariationBody(c.selectedVariation);
 
   return ''
     + '<button type="button" class="cr-back-link" id="crBackBtn">\u2190 Back</button>'
@@ -1635,7 +1708,6 @@ function _crRenderStep4() {
     +     '</button>'
     +   '</div>'
     +   '<div class="cr-publish-body">' + bodyHtml + '</div>'
-    +   angleNoteHtml
     + '</div>'
     + '<div class="cr-publish-meta">'
     +   '<div class="cr-publish-badge">'
