@@ -237,30 +237,16 @@ function _renderNavItems(collapsed) {
   else if (activeView === 'insights')     activeView = 'results';
   else if (activeView === 'tasks')        activeView = 'today';
 
-  // Draft count for the Results row badge. Read straight off the
-  // active concept so it stays honest across concept switches and
-  // publish/delete actions inside the Results screen. Zero drafts
-  // omit the badge entirely \u2014 there's no "0" state.
-  const active = getActiveConcept();
-  const draftCount = (active && active.results && Array.isArray(active.results.items))
-    ? active.results.items.filter(function (it) { return it && it.status === 'draft'; }).length
-    : 0;
-
   return SB_NAV_ITEMS.map(function (item) {
     const isActive = activeView === item.key;
     const icon = (VIEW_ICONS && VIEW_ICONS[item.icon]) || '';
     // Native title attribute is our tooltip in collapsed mode so users
     // can still identify a rail icon without a label.
     const titleAttr = collapsed ? (' title="' + _escape(item.label) + '" aria-label="' + _escape(item.label) + '"') : '';
-    const showBadge = item.key === 'results' && draftCount > 0;
-    const badgeHtml = showBadge
-      ? '<span class="sb-nav-count-badge" aria-label="' + draftCount + ' draft' + (draftCount === 1 ? '' : 's') + '">' + draftCount + '</span>'
-      : '';
     return (
       '<button type="button" class="sb-nav-item' + (isActive ? ' sb-nav-item-active' : '') + '" data-nav="' + item.key + '"' + titleAttr + '>'
       +   '<span class="sb-nav-icon" aria-hidden="true">' + icon + '</span>'
       +   '<span class="sb-nav-label-text">' + _escape(item.label) + '</span>'
-      +   badgeHtml
       + '</button>'
     );
   }).join('');

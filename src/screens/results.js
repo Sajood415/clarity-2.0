@@ -777,10 +777,9 @@ function _insApplyFilter(published) {
 function renderInsights(container) {
   const items = (getResults().items || []).slice();
   const published = items.filter(function (i) { return i && i.status === 'published'; });
-  // Drafts render in a dedicated shelf beneath the published feed.
-  // They stay in the same `results.items` array (see state schema);
-  // the split is purely a rendering concern.
-  const drafts = items.filter(function (i) { return i && i.status === 'draft'; });
+  // Drafts live inside the Create screen now (Step 1's "Your drafts
+  // \u2192" link opens a dedicated management view). Results only
+  // renders published items.
 
   container.innerHTML = `
     <div class="ins-wrap">
@@ -789,11 +788,10 @@ function renderInsights(container) {
         <p class="ins-subtext">Everything you have published, and how it is performing.</p>
       </div>
       ${published.length === 0 ? _insRenderEmpty() : _insRenderContent(published)}
-      ${_insRenderDraftsSection(drafts)}
     </div>
   `;
 
-  _insBindEvents(published, drafts);
+  _insBindEvents(published);
 }
 
 function _insRenderEmpty() {
@@ -864,68 +862,19 @@ function _insRenderContent(published) {
 }
 
 // ---------------------------------------------
-// Drafts shelf
+// Draft mutators
 // ---------------------------------------------
 //
-// Sits underneath the published feed on the Results screen. Only
-// rendered when at least one item has status === 'draft'. Drafts
-// share the visual footprint of published cards but skip the
-// analytics row (nothing to measure yet) and swap the platform
-// chip for a neutral "DRAFT" badge. Each card has two inline
-// actions: Publish \u2192 flips status to 'published' + bumps the
-// timestamp so it appears at the top of the feed. Delete
-// splices the item out of results.items entirely.
-
-function _insRenderDraftsSection(drafts) {
-  if (!Array.isArray(drafts) || drafts.length === 0) return '';
-  const sorted = drafts.slice().sort(function (a, b) {
-    return (b.timestamp || 0) - (a.timestamp || 0);
-  });
-  const cardsHtml = sorted.map(_insRenderDraftCard).join('');
-  return ''
-    + '<div class="ins-drafts">'
-    +   '<div class="ins-drafts-label">Drafts</div>'
-    +   cardsHtml
-    + '</div>';
-}
-
-function _insRenderDraftCard(item) {
-  const business = (getActiveConcept() && getActiveConcept().business) || {};
-  const gradient = _insMediaBackground(business.type);
-  const typeKey = item.type || 'post';
-  const typeIcon = INS_TYPE_ICONS[typeKey] || INS_TYPE_ICONS.post;
-  const isVideo = typeKey === 'video';
-  const typeBadgeLabel = (INS_FORMAT_LABELS[typeKey] || typeKey || 'Post').toUpperCase();
-  const bodyText = (item.angle && item.angle.trim())
-    || item.variation
-    || 'Untitled draft';
-
-  return (
-    '<div class="ins-content-card ins-draft-card" data-draft-id="' + _escape(item.id) + '">'
-    +   '<div class="ins-media-preview" style="background:' + gradient + '">'
-    +     '<div class="ins-media-icon" aria-hidden="true">' + typeIcon + '</div>'
-    +     (isVideo ? '<div class="ins-media-play" aria-hidden="true">' + INS_PLAY_ICON + '</div>' : '')
-    +   '</div>'
-    +   '<div class="ins-content-info">'
-    +     '<div class="ins-info-top">'
-    +       '<span class="ins-draft-badge">DRAFT</span>'
-    +       '<span class="ins-type-badge ins-type-badge-' + _escape(typeKey) + '">' + _escape(typeBadgeLabel) + '</span>'
-    +       '<span class="ins-content-date">' + _insFormatDateShort(item.timestamp) + '</span>'
-    +     '</div>'
-    +     '<div class="ins-content-body">' + _escape(bodyText) + '</div>'
-    +     '<div class="ins-draft-actions">'
-    +       '<button type="button" class="ins-draft-publish" data-draft-publish="' + _escape(item.id) + '">Publish \u2192</button>'
-    +       '<button type="button" class="ins-draft-delete" data-draft-delete="' + _escape(item.id) + '">Delete</button>'
-    +     '</div>'
-    +   '</div>'
-    + '</div>'
-  );
-}
+// The drafts UI lives inside the Create screen now (Step 1's "Your
+// drafts \u2192" link opens the management view). These helpers are
+// kept here so the state mutation + persistence + re-render
+// contract stays in one place; the Create screen calls them
+// directly rather than duplicating the logic.
 
 // Flip a draft to published + bump its timestamp so it slides to
-// the top of the feed on re-render. The sidebar's draft-count
-// badge recomputes on the next renderApp() so no explicit refresh
-// needed there.
+// the top of the feed on re-render. Kept even though the in-Results
+// Publish button is gone \u2014 downstream flows (e.g. a future
+// "publish from drafts" action) can call it directly.
 function _insPublishDraft(id) {
   const results = getResults();
   if (!results || !Array.isArray(results.items)) return;
@@ -934,9 +883,10 @@ function _insPublishDraft(id) {
   results.items[idx].status = 'published';
   results.items[idx].timestamp = Date.now();
   if (typeof _saveState === 'function') _saveState();
-  // Full re-render \u2014 the summary tiles, filter bar, and now the
-  // drafts shelf all change together. Re-mounting via renderApp
-  // also refreshes the sidebar draft badge in one shot.
+  // Full re-render so summary tiles + filter bar all reflect the new
+  // publish. renderApp() is preferred since it also refreshes the
+  // sidebar; the direct renderInsights() call is the fallback for
+  // hosts that don't expose renderApp on window.
   if (typeof renderApp === 'function') renderApp();
   else renderInsights(_insContainer());
 }
@@ -1059,7 +1009,7 @@ function _insRenderContentCard(item) {
   );
 }
 
-function _insBindEvents(published, drafts) {
+function _insBindEvents(published) {
   const startBtn = document.getElementById('insStartCreatingBtn');
   if (startBtn) {
     startBtn.addEventListener('click', function () {
@@ -1068,27 +1018,6 @@ function _insBindEvents(published, drafts) {
       renderApp();
     });
   }
-
-  // Draft actions (publish / delete). Bound before the generic
-  // card click handler below so the button's stopPropagation call
-  // reliably prevents the parent card from also opening detail
-  // (drafts don't have a detail page). Both handlers look up the
-  // item by id inside the mutator so the array is never captured
-  // stale across re-renders.
-  document.querySelectorAll('[data-draft-publish]').forEach(function (btn) {
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      const id = btn.getAttribute('data-draft-publish');
-      if (id) _insPublishDraft(id);
-    });
-  });
-  document.querySelectorAll('[data-draft-delete]').forEach(function (btn) {
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      const id = btn.getAttribute('data-draft-delete');
-      if (id) _insDeleteDraft(id);
-    });
-  });
 
   const byId = {};
   published.forEach(function (it) { byId[it.id] = it; });

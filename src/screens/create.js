@@ -783,6 +783,8 @@ function _resetCreate() {
   c.customBrief = '';
   c.customText = '';
   c.useCustomAngle = false;
+  c.viewingDrafts = false;
+  c.editingDraftId = null;
   c.variations = [];
   c.fromTask = null;
   c.generating = false;
@@ -841,6 +843,18 @@ function renderCreate(container) {
   if (!container) return;
   _crInit();
   const c = getCreate();
+
+  // Drafts sub-view short-circuits the wizard. It owns the whole
+  // container (no progress bar / task banner chrome) so users get a
+  // focused "manage your drafts" screen rather than a wizard step
+  // masquerading as a list. The flag is cleared by _resetCreate so
+  // fresh wizard entries never land here.
+  if (c.viewingDrafts) {
+    container.innerHTML = '<div class="cr-wrap">' + _crRenderDraftsView() + '</div>';
+    _crBindDraftsView();
+    return;
+  }
+
   const step = c.step;
 
   // Step 3 stretches the container so 3 variation cards fit side-by-side.
@@ -942,13 +956,39 @@ function _crRenderStep1() {
       + '</button>';
   }).join('');
 
+  // Drafts entry point: subtle text link under the format grid. Hidden
+  // entirely when there are zero drafts \u2014 no "0" state ever renders.
+  // The count is pulled off results.items so it stays honest across
+  // publish/delete actions inside the drafts view.
+  const draftCount = _crDraftCount();
+  const draftsLinkHtml = draftCount > 0
+    ? ('<button type="button" class="cr-drafts-link" id="crDraftsLinkBtn">'
+       +   'Your drafts '
+       +   '(<span class="cr-drafts-link-count">' + draftCount + '</span>) '
+       +   '\u2192'
+       + '</button>')
+    : '';
+
   return ''
     + '<h1 class="cr-heading">What are you creating today?</h1>'
     + '<p class="cr-subheading">Pick a format for ' + _escape(name) + ' to get started.</p>'
     + '<div class="cr-format-grid">' + cardsHtml + '</div>'
     + '<button type="button" class="cr-continue-btn" id="crContinueBtn"' + (selected ? '' : ' disabled') + '>'
     +   'Continue \u2192'
-    + '</button>';
+    + '</button>'
+    + draftsLinkHtml;
+}
+
+// Count of saved drafts on the active concept. Used by Step 1's
+// "Your drafts (N) \u2192" link and any future callers that need to
+// gate UI on draft presence.
+function _crDraftCount() {
+  const items = (getResults() && getResults().items) || [];
+  let n = 0;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i] && items[i].status === 'draft') n++;
+  }
+  return n;
 }
 
 function _crBindStep1() {
@@ -984,6 +1024,19 @@ function _crBindStep1() {
     cont.addEventListener('click', function () {
       if (!getCreate().contentType) return;
       _crGoTo(2);
+    });
+  }
+
+  // "Your drafts (N) \u2192" link. Not present in the DOM when the
+  // count is zero (Step 1 render skips it), so this querySelector is
+  // a no-op in the empty case.
+  const draftsLink = document.getElementById('crDraftsLinkBtn');
+  if (draftsLink) {
+    draftsLink.addEventListener('click', function () {
+      const c = getCreate();
+      c.viewingDrafts = true;
+      _saveState();
+      renderCreate(document.getElementById('homeContent'));
     });
   }
 }
@@ -1862,7 +1915,35 @@ function _crPushResultItem(status) {
     reach: 0,
     status: status
   };
-  getResults().items.push(item);
+
+  // Drafts carry the extra context needed to resume at Step 4 with
+  // a perfect preview: the full variation object (image/video/audio
+  // /text field shapes vary), the source contentType + subFormat
+  // (Step 4's preview branches on these), and the Step 2 inputs so
+  // an interrupted "own angle" session still has the user's raw
+  // idea when they reopen. Published items don't need any of this
+  // \u2014 they're read-only from that point on.
+  if (status === 'draft') {
+    item.contentType = c.contentType;
+    item.subFormat = c.subFormat;
+    item.variationObj = c.selectedVariation ? Object.assign({}, c.selectedVariation) : null;
+    item.customBrief = c.customBrief || '';
+    item.customText = c.customText || '';
+    item.useCustomAngle = !!c.useCustomAngle;
+  }
+
+  // Resuming a draft: splice the original row out before pushing the
+  // updated one so we don't leave a duplicate behind. If the id is
+  // stale (draft was deleted from another tab, say) the findIndex
+  // returns -1 and we silently push as a new item.
+  const results = getResults();
+  if (c.editingDraftId) {
+    const prev = results.items.findIndex(function (it) { return it && it.id === c.editingDraftId; });
+    if (prev >= 0) results.items.splice(prev, 1);
+    c.editingDraftId = null;
+  }
+
+  results.items.push(item);
   // Clara proactive trigger: only fires when this push takes results
   // from 0 \u2192 1 items AND the concept hasn't been congratulated yet.
   // Drafts count too \u2014 the intent is "you made something", not just
@@ -1874,6 +1955,187 @@ function _crPushResultItem(status) {
       try { window._claraCheckFirstResult(concept); } catch (err) { console.error('Clara first-result check failed:', err); }
     }
   }
+}
+
+// ---------------------------------------------
+// Drafts sub-view (in-Create management screen)
+// ---------------------------------------------
+//
+// Rendered by renderCreate() when c.viewingDrafts is true. Lists
+// every draft on the active concept as a lightweight card with two
+// actions: "Continue editing \u2192" hydrates the wizard state from
+// the draft and jumps to Step 4; "Delete" splices it out of
+// results.items. The wizard chrome (progress bar, task banner) is
+// suppressed on this view so the drafts stand alone as the current
+// task.
+
+function _crRenderDraftsView() {
+  const items = (getResults() && getResults().items) || [];
+  const drafts = items.filter(function (i) { return i && i.status === 'draft'; })
+                      .sort(function (a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+
+  const bodyHtml = drafts.length === 0
+    ? '<div class="cr-drafts-empty">No drafts yet</div>'
+    : '<div class="cr-drafts-list">' + drafts.map(_crRenderDraftListCard).join('') + '</div>';
+
+  return ''
+    + '<button type="button" class="cr-back-link" id="crDraftsBackBtn">\u2190 Back to Create</button>'
+    + '<div class="cr-drafts-label">YOUR DRAFTS</div>'
+    + '<h1 class="cr-heading cr-heading-sm">Pick up where you left off.</h1>'
+    + bodyHtml;
+}
+
+function _crRenderDraftListCard(item) {
+  const platform = item.platform || 'instagram';
+  const platformLabel = _crPlatformLabel(platform);
+  const platformIcon = CR_PLATFORM_ICONS[platform] || '';
+  const typeKey = item.type || 'post';
+  // The Results screen keeps a `INS_FORMAT_LABELS` map, but we don't
+  // want to reach across screens for a single lookup \u2014 hand-rolled
+  // here so this view has no dependency on the Results module loading
+  // first. Keys mirror the results.items.type domain.
+  const typeLabels = { image: 'Image', video: 'Video', audio: 'Audio', post: 'Post' };
+  const typeBadgeLabel = typeLabels[typeKey] || 'Post';
+
+  // Body text priority: the Step 2 brief the draft was seeded with,
+  // then the serialized variation preview (for legacy drafts saved
+  // before the schema included customBrief on the item), then a
+  // final "Untitled" fallback so the card never renders empty.
+  const bodyText = (item.angle && String(item.angle).trim())
+    || (item.customBrief && String(item.customBrief).trim())
+    || (item.variation && String(item.variation).trim())
+    || 'Untitled draft';
+
+  // Truncate the body preview so long briefs don't blow out the card
+  // height. The full text is available again on Step 4 after resume.
+  const bodyPreview = bodyText.length > 180 ? bodyText.slice(0, 180).trimEnd() + '\u2026' : bodyText;
+
+  // Timestamp helper lives in results.js as a top-level function, so
+  // it's on the global scope. Guarded typeof-check makes the drafts
+  // view resilient if that file ever gets tree-shaken out.
+  const dateLabel = (typeof _insFormatDateShort === 'function')
+    ? _insFormatDateShort(item.timestamp)
+    : '';
+
+  return ''
+    + '<div class="cr-draft-card" data-draft-id="' + _escape(item.id) + '">'
+    +   '<div class="cr-draft-card-head">'
+    +     '<span class="cr-draft-card-platform">'
+    +       '<span class="cr-draft-card-platform-icon" aria-hidden="true">' + platformIcon + '</span>'
+    +       '<span>' + _escape(platformLabel) + '</span>'
+    +     '</span>'
+    +     '<span class="cr-draft-card-type cr-draft-card-type-' + _escape(typeKey) + '">' + _escape(typeBadgeLabel) + '</span>'
+    +     '<span class="cr-draft-card-date">' + _escape(dateLabel) + '</span>'
+    +   '</div>'
+    +   '<div class="cr-draft-card-body">' + _escape(bodyPreview) + '</div>'
+    +   '<div class="cr-draft-card-actions">'
+    +     '<button type="button" class="cr-draft-continue" data-continue="' + _escape(item.id) + '">Continue editing \u2192</button>'
+    +     '<button type="button" class="cr-draft-delete" data-delete="' + _escape(item.id) + '">Delete</button>'
+    +   '</div>'
+    + '</div>';
+}
+
+function _crBindDraftsView() {
+  const back = document.getElementById('crDraftsBackBtn');
+  if (back) {
+    back.addEventListener('click', function () {
+      const c = getCreate();
+      c.viewingDrafts = false;
+      _saveState();
+      renderCreate(document.getElementById('homeContent'));
+    });
+  }
+
+  document.querySelectorAll('[data-continue]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-continue');
+      if (id) _crResumeDraft(id);
+    });
+  });
+
+  document.querySelectorAll('[data-delete]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-delete');
+      if (!id) return;
+      // Reuse the Results-screen delete helper so the drafts array
+      // mutation and _saveState call live in exactly one place. It
+      // also triggers a full renderApp() which will re-enter
+      // renderCreate() on this same drafts view (viewingDrafts is
+      // still true), giving us a fresh list with the row removed.
+      if (typeof _insDeleteDraft === 'function') {
+        _insDeleteDraft(id);
+      } else {
+        const results = getResults();
+        if (!results || !Array.isArray(results.items)) return;
+        const idx = results.items.findIndex(function (it) { return it && it.id === id; });
+        if (idx >= 0) results.items.splice(idx, 1);
+        _saveState();
+        renderCreate(document.getElementById('homeContent'));
+      }
+    });
+  });
+}
+
+// Hydrate the wizard from a stored draft and jump straight to Step 4
+// so the user can continue right at the publish preview. Legacy
+// drafts (saved before we started stashing the full variation obj)
+// fall back to a text-only variation \u2014 the preview will still
+// render, just without the rich image/video/audio chrome.
+function _crResumeDraft(id) {
+  const results = getResults();
+  if (!results || !Array.isArray(results.items)) return;
+  const draft = results.items.find(function (it) { return it && it.id === id; });
+  if (!draft) return;
+
+  const c = getCreate();
+
+  // Prefer the persisted contentType/subFormat; fall back to
+  // inferring from the draft's `type` field so legacy drafts still
+  // land on the right Step 4 branch. `type` uses the results.items
+  // domain ('image' | 'video' | 'audio' | 'post') which happens to
+  // map 1:1 onto contentType for non-text formats \u2014 text posts
+  // become { contentType: 'text', subFormat: 'post' }.
+  if (draft.contentType) {
+    c.contentType = draft.contentType;
+    c.subFormat = draft.subFormat || (draft.contentType === 'text' ? 'post' : null);
+  } else {
+    if (draft.type === 'post') {
+      c.contentType = 'text';
+      c.subFormat = 'post';
+    } else {
+      c.contentType = draft.type || 'image';
+      c.subFormat = null;
+    }
+  }
+
+  c.selectedPlatform = draft.platform || _crDefaultPlatformFor(c.contentType, c.subFormat);
+  c.customBrief = draft.customBrief || draft.angle || '';
+  c.customText = draft.customText || '';
+  c.useCustomAngle = !!draft.useCustomAngle;
+
+  if (draft.variationObj) {
+    c.selectedVariation = Object.assign({}, draft.variationObj);
+  } else {
+    // Legacy fallback: reconstruct a minimal variation from the
+    // serialized preview text. Step 4 renders it via the text
+    // fallback branch of _crRenderVariationBody, which is
+    // functional if visually plainer than a native preview.
+    c.selectedVariation = {
+      id: 'resume-' + draft.id,
+      format: c.contentType === 'text' ? (c.subFormat || 'post') : c.contentType,
+      angle: 'Direct',
+      text: draft.variation || ''
+    };
+  }
+
+  c.editingDraftId = draft.id;
+  c.viewingDrafts = false;
+  c.variations = [];
+  c.step = 4;
+  _saveState();
+  renderCreate(document.getElementById('homeContent'));
 }
 
 function _crShowDraftToast() {
@@ -1888,23 +2150,28 @@ function _crShowDraftToast() {
   toast.className = 'cr-draft-toast cr-draft-toast-clickable';
   toast.setAttribute('role', 'button');
   toast.setAttribute('tabindex', '0');
-  toast.innerHTML = 'Saved as draft \u2014 <span class="cr-draft-toast-cta">view in Results</span>';
+  toast.innerHTML = 'Saved as draft \u2014 <span class="cr-draft-toast-cta">view drafts</span>';
   document.body.appendChild(toast);
 
-  // Explicit teardown on click so the toast disappears immediately
-  // rather than lingering over the Results screen for the tail of
-  // its auto-hide timer. The later setTimeout is a no-op then
-  // because the element is already off the DOM.
-  const goToResults = function () {
+  // Drafts now live inside the Create screen (Step 1 has a "Your
+  // drafts \u2192" link that opens the same sub-view). Click routes
+  // us straight to that view instead of Results. Explicit teardown
+  // on click so the toast disappears immediately rather than
+  // lingering; the later auto-hide timeout becomes a no-op because
+  // the element is already off the DOM.
+  const goToDrafts = function () {
     if (toast.parentNode) toast.parentNode.removeChild(toast);
-    if (typeof setActiveView === 'function') setActiveView('results');
+    const c = getCreate();
+    c.viewingDrafts = true;
+    _saveState();
+    if (typeof setActiveView === 'function') setActiveView('create');
     if (typeof renderApp === 'function') renderApp();
   };
-  toast.addEventListener('click', goToResults);
+  toast.addEventListener('click', goToDrafts);
   toast.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      goToResults();
+      goToDrafts();
     }
   });
 

@@ -339,6 +339,213 @@
   box-shadow: none;
 }
 
+/* --- Step 1 drafts entry point ---
+   Subtle text link under the Continue button. Hidden entirely when
+   the concept has no drafts (Step 1 render skips the DOM node). The
+   count sits inside its own span so the number can go amber while
+   the surrounding "Your drafts (…) →" stays muted. */
+.cr-drafts-link {
+  display: block;
+  width: 100%;
+  margin: 12px auto 0;
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  text-align: center;
+  cursor: pointer;
+  transition: color 150ms ease;
+  letter-spacing: 0.005em;
+}
+
+.cr-drafts-link:hover,
+.cr-drafts-link:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+.cr-drafts-link-count {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ==========================================
+   Drafts sub-view (in-Create management screen)
+
+   Rendered by _crRenderDraftsView when c.viewingDrafts is true.
+   Owns the whole content area (no progress bar / task banner) so
+   the drafts feel like a standalone screen rather than a wizard
+   detour. Card styling deliberately mirrors the Results list rows
+   but strips the analytics — drafts have nothing to measure yet.
+   ========================================== */
+
+.cr-drafts-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 20px 0 12px;
+}
+
+.cr-drafts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cr-drafts-empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 48px 20px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-top: 24px;
+}
+
+.cr-draft-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.cr-draft-card:hover {
+  border-color: rgba(245, 166, 35, 0.32);
+  background: var(--surface-hover, var(--surface));
+}
+
+.cr-draft-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cr-draft-card-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.cr-draft-card-platform-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.cr-draft-card-platform-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.cr-draft-card-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.cr-draft-card-date {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.005em;
+}
+
+.cr-draft-card-body {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cr-draft-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.cr-draft-continue {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  letter-spacing: 0.005em;
+  transition: color 150ms ease, transform 120ms ease;
+}
+
+.cr-draft-continue:hover {
+  color: var(--accent-dark);
+  transform: translateX(2px);
+}
+
+.cr-draft-continue:focus-visible {
+  outline: none;
+  color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cr-draft-delete {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: #B85E4A;
+  opacity: 0.7;
+  cursor: pointer;
+  letter-spacing: 0.005em;
+  transition: opacity 150ms ease, color 150ms ease;
+}
+
+.cr-draft-delete:hover {
+  opacity: 1;
+  color: #C86D5A;
+}
+
+.cr-draft-delete:focus-visible {
+  outline: none;
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* ==========================================
    Step 2 — Platform confirm + brief preview
    ========================================== */

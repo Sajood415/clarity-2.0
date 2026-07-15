@@ -257,6 +257,19 @@ function _defaultCreate() {
     // open. Reset on contentType / subFormat change and on full
     // wizard reset.
     useCustomAngle: false,
+    // Sub-view flag: when true, the Create screen renders the drafts
+    // list instead of the Step 1-4 wizard. Toggled from Step 1's
+    // "Your drafts \u2192" link and the drafts view's "\u2190 Back to
+    // Create" button. Reset on _resetCreate so a fresh wizard entry
+    // never lands on the drafts shelf.
+    viewingDrafts: false,
+    // When the user resumes a saved draft, we stash its id here so
+    // Save-as-draft / Publish can splice the original out of
+    // results.items before pushing the updated item \u2014 avoids
+    // duplicate rows and lets legacy drafts be silently upgraded to
+    // the richer schema. Cleared alongside the wizard on
+    // _resetCreate and after a successful push.
+    editingDraftId: null,
     variations: [],
     // If the user arrived here via a Today task, this holds the task
     // so _crInit can pre-select sensible defaults for contentType,
@@ -1100,6 +1113,10 @@ function _normalizeState() {
     // Boolean coercion so a corrupted string / number from a bad
     // hand-edit still reads as a valid flag.
     c.create.useCustomAngle = !!c.create.useCustomAngle;
+    c.create.viewingDrafts = !!c.create.viewingDrafts;
+    if (typeof c.create.editingDraftId !== 'string' || !c.create.editingDraftId) {
+      c.create.editingDraftId = null;
+    }
     // Transient flags always false on load.
     c.create.publishing = false;
     c.create.generating = false;
