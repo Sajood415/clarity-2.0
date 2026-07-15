@@ -1943,3 +1943,52 @@ body.light-mode .tk-cal-day-today .tk-cal-day-num,
 body.light-mode .tk-cal-day-selected .tk-cal-day-num {
   color: var(--bg);
 }
+
+/* --- Filter bar + calendar dropdowns / placeholders ---
+   The base stylesheet uses rgba(245, 240, 232, X) for a bunch of
+   muted-text roles (filter-field labels, filter-group labels, empty-
+   column copy, search + detail-desc placeholders). That warm-white
+   value is designed for dark canvas -- on the light parchment page
+   it renders as near-invisible whitish text. These overrides swap
+   them for the real light-mode muted token so labels + placeholders
+   read at the intended contrast on both themes.
+
+   The .tk-filter-select gets an explicit background + border override
+   too so the closed dropdown chip reads as a distinct control against
+   the page surface (var(--surface) alone is a barely-there cream tint
+   in light mode; a whiter fill + a slightly darker outline give it
+   the same "clickable pill" affordance the dark theme has). */
+body.light-mode .tk-filter-field-label,
+body.light-mode .tk-filter-group-label {
+  color: var(--muted);
+}
+
+body.light-mode .tk-filter-select {
+  background-color: #FFFFFF;
+  color: var(--text);
+  border-color: rgba(26, 17, 8, 0.16);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23D4860A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 L6 7.5 L9 4.5'/></svg>");
+}
+body.light-mode .tk-filter-select:hover {
+  border-color: rgba(26, 17, 8, 0.28);
+}
+body.light-mode .tk-filter-select:focus,
+body.light-mode .tk-filter-select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(212, 134, 10, 0.14);
+}
+body.light-mode .tk-filter-select option {
+  background: #FFFFFF;
+  color: var(--text);
+}
+
+body.light-mode .tk-search-input::placeholder,
+body.light-mode .tk-detail-desc::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+body.light-mode .tk-board-col-empty {
+  color: var(--muted);
+  border-color: rgba(26, 17, 8, 0.15);
+}
