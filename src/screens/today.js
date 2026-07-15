@@ -1966,6 +1966,37 @@ function _tdThreadHideTyping(listEl) {
   if (node && node.parentNode) node.parentNode.removeChild(node);
 }
 
+// Quick-reply chips rendered above the input. Same visual language
+// as the onboarding "Suggestion: ..." pill row -- small amber-
+// outlined buttons that pre-fill and send a canonical phrase. The
+// phrases here map 1:1 to _clThreadDetectCommand branches in
+// clara/threadRespond.js:
+//   \u2022 "Change this task"     \u2192 alternative     (regenerate)
+//   \u2022 "Make it easier"       \u2192 easier          (gentler variant)
+//   \u2022 "Try a different type" \u2192 type-cycle      (POST\u2192OUTREACH\u2192OFFER)
+//   \u2022 "Why this task?"       \u2192 why (reply-only, no mutation)
+//
+// The user is still free to type any prose in the input; chips are
+// just the fastest path to the most common debates.
+const _TD_THREAD_CHIPS = [
+  { label: 'Change this task',     msg: 'Change this task' },
+  { label: 'Make it easier',       msg: 'Make it easier' },
+  { label: 'Try a different type', msg: 'Try a different type' },
+  { label: 'Why this task?',       msg: 'Why this task?' }
+];
+
+function _tdThreadChipsHtml() {
+  const items = _TD_THREAD_CHIPS.map(function (chip) {
+    return '<button type="button" class="td-thread-chip" data-chip-msg="'
+         + _escape(chip.msg) + '">'
+         +   _escape(chip.label)
+         + '</button>';
+  }).join('');
+  return '<div class="td-thread-chips" id="tdThreadChips" aria-label="Quick actions">'
+       +   items
+       + '</div>';
+}
+
 // Handle a user submission. Idempotent for empty input (whitespace
 // only messages are silently dropped so the input doesn't submit
 // junk when the user hits Enter on an empty field).
@@ -2039,10 +2070,31 @@ function _tdThreadHandleSend(taskId, listEl, inputEl) {
     const task2 = c2.today.tasks[idx2];
     if (!Array.isArray(task2.thread)) task2.thread = [];
 
-    const replyText = (typeof window._claraThreadRespond === 'function')
+    // Legacy shape: _claraThreadRespond used to return a plain
+    // string. New shape returns { text, patch?, closeAndReturn? }
+    // so the thread can mutate the task in place ("change this to
+    // X", "make it easier", etc). Handle both defensively.
+    const rawResp = (typeof window._claraThreadRespond === 'function')
       ? window._claraThreadRespond(raw, task2, c2)
       : 'Got it.';
-    const claraMsg = { role: 'clara', text: replyText, timestamp: Date.now() };
+    const resp = (rawResp && typeof rawResp === 'object')
+      ? rawResp
+      : { text: String(rawResp || 'Got it.'), patch: null, closeAndReturn: false };
+
+    // Apply mutation FIRST so the confirmation message immediately
+    // reflects the new state on save. Everything on the patch is a
+    // plain field write; anything starting with an underscore
+    // (_altIdx, _authored) is internal bookkeeping consumed by the
+    // next command build. See _claraThreadBuildPatch for the shape.
+    if (resp.patch && typeof resp.patch === 'object') {
+      const keys = Object.keys(resp.patch);
+      for (let k = 0; k < keys.length; k++) {
+        const key = keys[k];
+        task2[key] = resp.patch[key];
+      }
+    }
+
+    const claraMsg = { role: 'clara', text: resp.text, timestamp: Date.now() };
     task2.thread.push(claraMsg);
     _saveState();
 
@@ -2050,6 +2102,30 @@ function _tdThreadHandleSend(taskId, listEl, inputEl) {
     _tdThreadScrollToBottom(listEl, true);
 
     _tdThreadState.sending = false;
+
+    // If the response is a task-update (rewrite / alternative /
+    // easier / type-swap), close the detail after a short beat so
+    // the user can read the confirmation, then land back on Today
+    // with a smooth-scroll + amber flash on the updated row. Same
+    // focus mechanism the add-task modal uses, so the "here's your
+    // new task" affordance stays consistent across surfaces.
+    if (resp.closeAndReturn) {
+      setTimeout(function () {
+        // Guard the same way the outer 800ms guard does: the user
+        // could have navigated away or discarded the task since
+        // the reply landed. In either case just bail; the patch is
+        // already saved, so nothing is lost.
+        const c3 = getActiveConcept();
+        if (!c3 || !c3.today) return;
+        const stillExists = Array.isArray(c3.today.tasks)
+          && c3.today.tasks.some(function (t) { return t && t.id === taskId; });
+        if (!stillExists) return;
+
+        _tdJustAddedTaskId = taskId;
+        _closeTaskDetail();
+        _tdFocusJustAddedRow();
+      }, 1200);
+    }
   }, 800);
 }
 
@@ -2154,9 +2230,10 @@ function _renderTdDetail(container, task, c) {
     +     '" id="tdThreadSection">'
     +     '<div class="td-thread-label">Discuss with Clara</div>'
     +     '<div class="td-thread-list" id="tdThreadList" data-task-id="' + _escape(task.id) + '"></div>'
+    +     _tdThreadChipsHtml()
     +     '<form class="td-thread-input-row" id="tdThreadForm" autocomplete="off">'
     +       '<input type="text" class="td-thread-input" id="tdThreadInput" '
-    +         'placeholder="Ask Clara about this task\u2026" '
+    +         'placeholder="Ask Clara about this task, or say \u201cchange it\u201d\u2026" '
     +         'aria-label="Ask Clara about this task" '
     +         'maxlength="500" />'
     +       '<button type="submit" class="td-thread-send" id="tdThreadSend" aria-label="Send message">'
@@ -2200,6 +2277,23 @@ function _renderTdDetail(container, task, c) {
       e.preventDefault();
       _tdThreadHandleSend(task.id, threadListEl, threadInputEl);
     });
+
+    // Chip row: clicking any pill drops the canonical phrase into
+    // the input and fires the same send flow as a keyboard submit.
+    // Guarded by the shared `_tdThreadState.sending` flag inside
+    // _tdThreadHandleSend so mashing chips never double-sends.
+    const chipsHost = document.getElementById('tdThreadChips');
+    if (chipsHost) {
+      chipsHost.addEventListener('click', function (e) {
+        const chip = e.target.closest('.td-thread-chip');
+        if (!chip) return;
+        if (_tdThreadState.sending) return;
+        const phrase = chip.getAttribute('data-chip-msg') || '';
+        if (!phrase) return;
+        threadInputEl.value = phrase;
+        _tdThreadHandleSend(task.id, threadListEl, threadInputEl);
+      });
+    }
   }
 
   // ------------------------------------------------------------

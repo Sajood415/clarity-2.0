@@ -2282,6 +2282,62 @@
   30%            { opacity: 1;    transform: translateY(-3px); }
 }
 
+/* --- Quick-action chips ---
+   Row of amber-outlined pills that sits between the transcript and
+   the input. Each pill sends a canonical phrase that maps to a
+   detected command in clara/threadRespond.js -- fastest path to the
+   most common "debate" moves (change task, make easier, swap type,
+   ask why). Horizontally scrollable on narrow viewports so the row
+   never wraps ugly. */
+.td-thread-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 12px;
+  padding: 0;
+}
+
+.td-thread-chip {
+  appearance: none;
+  border: 1px solid rgba(245, 166, 35, 0.35);
+  background: rgba(245, 166, 35, 0.10);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 120ms ease;
+}
+.td-thread-chip:hover {
+  background: rgba(245, 166, 35, 0.18);
+  border-color: rgba(245, 166, 35, 0.55);
+}
+.td-thread-chip:active {
+  transform: translateY(1px);
+}
+.td-thread-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.28);
+}
+
+body.light-mode .td-thread-chip {
+  background: rgba(212, 134, 10, 0.10);
+  border-color: rgba(212, 134, 10, 0.36);
+}
+body.light-mode .td-thread-chip:hover {
+  background: rgba(212, 134, 10, 0.18);
+  border-color: rgba(212, 134, 10, 0.55);
+}
+body.light-mode .td-thread-chip:focus-visible {
+  box-shadow: 0 0 0 3px rgba(212, 134, 10, 0.24);
+}
+
 /* --- Input row --- */
 .td-thread-input-row {
   display: flex;
