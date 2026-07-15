@@ -477,6 +477,32 @@ function _tkVisibleTasks(tasks) {
   });
 }
 
+// Calendar-scoped variant of _tkVisibleTasks. Same board / status /
+// priority / type / source / search filters -- but WITHOUT the date
+// filter. The calendar view is inherently multi-date: it needs the
+// whole month's tasks, keyed by dueDate, so applying a viewedDate
+// filter here would (and previously did) hide every task with a
+// specific dueDate other than today, leaving days silently empty
+// even when tasks existed on them.
+function _tkVisibleTasksForCalendar(tasks) {
+  const q = String(tasks.searchQuery || '').trim().toLowerCase();
+  const f = tasks.filters;
+
+  return tasks.items.filter(function (t) {
+    if (t.boardId !== tasks.activeBoard) return false;
+    if (f.status.length   && f.status.indexOf(t.status)     === -1) return false;
+    if (f.priority.length && f.priority.indexOf(t.priority) === -1) return false;
+    if (f.type.length     && f.type.indexOf(t.type)         === -1) return false;
+    if (f.source.length   && f.source.indexOf(t.source)     === -1) return false;
+    if (q) {
+      const inTitle = String(t.title || '').toLowerCase().indexOf(q) !== -1;
+      const inDesc  = String(t.description || '').toLowerCase().indexOf(q) !== -1;
+      if (!inTitle && !inDesc) return false;
+    }
+    return true;
+  });
+}
+
 // Local-time YYYY-MM-DD for today. Same shape as the shared
 // date navigator's todayIso; kept as a local fallback in case
 // the module didn't load (edge case during script boot).
@@ -660,6 +686,42 @@ function _tkIsoFromDate(d) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return y + '-' + m + '-' + day;
+}
+
+// Bridge a Today-shape task (concept.today.tasks / taskHistory) into
+// the Kanban-shape record the calendar renderer expects. Only used
+// for read-only display + click routing -- the underlying store is
+// never mutated. Fields:
+//   title    <- description (Today doesn't carry a separate title)
+//   status   <- normalised ('in_progress' -> 'inprogress' to match
+//               Kanban's enum so tk-status-chip-* classes resolve)
+//   priority <- Today has no priority concept; default 'p2' (Medium)
+//   boardId  <- '__today__' sentinel: no matching board -> the chip
+//               dot falls back to amber, which is fine visually and
+//               marks these rows apart from real Kanban entries.
+//   dueDate  <- the iso the caller bucketed this task under
+//   __todaySrc: true, __todayIso: iso -- used by the calendar click
+//               handler to route into the Today screen (live day or
+//               archived day) instead of the Kanban detail lookup,
+//               which would silently fail because the id doesn't
+//               exist in appState.tasks.items.
+function _tkBridgeTodayTask(t, iso) {
+  const rawStatus = String(t && t.status || 'todo');
+  const status = rawStatus === 'in_progress' ? 'inprogress' : rawStatus;
+  return {
+    id: String(t && t.id || ''),
+    title: String((t && t.description) || '(untitled)'),
+    description: '',
+    status: status,
+    priority: 'p2',
+    type: String((t && t.type) || 'other').toLowerCase(),
+    source: (t && t.source) || 'clara',
+    boardId: '__today__',
+    dueDate: iso,
+    activity: [],
+    __todaySrc: true,
+    __todayIso: iso
+  };
 }
 
 function _tkBindBoardView() {
@@ -925,7 +987,7 @@ function _tkBindListView() {
 // ---------------------------------------------
 
 function _tkRenderCalendarView(tasks) {
-  const visible = _tkVisibleTasks(tasks);
+  const visible = _tkVisibleTasksForCalendar(tasks);
 
   // Anchor month: persisted or "this month" for fresh state.
   const now = new Date();
@@ -939,17 +1001,62 @@ function _tkRenderCalendarView(tasks) {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-  // Group tasks by ISO date string for O(1) day lookups.
-  const byDate = {};
-  visible.forEach(function (t) {
-    if (!t.dueDate) return;
-    if (!byDate[t.dueDate]) byDate[t.dueDate] = [];
-    byDate[t.dueDate].push(t);
-  });
-
   // Build 6-week grid so every month fits without a jump.
   const cells = [];
   const todayIso = _tkIsoFromDate(new Date());
+
+  // Group tasks by ISO date string for O(1) day lookups.
+  //
+  // Sources merged into byDate:
+  //   1. Kanban tasks (appState.tasks.items) with a dueDate.
+  //   2. Kanban tasks with NO dueDate --> folded onto today so they
+  //      match the list/board view, which surfaces unscheduled work
+  //      on today's viewed date. Without this the calendar silently
+  //      hid every unscheduled task, which the user hit as
+  //      "I have tasks but the day shows nothing."
+  //   3. Today-screen tasks (concept.today.tasks) --> today's cell.
+  //      These live in a separate per-concept store and were never
+  //      visible on the Tasks calendar before.
+  //   4. Archived Today snapshots (concept.today.taskHistory[iso])
+  //      --> their respective iso cells, giving past days a truthful
+  //      "here's what you had on that day" readout.
+  const byDate = {};
+  visible.forEach(function (t) {
+    const key = t.dueDate || todayIso;
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(t);
+  });
+
+  const activeConcept = (typeof getActiveConcept === 'function') ? getActiveConcept() : null;
+  if (activeConcept && activeConcept.today && typeof activeConcept.today === 'object') {
+    const liveTodayTasks = Array.isArray(activeConcept.today.tasks) ? activeConcept.today.tasks : [];
+    for (let li = 0; li < liveTodayTasks.length; li++) {
+      const lt = liveTodayTasks[li];
+      if (!lt || lt.discarded) continue;
+      const bridged = _tkBridgeTodayTask(lt, todayIso);
+      if (!byDate[todayIso]) byDate[todayIso] = [];
+      byDate[todayIso].push(bridged);
+    }
+
+    const history = (activeConcept.today.taskHistory && typeof activeConcept.today.taskHistory === 'object')
+      ? activeConcept.today.taskHistory
+      : {};
+    const histKeys = Object.keys(history);
+    for (let hk = 0; hk < histKeys.length; hk++) {
+      const iso = histKeys[hk];
+      // Today's live list is the authoritative snapshot for today
+      // -- skip the mirrored history entry to avoid double-listing.
+      if (iso === todayIso) continue;
+      const arr = Array.isArray(history[iso]) ? history[iso] : [];
+      for (let ai = 0; ai < arr.length; ai++) {
+        const at = arr[ai];
+        if (!at || at.discarded) continue;
+        const bridged = _tkBridgeTodayTask(at, iso);
+        if (!byDate[iso]) byDate[iso] = [];
+        byDate[iso].push(bridged);
+      }
+    }
+  }
   const totalCells = 42;
   for (let i = 0; i < totalCells; i++) {
     const dayNum = i - startDay + 1;
@@ -966,7 +1073,8 @@ function _tkRenderCalendarView(tasks) {
     const chips = dayTasks.slice(0, 3).map(function (t) {
       const board = _tkFindBoard(tasks, t.boardId);
       const color = board ? board.color : '#F5A623';
-      return '<div class="tk-cal-chip" data-task="' + _escape(t.id) + '"><span class="tk-cal-chip-dot" style="background:' + _escape(color) + '"></span><span class="tk-cal-chip-title">' + _escape(t.title) + '</span></div>';
+      const srcAttr = t.__todaySrc ? ' data-task-src="today" data-task-iso="' + _escape(t.__todayIso || iso) + '"' : '';
+      return '<div class="tk-cal-chip" data-task="' + _escape(t.id) + '"' + srcAttr + '><span class="tk-cal-chip-dot" style="background:' + _escape(color) + '"></span><span class="tk-cal-chip-title">' + _escape(t.title) + '</span></div>';
     }).join('');
     const more = dayTasks.length > 3 ? '<div class="tk-cal-more">+' + (dayTasks.length - 3) + ' more</div>' : '';
 
@@ -990,7 +1098,8 @@ function _tkRenderCalendarView(tasks) {
       +   '</div>'
       +   (dayTasks.length
           ? '<div class="tk-cal-selected-list">' + dayTasks.map(function (t) {
-              return '<div class="tk-cal-mini-row" data-task="' + _escape(t.id) + '">'
+              const srcAttr = t.__todaySrc ? ' data-task-src="today" data-task-iso="' + _escape(t.__todayIso || tasks.calendarSelectedDate) + '"' : '';
+              return '<div class="tk-cal-mini-row" data-task="' + _escape(t.id) + '"' + srcAttr + '>'
                 + '<span class="tk-task-priority tk-task-priority-' + t.priority + '">' + _escape(TK_PRIORITY_LABELS[t.priority]) + '</span>'
                 + '<span class="tk-cal-mini-title">' + _escape(t.title) + '</span>'
                 + '<span class="tk-status-chip tk-status-chip-' + t.status + '">' + _escape(TK_STATUS_LABELS[t.status]) + '</span>'
@@ -1038,6 +1147,10 @@ function _tkBindCalendarView() {
       const chip = e.target.closest('[data-task]');
       if (chip) {
         if (readOnly) return;
+        if (chip.getAttribute('data-task-src') === 'today') {
+          _tkOpenTodayTaskFromCalendar(chip.getAttribute('data-task'), chip.getAttribute('data-task-iso'));
+          return;
+        }
         _tkOpenDetail(chip.getAttribute('data-task'));
         return;
       }
@@ -1058,9 +1171,51 @@ function _tkBindCalendarView() {
       return;
     }
     row.addEventListener('click', function () {
+      if (row.getAttribute('data-task-src') === 'today') {
+        _tkOpenTodayTaskFromCalendar(row.getAttribute('data-task'), row.getAttribute('data-task-iso'));
+        return;
+      }
       _tkOpenDetail(row.getAttribute('data-task'));
     });
   });
+}
+
+// Route a calendar click on a Today-sourced task over to the Today
+// screen so the correct detail opens. Kanban's _tkOpenDetail looks
+// up id in appState.tasks.items and bails silently if missing, which
+// is exactly what would happen for these ids -- they live in
+// concept.today.tasks / taskHistory.
+//
+// Strategy:
+//   1. Move Today's viewedDate to the task's iso via the shared
+//      date-navigator helper. It normalises today's iso to null (the
+//      "live" sentinel) so the transition is clean either way.
+//   2. Set concept.today.viewingTaskId so Today's top-level render
+//      swaps into its detail sub-view (see today.js line ~195). For
+//      LIVE tasks the lookup in c.today.tasks succeeds and the detail
+//      renders; for ARCHIVED tasks the lookup fails inside Today and
+//      it silently drops back to the archived day's list, which is
+//      still a useful landing surface (user sees the task in context).
+//   3. Flip appState.activeView to 'today' and re-render home.
+function _tkOpenTodayTaskFromCalendar(taskId, iso) {
+  if (!taskId) return;
+  const c = (typeof getActiveConcept === 'function') ? getActiveConcept() : null;
+  if (!c || !c.today) return;
+
+  if (iso && window._dateNavigator && typeof window._dateNavigator.writeViewedDate === 'function') {
+    window._dateNavigator.writeViewedDate(iso);
+  } else if (iso) {
+    // Fallback in the (unlikely) event the shared module didn't load.
+    c.today.viewedDate = iso;
+  }
+
+  c.today.viewingTaskId = taskId;
+  c.today.viewingInsightId = null;
+  _saveState();
+
+  if (typeof window.setActiveView === 'function') {
+    window.setActiveView('today');
+  }
 }
 
 function _tkShiftCalendar(delta) {
