@@ -485,6 +485,48 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   flex-shrink: 0;
 }
 
+/* Clickable avatar+info row that opens the Profile page. Same visual
+   layout as the old <div>-based footer (avatar + name/sub) but now
+   the entire block is a hoverable / focusable button. The logout icon
+   still lives OUTSIDE this button as a separate control so clicking
+   it doesn't accidentally open Profile. */
+.sb-user-trigger {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 150ms ease;
+}
+.sb-user-trigger:hover {
+  background: var(--sidebar-hover, rgba(255, 255, 255, 0.04));
+}
+.sb-user-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.sb-user-trigger-active {
+  background: var(--sidebar-active, rgba(245, 166, 35, 0.10));
+}
+.sb-user-trigger-active:hover {
+  background: var(--sidebar-active, rgba(245, 166, 35, 0.10));
+}
+body.light-mode .sb-user-trigger:hover {
+  background: rgba(26, 17, 8, 0.05);
+}
+body.light-mode .sb-user-trigger-active,
+body.light-mode .sb-user-trigger-active:hover {
+  background: rgba(212, 134, 10, 0.12);
+}
+
 .sb-user-avatar {
   width: 32px;
   height: 32px;
@@ -721,6 +763,15 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
 
 .sb-sidebar-collapsed .sb-user-info {
   display: none;
+}
+
+/* Trigger collapses to just the avatar tile in the icons-only rail.
+   Reset flex + width so it doesn't try to fill the column. */
+.sb-sidebar-collapsed .sb-user-trigger {
+  flex: 0 0 auto;
+  padding: 4px;
+  margin: 0;
+  justify-content: center;
 }
 
 .sb-sidebar-collapsed .sb-settings-btn {

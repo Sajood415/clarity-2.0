@@ -1,0 +1,281 @@
+/* ==========================================
+   Profile page
+   ==========================================
+   Full-page user-settings surface reached from the sidebar footer.
+   Two cards (Account + Password) stacked under a header with an
+   avatar preview. Layout matches the Concepts-list page shell
+   (max-width, centered, warm parchment / dark-canvas surfaces via
+   token overrides). */
+
+.pf-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 32px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Back link — same behavior as the .cr-back-link on Create, kept
+   as its own class so future variations don't drag the shared one. */
+.pf-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  margin-left: -10px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  letter-spacing: -0.005em;
+  transition: color 150ms ease, background 150ms ease;
+}
+.pf-back:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+body.light-mode .pf-back:hover {
+  background: rgba(26, 17, 8, 0.05);
+}
+
+/* Header — big avatar tile + heading + subtitle. */
+.pf-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 8px;
+}
+
+.pf-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-accent, #FAF7F2);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: 0 6px 20px rgba(245, 166, 35, 0.25);
+  flex-shrink: 0;
+}
+body.light-mode .pf-avatar {
+  color: #FAF7F2;
+  box-shadow: 0 6px 20px rgba(212, 134, 10, 0.25);
+}
+
+.pf-header-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pf-heading {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.pf-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-sub-strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* Settings card — used for Account and Password blocks. */
+.pf-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 2px 8px var(--shadow, rgba(0, 0, 0, 0.15));
+}
+body.light-mode .pf-card {
+  background: #F8F4EB;
+  box-shadow: 0 2px 8px rgba(26, 17, 8, 0.06);
+}
+
+.pf-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pf-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.pf-card-sub {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Fields column — two-per-card for Account, three for Password. */
+.pf-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pf-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.pf-input {
+  display: block;
+  width: 100%;
+  padding: 11px 13px;
+  background: var(--surface-2, var(--bg-secondary));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+.pf-input::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.pf-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.14);
+}
+body.light-mode .pf-input {
+  background: #FFFFFF;
+}
+body.light-mode .pf-input:focus {
+  box-shadow: 0 0 0 3px rgba(212, 134, 10, 0.16);
+}
+
+/* Actions row: feedback pill on the left, primary button on the right. */
+.pf-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.pf-feedback {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+}
+.pf-feedback-error {
+  color: #E5484D;
+}
+.pf-feedback-success {
+  color: #22A06B;
+}
+body.light-mode .pf-feedback-error {
+  color: #C43C40;
+}
+body.light-mode .pf-feedback-success {
+  color: #1D8558;
+}
+
+.pf-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: 10px;
+  transition: background 150ms ease, color 150ms ease, transform 120ms ease, opacity 150ms ease;
+}
+.pf-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.pf-btn-primary {
+  background: var(--accent);
+  color: var(--on-accent, #1A1108);
+}
+.pf-btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover, var(--accent));
+}
+.pf-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+body.light-mode .pf-btn-primary {
+  color: #FAF7F2;
+}
+
+/* Narrow layout — tighten margins so the shell doesn't feel bulky
+   on smaller windows / mobile widths. */
+@media (max-width: 640px) {
+  .pf-page {
+    padding: 20px 18px 40px;
+    gap: 20px;
+  }
+  .pf-header {
+    gap: 14px;
+  }
+  .pf-avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+  }
+  .pf-heading {
+    font-size: 22px;
+  }
+  .pf-card {
+    padding: 20px;
+    gap: 16px;
+  }
+  .pf-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pf-actions .pf-btn {
+    width: 100%;
+  }
+}

@@ -278,14 +278,20 @@ function _renderUserFooter(collapsed) {
       );
 
   const avatarTitle = collapsed ? (' title="' + _escape(displayName) + '"') : '';
+  // Highlight the profile trigger when the user is currently on the
+  // Profile page so the footer reads as an active nav row (same visual
+  // language as .sb-nav-item-active).
+  const profileActiveCls = (appState.activeView === 'profile') ? ' sb-user-trigger-active' : '';
 
   return `
     <div class="sb-bottom">
-      <div class="sb-user-avatar"${avatarTitle}>${_escape(firstInitial)}</div>
-      <div class="sb-user-info">
-        <div class="sb-user-name">${_escape(displayName)}</div>
-        <div class="sb-user-sub">${_escape(subLine)}</div>
-      </div>
+      <button type="button" class="sb-user-trigger${profileActiveCls}" id="sbProfileTrigger" aria-label="Open profile">
+        <div class="sb-user-avatar"${avatarTitle}>${_escape(firstInitial)}</div>
+        <div class="sb-user-info">
+          <div class="sb-user-name">${_escape(displayName)}</div>
+          <div class="sb-user-sub">${_escape(subLine)}</div>
+        </div>
+      </button>
       ${trailing}
     </div>
   `;
@@ -404,6 +410,26 @@ function _bindSidebarEvents() {
       renderApp();
     });
   });
+
+  // --- Footer: profile trigger (avatar + name) ---
+  // Clicking the user row opens the standalone Profile page. We stash
+  // the current view onto appState._profileReturnView so Profile's
+  // back button can restore it. If the user is already on Profile the
+  // click is a no-op (they'd re-render the same page).
+  const profileTrigger = document.getElementById('sbProfileTrigger');
+  if (profileTrigger) {
+    profileTrigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (appState.activeView === 'profile') return;
+      // Don't strand the user mid-onboarding.
+      const c = getActiveConcept();
+      if (c && c.chat && !c.chat.onboardingComplete) return;
+      appState._profileReturnView = appState.activeView || 'today';
+      appState.confirmingLogout = false;
+      setActiveView('profile');
+      renderApp();
+    });
+  }
 
   // --- Footer: logout controls ---
   const settings = document.getElementById('sbSettingsBtn');

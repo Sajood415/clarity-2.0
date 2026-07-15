@@ -361,6 +361,7 @@ const CH_VIEW_LABELS = {
   'insights':          'Results',
   'insights-detail':   'Results',
   'concepts-list':     'Your concepts',
+  'profile':           'Profile',
   'market-report':     'Market report',
   'customer-report':   'Customer report',
   'competition-report':'Competition report',
@@ -414,9 +415,9 @@ function _renderConceptHeader() {
   const bellHtml = _chRenderBell();
   const moreHtml = _chRenderMore();
 
-  // Concepts-list is a "root" sub-page, not scoped to a single concept.
-  // Render just the page label, no concept prefix.
-  if (view === 'concepts-list') {
+  // Concepts-list and Profile are "root" sub-pages, not scoped to a
+  // single concept. Render just the page label, no concept prefix.
+  if (view === 'concepts-list' || view === 'profile') {
     return `
       <header class="ch-topbar" role="banner">
         <div class="ch-topbar-inner">

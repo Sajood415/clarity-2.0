@@ -746,6 +746,11 @@ function _normalizeState() {
   appState.confirmingLogout = false;
   appState.conceptDropdownOpen = false;
   appState.onboardingOverlayOpen = false;
+  // _profileReturnView is set when the user opens Profile from another
+  // view so Profile's Back button can restore that view. It's session-
+  // only; a stale value from a previous run should not decide where
+  // Back sends the user on a fresh load.
+  appState._profileReturnView = null;
   if (typeof appState.insightsDetailId !== 'string' || !appState.insightsDetailId) {
     appState.insightsDetailId = null;
   }
@@ -1316,6 +1321,10 @@ function setActiveView(view) {
     'insights-detail',
     // Full-screen sibling view (no concept top-bar row).
     'concepts-list',
+    // User settings sub-page reached from the sidebar footer. Sits at
+    // the app level (no concept scope), same shell shape as
+    // concepts-list -- own back button, no lastWorkspaceView update.
+    'profile',
     // Strategic Planning reports. Each opens as a full-screen view
     // (no top-bar page label), routed by the report shell in
     // router.js. Reached from the Overview insight cards.
@@ -1336,7 +1345,7 @@ function setActiveView(view) {
   // Remember the last primary tab for deep-link recovery. Reports and
   // the concepts list are sub-pages, they don't count.
   const isReport = view.indexOf('-report') !== -1;
-  const isSubPage = view === 'concepts-list' || view === 'insights-detail' || isReport;
+  const isSubPage = view === 'concepts-list' || view === 'insights-detail' || view === 'profile' || isReport;
   if (!isSubPage) {
     const c = getActiveConcept();
     if (c) c.lastWorkspaceView = view;

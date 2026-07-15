@@ -246,6 +246,10 @@ function _renderActiveView(container) {
       else renderInsights(container);
       break;
     case 'concepts-list':    renderConceptsList(container); break;
+    case 'profile':
+      if (typeof renderProfile === 'function') renderProfile(container);
+      else renderToday(container);
+      break;
     case 'market-report':
     case 'customer-report':
     case 'competition-report':
