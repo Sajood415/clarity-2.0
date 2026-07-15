@@ -15,12 +15,15 @@
   bottom: 0;
   width: var(--sidebar-w);
   /* Base slab + a very subtle top-down highlight gradient so the
-     top of the rail catches a little light. Layers stack top-to-
-     bottom in CSS gradient order; the solid #0D0B09 fill sits
-     behind the gradient. */
+     top of the rail catches a little light. Solid fill uses the
+     --sidebar-bg token so light mode can flip the rail to warm
+     parchment while dark mode keeps its slightly-darker-than-bg
+     charcoal. Light mode's dark-warm highlight overlay is opted
+     out in the body.light-mode block near the bottom of this
+     file so the gradient doesn't wash the surface pale. */
   background:
     linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%),
-    #0D0B09;
+    var(--sidebar-bg);
   /* Border reads at roughly 60% of the default --border alpha so
      the seam between rail and canvas is felt but not seen. */
   border-right: 1px solid rgba(255, 240, 220, 0.042);
@@ -734,4 +737,95 @@ body.sb-open.sb-workspace #app { padding-left: var(--sidebar-w); }
   right: 4px;
   font-size: 11px;
   padding: 6px 8px;
+}
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   The sidebar carries a lot of hardcoded rgba tints biased for dark
+   canvas (rgba(255, 255, 255, ...) lift, rgba(255, 240, 220, ...)
+   warm-white lift, rgba(255, 107, 107, ...) danger red). On the
+   parchment canvas these read wrong or fully disappear \u2014 we swap
+   in warm-brown biased equivalents driven off the light-mode
+   sidebar tokens. Anything that reads var(--sidebar-bg) /
+   var(--sidebar-hover) / var(--sidebar-active) already picks up the
+   right value via the token cascade; the rules here catch only the
+   hardcoded rgba's that don't. */
+
+body.light-mode .sb-sidebar {
+  /* Kill the dark-biased top highlight gradient (invisible on
+     parchment) and let the plain --sidebar-bg token show through. */
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+}
+
+body.light-mode .sb-collapse-btn:hover {
+  background: rgba(26, 17, 8, 0.05);
+}
+
+body.light-mode .sb-concept-trigger {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .sb-concept-trigger:hover {
+  background: rgba(212, 134, 10, 0.10);
+}
+
+body.light-mode .sb-concept-picker-open .sb-concept-trigger {
+  background: rgba(212, 134, 10, 0.12);
+  border-color: rgba(212, 134, 10, 0.32);
+}
+
+body.light-mode .sb-cp-row:hover {
+  background: rgba(26, 17, 8, 0.05);
+}
+
+body.light-mode .sb-cp-row-active {
+  background: rgba(212, 134, 10, 0.10);
+}
+
+body.light-mode .sb-cp-action:hover {
+  background: rgba(26, 17, 8, 0.05);
+}
+
+body.light-mode .sb-cp-action-glyph {
+  background: rgba(212, 134, 10, 0.14);
+}
+
+body.light-mode .sb-nav-item:hover {
+  background: var(--sidebar-hover);
+  color: var(--text);
+}
+
+body.light-mode .sb-nav-item-active,
+body.light-mode .sb-nav-item-active:hover {
+  background: var(--sidebar-active);
+}
+
+body.light-mode .tk-badge {
+  background: #C74332;
+  color: #FAF7F2;
+  box-shadow: 0 0 0 2px var(--sidebar-bg);
+}
+
+body.light-mode .sb-settings-btn:hover {
+  background: rgba(199, 67, 50, 0.10);
+  color: #C74332;
+}
+
+body.light-mode .sb-logout-yes { color: #C74332; }
+body.light-mode .sb-logout-yes:hover { color: #A63527; }
+
+body.light-mode .sb-concept-chip {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .sb-concept-chip:hover {
+  background: rgba(26, 17, 8, 0.06);
+  border-color: rgba(212, 134, 10, 0.32);
+}
+
+body.light-mode .sb-user-avatar {
+  color: var(--on-accent, #FAF7F2);
+  box-shadow: 0 2px 6px rgba(212, 134, 10, 0.22);
 }

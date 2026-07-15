@@ -137,6 +137,52 @@
 }
 
 /* ==========================================
+   Colour-mode (sun/moon) toggle
+   ==========================================
+   Sits at the left of the topbar right-cluster (before bell + more).
+   Same 32x32 chrome as .ch-bell / .ch-more-btn so all three read as
+   siblings; the only visual difference is the icon glyph swap on
+   click. Not a persistent aria-expanded control because clicking it
+   isn't opening a menu — it's toggling a global state, so we drive
+   the label update from the JS handler on click and don't use
+   aria-expanded here. */
+.ch-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.ch-theme-btn:hover {
+  color: var(--text);
+  background: var(--sidebar-hover);
+  border-color: var(--border);
+}
+
+.ch-theme-btn:focus-visible {
+  outline: none;
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.25);
+}
+
+.ch-theme-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ch-theme-btn-icon svg { display: block; }
+
+/* ==========================================
    Notification bell (mock)
    ==========================================
    Sits at the far right of the topbar. Bell button toggles a fixed-
@@ -539,4 +585,57 @@
    strategy as the notification panel. */
 @media (max-width: 260px) {
   .ch-more-panel { width: calc(100vw - 32px); }
+}
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   Every hardcoded rgba below carries a warm-cool bias tuned for the
+   dark canvas (e.g. rgba(255, 240, 220, ...) as a "light on dark"
+   tint, rgba(0, 0, 0, 0.45) as a heavy shadow). On the parchment
+   canvas these read wrong \u2014 either invisible or overly heavy \u2014
+   so we swap them for warm-brown biased equivalents. Token-driven
+   properties (colour, border, background: var(--*)) inherit their
+   mode-appropriate values automatically and don't need to be touched
+   here. */
+
+body.light-mode .ch-crumb-sep {
+  color: rgba(26, 17, 8, 0.18);
+}
+
+body.light-mode .ch-bell:hover {
+  background: rgba(26, 17, 8, 0.05);
+}
+
+body.light-mode .ch-bell-badge {
+  background: #C74332;
+}
+
+body.light-mode .ch-notif-panel,
+body.light-mode .ch-more-panel {
+  box-shadow: 0 12px 32px rgba(26, 17, 8, 0.12);
+}
+
+body.light-mode .ch-notif-item:hover {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .ch-more-btn:hover {
+  background: rgba(26, 17, 8, 0.05);
+}
+
+body.light-mode .ch-more-btn[aria-expanded="true"] {
+  background: rgba(212, 134, 10, 0.10);
+  border-color: rgba(212, 134, 10, 0.32);
+}
+
+body.light-mode .ch-notif-count,
+body.light-mode .ch-notif-icon-insight {
+  background: rgba(212, 134, 10, 0.14);
+  border-color: rgba(212, 134, 10, 0.28);
+}
+
+body.light-mode .ch-more-item:hover,
+body.light-mode .ch-more-item:focus-visible {
+  background: rgba(212, 134, 10, 0.10);
 }

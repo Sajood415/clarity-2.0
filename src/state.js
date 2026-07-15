@@ -71,6 +71,18 @@ function _defaultState() {
     // Persists the "icons-only rail" preference across sessions. False
     // means full-width 240px; true means 64px with icons and tooltips.
     sidebarCollapsed: false,
+    // App-level colour scheme preference. 'light' (default) matches the
+    // pre-dashboard flow (splash / auth / welcome / onboarding are all
+    // force-rendered light by src/router.js), so a new user coming out
+    // of onboarding lands in the same warm parchment they've been
+    // living in for the last few minutes rather than getting punched
+    // into a dark canvas the moment Today appears. The sun/moon button
+    // in the topbar flips this to 'dark' at runtime and _saveState
+    // persists the choice; the router then respects it on every
+    // subsequent dashboard render. Legacy dark-mode-first users keep
+    // whatever they've already saved -- the normaliser below only
+    // rewrites values that aren't valid ('light' or 'dark').
+    colorMode: 'light',
     // Global UI preference for the Today tab \u2014 'list' or 'kanban'.
     // Sticky across concepts so the user's view choice follows them.
     // The actual task list (with statuses) lives per-concept on
@@ -716,6 +728,17 @@ function _normalizeState() {
   if (!appState.auth || !appState.auth.mode) appState.auth = { mode: 'signup' };
   if (typeof appState.sidebarOpen !== 'boolean') appState.sidebarOpen = false;
   if (typeof appState.sidebarCollapsed !== 'boolean') appState.sidebarCollapsed = false;
+  // Colour scheme preference. Legacy state (or a corrupted persisted
+  // value) collapses to 'light' so the app never boots into an
+  // undefined visual state -- matches the new default in _defaultState,
+  // and keeps the pre-dashboard-to-dashboard transition seamless for a
+  // fresh user (they came out of onboarding on parchment; no reason to
+  // punt them to dark unless they explicitly chose it). Only 'light'
+  // and 'dark' are valid; anything else means the persisted value is
+  // stale or corrupt.
+  if (appState.colorMode !== 'light' && appState.colorMode !== 'dark') {
+    appState.colorMode = 'light';
+  }
   if (!appState.today || typeof appState.today !== 'object') appState.today = { view: 'list' };
   if (appState.today.view !== 'list' && appState.today.view !== 'kanban') appState.today.view = 'list';
   // Transient in-session flags. Always false on load, regardless of

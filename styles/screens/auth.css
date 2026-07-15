@@ -348,3 +348,120 @@
     font-size: 24px;
   }
 }
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   Auth's left panel uses a hardcoded dark radial (amber \u2192 near-
+   black) that reads as "welcome to a dim theatre". Light mode flips
+   it to a subtle warm-parchment radial with an amber core so the
+   same "focus" cue is preserved on a bright surface. Right panel
+   inherits the bg token so it just goes parchment. */
+
+body.light-mode .au-split,
+body.light-mode .au-right {
+  background: var(--bg);
+}
+
+/* Left panel gets a warm parchment radial instead of the near-black
+   amber radial. Same "focus centre" motion, inverted palette. */
+body.light-mode .au-left {
+  background: radial-gradient(ellipse at 50% 60%, #F4E4C4 0%, #FAF7F2 70%);
+}
+
+body.light-mode .au-left-glow {
+  background: rgba(212, 134, 10, 0.10);
+}
+
+/* --- Left panel text (tagline / features / social-proof) ---
+   All three use warm-white rgba tints that vanish on parchment.
+   Warm-brown biased text tokens keep the hierarchy intact. */
+body.light-mode .au-tagline {
+  color: var(--text-secondary);
+}
+
+body.light-mode .au-feature-text {
+  color: var(--text-secondary);
+}
+
+body.light-mode .au-social-proof {
+  color: var(--muted);
+}
+
+body.light-mode .au-feature-dot {
+  background: rgba(212, 134, 10, 0.14);
+  border-color: rgba(212, 134, 10, 0.30);
+}
+
+body.light-mode .au-divider-line {
+  background: rgba(212, 134, 10, 0.50);
+}
+
+/* --- Sign in / Sign up tab pill ---
+   Actual class in auth.js is .au-tab / .au-tab-active (the earlier
+   .au-mode-tab override was a phantom selector). Base pill uses a
+   warm-white lift that's invisible on parchment; the active tab lifts
+   slightly darker to preserve the "current" cue. */
+body.light-mode .au-tabs {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .au-tab-active {
+  background: rgba(26, 17, 8, 0.08);
+}
+
+/* --- Form fields --- */
+body.light-mode .au-label {
+  color: var(--text-secondary);
+}
+
+body.light-mode .au-input {
+  background: rgba(26, 17, 8, 0.04);
+  border-color: rgba(26, 17, 8, 0.12);
+}
+
+body.light-mode .au-input::placeholder {
+  color: var(--muted);
+}
+
+body.light-mode .au-input:focus {
+  background: rgba(26, 17, 8, 0.06);
+  border-color: rgba(212, 134, 10, 0.40);
+  box-shadow: 0 0 0 3px rgba(212, 134, 10, 0.10);
+}
+
+/* Amber submit already has dark text (#000) hardcoded; leaving that
+   alone so the contrast on the deeper light-mode amber stays crisp.
+   Correcting the earlier phantom .au-submit override to the actual
+   .au-submit-btn class in case designers later want a different
+   colour there. */
+body.light-mode .au-submit-btn {
+  color: #1A1108;
+  box-shadow: 0 4px 20px rgba(212, 134, 10, 0.20);
+}
+
+body.light-mode .au-submit-btn:hover {
+  box-shadow: 0 6px 24px rgba(212, 134, 10, 0.30);
+}
+
+/* --- Divider + Google button + terms footer --- */
+body.light-mode .au-divider::before,
+body.light-mode .au-divider::after {
+  background: rgba(26, 17, 8, 0.10);
+}
+
+body.light-mode .au-google-btn {
+  background: rgba(26, 17, 8, 0.04);
+  border-color: rgba(26, 17, 8, 0.12);
+  color: var(--text-secondary);
+}
+
+body.light-mode .au-google-btn:hover {
+  background: rgba(26, 17, 8, 0.06);
+  border-color: rgba(26, 17, 8, 0.20);
+  color: var(--text);
+}
+
+body.light-mode .au-terms {
+  color: var(--muted);
+}

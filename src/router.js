@@ -30,7 +30,45 @@ function renderApp() {
   const root = document.getElementById('app');
   if (!root) return;
 
-  document.body.style.background = '#0F0D0B';
+  // Effective colour mode for this render.
+  //
+  // The dashboard proper (home mode, no onboarding overlay, past the
+  // first-briefing takeover) respects the user's saved preference.
+  // Every OTHER screen -- splash / auth / loading / welcome, plus the
+  // full-screen onboarding overlay and the first-briefing celebration --
+  // is force-rendered in light mode. Rationale: those are pre-auth /
+  // pre-dashboard "welcome" experiences designed against a warm
+  // parchment canvas; letting a returning dark-mode user's preference
+  // bleed through on sign-in makes the login page feel like a debug
+  // console rather than a first impression, and the onboarding wizard's
+  // amber CTAs + parchment illustrations only read correctly on light.
+  //
+  // Previous version hardcoded the inline body.style.background to
+  // #0F0D0B; that beat the body.light-mode token cascade in
+  // styles/tokens.css and left the main content area painted dark while
+  // the sidebar/topbar (which read var(--bg) via normal CSS) correctly
+  // turned parchment. Now we compute _useLight, toggle the class, AND
+  // rewrite the inline so the two stay in lockstep.
+  //
+  // _active / _firstTime / _onboardingIncomplete are all computed
+  // defensively -- renderApp() runs on every state transition, including
+  // before getActiveConcept() has anything to hand back. Reading from
+  // appState here \u2014 not the body class \u2014 because renderApp() can fire
+  // before src/main.js has flipped the class on boot, and colorMode is
+  // already normalized by state.js at load.
+  const _active = (typeof getActiveConcept === 'function') ? getActiveConcept() : null;
+  const _firstTime = (appState.mode === 'home')
+    && (typeof _isFirstTimeUser === 'function')
+    && _isFirstTimeUser();
+  const _onboardingIncomplete = !!(_active && _active.chat && !_active.chat.onboardingComplete);
+  const _onboardingActive = _firstTime || _onboardingIncomplete || !!appState.onboardingOverlayOpen;
+  const _inFirstBriefing = appState.mode === 'home'
+    && appState.activeView === 'first-briefing'
+    && !!(_active && _active.today && _active.today.hasSeenFirstBriefing !== true);
+  const _forceLight = (appState.mode !== 'home') || _onboardingActive || _inFirstBriefing;
+  const _useLight = _forceLight || (appState && appState.colorMode === 'light');
+  document.body.classList.toggle('light-mode', _useLight);
+  document.body.style.background = _useLight ? '#FAF7F2' : '#0F0D0B';
 
   if (appState.mode === 'home' && !appState.sidebarOpen) {
     appState.sidebarOpen = true;

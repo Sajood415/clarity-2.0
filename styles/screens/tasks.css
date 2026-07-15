@@ -1825,3 +1825,121 @@
   .tk-search-input { width: 100%; }
   .tk-add-btn { padding: 8px 12px; }
 }
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   Every dark-biased warm-white rgba lift and #1a1108 hard-coded amber-
+   CTA text colour gets a warm-brown or bg-token counterpart below.
+   Kanban columns, task cards, filter dropdowns, calendar cells, and
+   the task detail drawer are all covered here. */
+
+body.light-mode .tk-topbar,
+body.light-mode .tk-toolbar {
+  background: var(--bg);
+}
+
+body.light-mode .tk-add-btn {
+  color: var(--bg);
+  box-shadow: 0 0 0 1px rgba(26, 17, 8, 0.10);
+}
+
+body.light-mode .tk-board-tab {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+/* The sidebar board picker row is .tk-board-row (not .tk-board-tab \u2014
+   .tk-board-tab is the horizontal tab pill above the board area).
+   Both share the same warm-white hover in dark mode; separated here
+   so the rename typo from the initial pass is fixed. */
+body.light-mode .tk-board-row:hover {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .tk-board-tab:hover,
+body.light-mode .tk-new-board-cancel:hover,
+body.light-mode .tk-search-clear:hover,
+body.light-mode .tk-three-dot:hover,
+body.light-mode .tk-menu-item:hover,
+body.light-mode .tk-detail-close:hover,
+body.light-mode .tk-add-modal-close:hover,
+body.light-mode .tk-add-modal-cancel:hover {
+  background: rgba(26, 17, 8, 0.06);
+}
+
+/* --- Filter bar strip + column count pill + detail source tag --- */
+body.light-mode .tk-filter-bar {
+  background: rgba(26, 17, 8, 0.02);
+}
+
+body.light-mode .tk-board-col-count {
+  background: rgba(26, 17, 8, 0.06);
+  color: var(--text-secondary);
+}
+
+body.light-mode .tk-detail-source-manual {
+  background: rgba(26, 17, 8, 0.06);
+}
+
+body.light-mode .tk-search-input {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .tk-filter-btn {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .tk-board-col {
+  background: rgba(26, 17, 8, 0.02);
+}
+
+body.light-mode .tk-task-card:hover {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .tk-task-card {
+  background: var(--surface);
+}
+
+body.light-mode .tk-list-header-cell:hover,
+body.light-mode .tk-list-row:hover {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .tk-cal-day:hover {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .tk-cal-nav-today:hover {
+  background: rgba(212, 134, 10, 0.08);
+}
+
+body.light-mode .tk-status-chip-todo {
+  background: rgba(26, 17, 8, 0.04);
+  color: var(--muted);
+  border-color: var(--border-strong);
+}
+
+body.light-mode .tk-task-type-other {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .tk-detail-drawer {
+  box-shadow: -12px 0 32px rgba(26, 17, 8, 0.14);
+}
+
+body.light-mode .tk-detail-body {
+  background: rgba(26, 17, 8, 0.02);
+}
+
+body.light-mode .tk-add-modal-submit,
+body.light-mode .tk-list-priority-p0 {
+  color: var(--bg);
+}
+
+/* Any dark-charcoal text baked into amber CTAs stays legible by
+   binding to the bg token (which is now parchment). */
+body.light-mode .tk-cal-day-today .tk-cal-day-num,
+body.light-mode .tk-cal-day-selected .tk-cal-day-num {
+  color: var(--bg);
+}

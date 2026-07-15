@@ -68,3 +68,23 @@
   min-height: 18px;
   line-height: 18px;
 }
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   Same amber-radial \u2192 warm-parchment-radial swap as the splash
+   screen, plus warm-brown track for the loading bar so it reads
+   against the parchment. */
+
+body.light-mode .ld-screen {
+  background: radial-gradient(ellipse at 50% 60%, #F4E4C4 0%, #FAF7F2 70%);
+}
+
+body.light-mode .ld-logo {
+  color: var(--bg);
+  box-shadow: 0 4px 16px rgba(212, 134, 10, 0.30);
+}
+
+body.light-mode .ld-bar-wrap {
+  background: rgba(26, 17, 8, 0.08);
+}

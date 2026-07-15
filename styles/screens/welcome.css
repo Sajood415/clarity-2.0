@@ -93,3 +93,24 @@
   from { opacity: 1; }
   to { opacity: 0; }
 }
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   Welcome fires between auth and the onboarding wizard as a
+   "hi, [name]" moment. Router forces this screen into light mode
+   regardless of the user's stored preference, so the hardcoded warm-
+   near-black radial and warm-white text tints below all need parchment
+   swaps or nothing on the page reads. Palette matches auth.css so the
+   two feel like the same continuous ambient welcome. */
+body.light-mode .wl-screen {
+  background: radial-gradient(ellipse at 50% 50%, #F4E4C4 0%, #FAF7F2 70%);
+}
+
+body.light-mode .wl-name {
+  color: var(--text);
+}
+
+body.light-mode .wl-subtitle {
+  color: var(--text-secondary);
+}

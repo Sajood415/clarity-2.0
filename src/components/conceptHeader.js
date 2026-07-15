@@ -59,6 +59,54 @@ const CH_ICON_BELL =
   + '<path d="M13.73 21a2 2 0 0 1-3.46 0"/>'
   + '</svg>';
 
+// Sun/moon glyphs for the colour-mode toggle. currentColor is used for
+// every stroke so the icon picks up the surrounding button color the
+// same way the bell and 3-dots do. The button renders whichever icon
+// represents the CURRENT mode: sun when the app is in light mode,
+// moon when the app is in dark mode. Clicking flips the mode + swaps
+// the icon.
+const CH_ICON_SUN =
+  '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">'
+  + '<circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/>'
+  + '<line x1="9" y1="1" x2="9" y2="3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+  + '<line x1="9" y1="15" x2="9" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+  + '<line x1="1" y1="9" x2="3" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+  + '<line x1="15" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+  + '<line x1="3.22" y1="3.22" x2="4.64" y2="4.64" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+  + '<line x1="13.36" y1="13.36" x2="14.78" y2="14.78" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+  + '<line x1="3.22" y1="14.78" x2="4.64" y2="13.36" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+  + '<line x1="13.36" y1="4.64" x2="14.78" y2="3.22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+  + '</svg>';
+
+// Feather/Lucide crescent-moon path. The earlier hand-rolled path had
+// stray control points that rendered as a broken curl rather than a
+// clean crescent \u2014 this is the standard 24x24 moon path scaled to
+// 18px via the SVG's width/height so the geometry reads correctly
+// alongside the 18px sun.
+const CH_ICON_MOON =
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">'
+  + '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>'
+  + '</svg>';
+
+// Renders the colour-mode toggle button. Same 32x32 chrome as the
+// bell so the two read as siblings; the icon (sun vs moon) reflects
+// the ACTIVE mode so the button acts as a status pill as well as an
+// affordance. Read is defensive: falls back to 'dark' if appState
+// hasn't populated yet (only happens in the narrow window before
+// _restoreState() runs, which the DOMContentLoaded listener in
+// main.js closes).
+function _chRenderThemeToggle() {
+  const mode = (window.appState && appState.colorMode === 'light') ? 'light' : 'dark';
+  const icon = mode === 'light' ? CH_ICON_SUN : CH_ICON_MOON;
+  const label = mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+  return (
+    '<button type="button" class="ch-theme-btn" id="chThemeToggle" data-mode="' + mode + '"'
+    +   ' aria-label="' + label + '" title="' + label + '">'
+    +   '<span class="ch-theme-btn-icon">' + icon + '</span>'
+    + '</button>'
+  );
+}
+
 // One 16x16 glyph per notification "category". Kept small and
 // monochrome so the tinted background circle carries the color
 // semantics (amber for insights, green for posts, blue for sparks).
@@ -357,8 +405,12 @@ function _renderConceptHeader() {
     return '';
   }
 
-  // Same bell + more fragments are injected into every topbar right
-  // slot below. Computed once so all four render paths stay in sync.
+  // Same theme + bell + more fragments are injected into every topbar
+  // right slot below. Computed once so all four render paths stay in
+  // sync. Theme goes leftmost of the trio so the "status" nature of
+  // the sun/moon icon (indicating current mode) reads before the
+  // action affordances (bell / more).
+  const themeHtml = _chRenderThemeToggle();
   const bellHtml = _chRenderBell();
   const moreHtml = _chRenderMore();
 
@@ -371,7 +423,7 @@ function _renderConceptHeader() {
           <div class="ch-crumbs">
             <span class="ch-crumb-page">${_escape(pageLabel)}</span>
           </div>
-          <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
+          <div class="ch-topbar-right">${themeHtml}${bellHtml}${moreHtml}</div>
         </div>
       </header>
     `;
@@ -387,7 +439,7 @@ function _renderConceptHeader() {
           <div class="ch-crumbs">
             <span class="ch-crumb-page">${_escape(pageLabel)}</span>
           </div>
-          <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
+          <div class="ch-topbar-right">${themeHtml}${bellHtml}${moreHtml}</div>
         </div>
       </header>
     `;
@@ -411,7 +463,7 @@ function _renderConceptHeader() {
             <span class="ch-crumb-sep" aria-hidden="true">/</span>
             <span class="ch-crumb-page">${_escape(itemTitle)}</span>
           </div>
-          <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
+          <div class="ch-topbar-right">${themeHtml}${bellHtml}${moreHtml}</div>
         </div>
       </header>
     `;
@@ -432,7 +484,7 @@ function _renderConceptHeader() {
             <span class="ch-crumb-sep" aria-hidden="true">/</span>
             <span class="ch-crumb-page">${_escape(pageLabel)}</span>
           </div>
-          <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
+          <div class="ch-topbar-right">${themeHtml}${bellHtml}${moreHtml}</div>
         </div>
       </header>
     `;
@@ -446,7 +498,7 @@ function _renderConceptHeader() {
           <span class="ch-crumb-sep" aria-hidden="true">/</span>
           <span class="ch-crumb-page">${_escape(pageLabel)}</span>
         </div>
-        <div class="ch-topbar-right">${bellHtml}${moreHtml}</div>
+        <div class="ch-topbar-right">${themeHtml}${bellHtml}${moreHtml}</div>
       </div>
     </header>
   `;
@@ -587,6 +639,35 @@ function _bindConceptHeaderEvents() {
     backToday.addEventListener('click', function () {
       setActiveView('today');
       renderApp();
+    });
+  }
+
+  // Colour-mode (sun/moon) toggle. Flips body.light-mode on/off,
+  // updates the persisted appState.colorMode, and swaps the icon in
+  // place so the next click reads the new state. In-place icon swap
+  // (rather than a full topbar re-render) keeps any open bell/more
+  // dropdowns from being torn down mid-interaction.
+  const themeBtn = document.getElementById('chThemeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      const nowLight = !document.body.classList.contains('light-mode');
+      if (nowLight) document.body.classList.add('light-mode');
+      else document.body.classList.remove('light-mode');
+      // src/router.js sets an inline body.style.background on every
+      // renderApp() (kept for legacy FOUC prevention). That inline
+      // beats the tokens.css cascade, so we have to update it here
+      // too or the mid-content area stays whatever the last render
+      // painted while the sidebar/topbar (which read var(--bg) via
+      // normal CSS) flip immediately.
+      document.body.style.background = nowLight ? '#FAF7F2' : '#0F0D0B';
+      appState.colorMode = nowLight ? 'light' : 'dark';
+      if (typeof _saveState === 'function') _saveState();
+      const iconWrap = themeBtn.querySelector('.ch-theme-btn-icon');
+      if (iconWrap) iconWrap.innerHTML = nowLight ? CH_ICON_SUN : CH_ICON_MOON;
+      themeBtn.setAttribute('data-mode', nowLight ? 'light' : 'dark');
+      const nextLabel = nowLight ? 'Switch to dark mode' : 'Switch to light mode';
+      themeBtn.setAttribute('aria-label', nextLabel);
+      themeBtn.setAttribute('title', nextLabel);
     });
   }
 

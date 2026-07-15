@@ -2,9 +2,11 @@
    Insights view (rebuild)
    ==========================================
    Layout: header + 4-card summary bar + content feed + detail modal.
-   Class prefix `ins-` per the current spec. Dark-only styling — no
-   light-mode branches. Class contract mirrors the spec so future
-   consumers can find the pieces they expect.
+   Class prefix `ins-` per the current spec. Dark-mode-first styling
+   with a light-mode override block at the bottom of the file that
+   flips the hardcoded rgba tints for parchment. Class contract
+   mirrors the spec so future consumers can find the pieces they
+   expect.
 */
 
 .ins-wrap {
@@ -1224,4 +1226,190 @@
   /* Format pills wrap on very small viewports; keep them
      scannable rather than crushing into a single line. */
   .ins-format-pills        { flex-wrap: wrap; }
+}
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   The file's opening comment used to read "Dark-only styling \u2014 no
+   light-mode branches." That's no longer true \u2014 the block below
+   flips the dark-biased hardcoded rgba tints (warm-white lifts on
+   metric/draft cards, black drop shadows on modals, #fff text on
+   amber buttons) to warm-brown equivalents so the screen reads
+   correctly on parchment. Card artwork previews (Instagram/TikTok
+   thumbnails) stay dark on purpose \u2014 they simulate the platform
+   surfaces, not app chrome. */
+
+body.light-mode .ins-card {
+  background: var(--surface);
+}
+
+body.light-mode .ins-card:hover {
+  border-color: rgba(26, 17, 8, 0.14);
+  box-shadow: 0 8px 24px rgba(26, 17, 8, 0.10);
+}
+
+body.light-mode .ins-summary-item:hover {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .ins-detail-modal {
+  box-shadow: 0 12px 32px rgba(26, 17, 8, 0.14);
+}
+
+body.light-mode .insd-modal {
+  box-shadow: 0 12px 40px rgba(26, 17, 8, 0.16);
+}
+
+body.light-mode .ins-summary-num {
+  color: var(--text);
+}
+
+/* Amber CTA text should stay dark charcoal on the deeper light-mode
+   amber (--accent: #D4860A) so contrast is preserved. Both classes
+   listed \u2014 .ins-empty-btn is the "Start creating" CTA on the
+   feed's empty state, .insd-cta lives inside the detail modal. */
+body.light-mode .insd-cta,
+body.light-mode .ins-empty-btn {
+  color: var(--bg);
+  box-shadow: 0 6px 20px rgba(212, 134, 10, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+body.light-mode .insd-cta:hover {
+  box-shadow: 0 8px 28px rgba(212, 134, 10, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* --- Top filter pills (All / Image / Video / Text / Audio) --- */
+body.light-mode .ins-filter:hover {
+  color: var(--text);
+}
+
+/* --- Empty states (filter-nothing + feed-nothing-published) --- */
+body.light-mode .ins-empty-filter {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .ins-empty-icon {
+  color: rgba(26, 17, 8, 0.25);
+}
+
+/* --- Insight detail sub-page: back link, disabled external, full body --- */
+body.light-mode .insd-back:hover {
+  background: rgba(26, 17, 8, 0.05);
+  border-color: rgba(26, 17, 8, 0.14);
+}
+
+body.light-mode .insd-external-disabled,
+body.light-mode .insd-external-disabled:hover {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .insd-fulltext {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+/* --- Audience mix chart: keys, bar track, doughnut ring --- */
+body.light-mode .insd-aud-key {
+  color: var(--text-secondary);
+}
+
+body.light-mode .insd-aud-bar-wrap {
+  background: rgba(26, 17, 8, 0.08);
+}
+
+body.light-mode .insd-loc-row {
+  border-bottom-color: rgba(26, 17, 8, 0.08);
+}
+
+/* --- Clara's take: "Why this worked" / "What to try next" sub-labels --- */
+body.light-mode .insd-clara-sub {
+  color: var(--text-secondary);
+}
+
+/* --- Content-body text blocks whose default colours are warm-cream
+   rgbas that vanish on parchment ---
+   Everything below is a legibility-only fix: the base rules bake in
+   rgba(245, 240, 232, 0.4-0.85) text tints that were designed to sit
+   on the dark canvas and become invisible once --bg flips to light.
+   Bind each to a warm-brown token that carries roughly the same
+   hierarchy on parchment (--muted for the faintest, --text-secondary
+   for the middle band). */
+
+/* Full-body caption/variation block under the detail title. The base
+   colour is rgba(245, 240, 232, 0.85) which reads as an empty
+   rectangle on parchment -- text was there, just cream on cream. */
+body.light-mode .insd-fulltext {
+  color: var(--text);
+}
+
+/* Suggested next-action cards -- the numeric badge + title are amber /
+   var(--text) so they already flip. Only the description below each
+   title needs the swap; base is rgba(245, 240, 232, 0.6). */
+body.light-mode .insd-action-desc {
+  color: var(--text-secondary);
+}
+
+/* Sub-labels below the big metric numbers (Reach / Impressions / etc).
+   Faded on both themes; needs warm-brown biased muted on light. */
+body.light-mode .insd-metric-sub {
+  color: var(--muted);
+}
+
+/* Top locations panel: the percentage column on each row. */
+body.light-mode .insd-loc-pct {
+  color: var(--text-secondary);
+}
+
+/* Persona-fit copy under the doughnut ring. */
+body.light-mode .insd-persona-copy {
+  color: var(--text-secondary);
+}
+
+/* Audience-mix key label (age bucket / gender). Base is rgba warm-
+   white; needs warm-brown so the "18-24 / 25-34 / ..." labels don't
+   vanish beside their bars. */
+body.light-mode .insd-aud-key {
+  color: var(--text-secondary);
+}
+
+/* Post-type badge in the top-of-detail pill row. Default surface +
+   text are both warm-white rgba, which read as a ghost chip on
+   parchment. Warm-brown biased alphas so the "POST" / "IMAGE POST"
+   chip has enough contrast against the parchment bg without stealing
+   focus from the amber platform pill next to it. */
+body.light-mode .ins-type-badge-post {
+  background: rgba(26, 17, 8, 0.06);
+  color: var(--text-secondary);
+  border-color: rgba(26, 17, 8, 0.14);
+}
+
+body.light-mode .ins-detail-card-body {
+  background: rgba(26, 17, 8, 0.04);
+  border-color: rgba(26, 17, 8, 0.08);
+}
+
+body.light-mode .ins-format-pill {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .ins-detail-metric-block {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .ins-detail-audience-row,
+body.light-mode .ins-detail-timings-row {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .ins-detail-audience-row + .ins-detail-audience-row,
+body.light-mode .ins-detail-timings-row + .ins-detail-timings-row {
+  border-top-color: rgba(26, 17, 8, 0.06);
+}
+
+body.light-mode .insd-modal-back {
+  color: var(--muted);
+}
+
+body.light-mode .insd-modal-close:hover {
+  background: rgba(26, 17, 8, 0.06);
 }

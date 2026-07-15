@@ -2687,3 +2687,209 @@
 .tk-datebar-row.td-datebar-host {
   justify-content: center;
 }
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   Today ships a lot of dark-biased hardcoded rgba tints \u2014
+   rgba(255, 255, 255, X) row hovers, rgba(255, 240, 220, X) kanban
+   column backgrounds, rgba(0, 0, 0, X) drawer backdrops, hard #fff
+   in a couple of places. Overrides below swap them for warm-brown
+   biased equivalents that read correctly on the parchment canvas.
+   All token-driven properties (var(--surface), var(--text), etc.)
+   inherit their light values automatically. */
+
+/* --- Row surface interactions --- */
+body.light-mode .td-row:hover {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .td-row-status[data-status="todo"] {
+  background: rgba(140, 123, 107, 0.14);
+  color: var(--text-secondary);
+}
+
+body.light-mode .td-row-status[data-status="todo"]:hover {
+  background: rgba(140, 123, 107, 0.22);
+}
+
+body.light-mode .td-row-discard:hover {
+  color: var(--text);
+  background: rgba(26, 17, 8, 0.06);
+}
+
+/* Keyboard focus ring lift uses a warm-white tint in dark mode
+   (rgba(255,255,255,0.06)) that ghosts on parchment. Warm-brown
+   biased alpha keeps the focus indication visible without competing
+   with the accent outline. */
+body.light-mode .td-row-discard:focus-visible {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .td-row-done .td-row-desc {
+  text-decoration-color: rgba(74, 55, 40, 0.5);
+}
+
+body.light-mode .td-wrap-detail-done .td-detail-title {
+  text-decoration-color: rgba(74, 55, 40, 0.6);
+}
+
+/* --- Kanban columns + cards --- */
+body.light-mode .td-view-toggle {
+  background: rgba(26, 17, 8, 0.02);
+}
+
+body.light-mode .td-kanban-col {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .td-kanban-col-hover {
+  background: rgba(212, 134, 10, 0.08);
+  border-color: rgba(212, 134, 10, 0.28);
+}
+
+body.light-mode .td-kanban-card:hover {
+  background: var(--surface-2);
+  border-color: rgba(26, 17, 8, 0.16);
+}
+
+body.light-mode .td-kanban-card-done .td-kanban-card-desc {
+  text-decoration-color: rgba(74, 55, 40, 0.5);
+}
+
+/* --- Insight card + drawer --- */
+body.light-mode .td-insight-card {
+  box-shadow: -2px 0 24px rgba(212, 134, 10, 0.14);
+}
+
+body.light-mode .td-insight-card:hover {
+  box-shadow: -2px 0 32px rgba(212, 134, 10, 0.22);
+}
+
+body.light-mode .td-insight-arrow {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .td-insight-source,
+body.light-mode .td-insight-drawer-source,
+body.light-mode .td-insight-page-source {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .td-insight-drawer-backdrop {
+  background: rgba(26, 17, 8, 0.35);
+}
+
+body.light-mode .td-insight-drawer {
+  box-shadow: 0 -12px 40px rgba(26, 17, 8, 0.10), 0 -8px 40px rgba(212, 134, 10, 0.04);
+}
+
+body.light-mode .td-insight-drawer-close {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .td-insight-drawer-close:hover {
+  background: rgba(26, 17, 8, 0.06);
+}
+
+/* On light mode the "featured number" in the stat sentence loses its
+   #fff punch; use the dark text token so it still reads as the
+   emphasis peak of the sentence. */
+body.light-mode .td-insight-stat-num {
+  color: var(--text);
+}
+
+body.light-mode .td-insight-page-bullet:hover {
+  background: var(--surface-2);
+  border-color: rgba(212, 134, 10, 0.24);
+}
+
+/* --- Task detail actions --- */
+body.light-mode .td-detail-action-primary {
+  color: var(--bg);
+}
+
+body.light-mode .td-detail-action-secondary:hover {
+  background: rgba(26, 17, 8, 0.04);
+  border-color: rgba(26, 17, 8, 0.24);
+}
+
+/* --- View toggle icons (Today header) --- */
+body.light-mode .td-open-board:hover,
+body.light-mode .td-open-board:focus-visible {
+  color: var(--text);
+}
+
+body.light-mode .td-datebar-arrow:hover:not([disabled]),
+body.light-mode .td-datebar-arrow:focus-visible,
+body.light-mode .td-datepicker-navbtn:hover,
+body.light-mode .td-datepicker-navbtn:focus-visible {
+  color: var(--text);
+  background: rgba(26, 17, 8, 0.05);
+}
+
+body.light-mode .td-datebar-pill:hover,
+body.light-mode .td-datebar-pill:focus-visible,
+body.light-mode .td-datebar-pill[aria-expanded="true"],
+body.light-mode .td-datepicker-day:hover:not([disabled]) {
+  background: rgba(26, 17, 8, 0.05);
+}
+
+body.light-mode .td-datepicker {
+  box-shadow:
+    0 12px 32px rgba(26, 17, 8, 0.12),
+    0 2px 6px rgba(26, 17, 8, 0.06);
+}
+
+body.light-mode .td-datepicker-day-selected {
+  color: var(--bg);
+}
+
+body.light-mode .td-datepicker-day-selected .td-datepicker-day-dot {
+  background: var(--bg);
+}
+
+body.light-mode .td-past-empty-icon {
+  color: var(--border-strong);
+}
+
+/* --- Thread bubbles --- */
+body.light-mode .td-thread-msg-clara .td-thread-bubble {
+  background: var(--surface-2);
+  color: var(--text-secondary);
+}
+
+body.light-mode .td-thread-msg-user .td-thread-bubble {
+  background: rgba(26, 17, 8, 0.08);
+  color: var(--text);
+  border-color: rgba(26, 17, 8, 0.10);
+}
+
+body.light-mode .td-thread-list {
+  scrollbar-color: rgba(26, 17, 8, 0.20) transparent;
+}
+
+body.light-mode .td-thread-list::-webkit-scrollbar-thumb {
+  background: rgba(26, 17, 8, 0.18);
+}
+
+body.light-mode .td-thread-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 17, 8, 0.28);
+}
+
+body.light-mode .td-thread-avatar {
+  color: var(--bg);
+}
+
+body.light-mode .td-thread-send {
+  color: var(--bg);
+}
+
+/* --- Read-only past-date thread pills --- */
+body.light-mode .td-rows-readonly .td-row-thread-count {
+  background: rgba(26, 17, 8, 0.04);
+  color: var(--muted);
+}
+body.light-mode .td-rows-readonly .td-row:hover .td-row-thread-count {
+  background: rgba(26, 17, 8, 0.04);
+}

@@ -1649,6 +1649,17 @@ function renderInsightsDetail(container) {
 
   // ---- persona ring conic gradient -----------------------------
   const ringDeg = Math.round((m.personaFit / 100) * 360);
+  // The unfilled portion of the doughnut is drawn with an rgba tint
+  // that has to invert between modes: cream-on-dark for the default
+  // canvas, warm-brown-on-parchment for light mode. Read the current
+  // body class rather than a CSS variable because the conic-gradient
+  // interpolates raw colour stops \u2014 var() inside a gradient stop
+  // works but keeps the same value even after a theme swap unless the
+  // element re-renders, and the ring itself doesn't. Recomputing on
+  // every render keeps it in sync when the user toggles at runtime.
+  const ringTrackRgba = document.body.classList.contains('light-mode')
+    ? 'rgba(26, 17, 8, 0.08)'
+    : 'rgba(255, 240, 220, 0.08)';
 
   // ---- suggested actions html ----------------------------------
   const suggestedHtml = suggested.map(function (s, i) {
@@ -1722,7 +1733,7 @@ function renderInsightsDetail(container) {
           <div class="insd-loc-list">${locHtml}</div>
           <div class="insd-panel-label insd-panel-label-sub">Persona fit</div>
           <div class="insd-persona">
-            <div class="insd-persona-ring" style="background:conic-gradient(var(--accent) 0deg ${ringDeg}deg, rgba(255,240,220,0.08) ${ringDeg}deg 360deg)">
+            <div class="insd-persona-ring" style="background:conic-gradient(var(--accent) 0deg ${ringDeg}deg, ${ringTrackRgba} ${ringDeg}deg 360deg)">
               <div class="insd-persona-ring-inner">
                 <div class="insd-persona-num">${m.personaFit}%</div>
                 <div class="insd-persona-cap">match</div>

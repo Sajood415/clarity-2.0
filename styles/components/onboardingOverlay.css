@@ -1487,3 +1487,233 @@
     flex-wrap: wrap;
   }
 }
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   Onboarding overlay covers Q1\u2013Q6, review, and confirmation surfaces.
+   Swaps the dark amber-radial background for a warm parchment radial,
+   the warm-white rgba chip surfaces for warm-brown-biased equivalents,
+   and the #0F0D0B text baked onto amber CTAs for var(--bg). */
+
+/* --- Full-screen radial background (.ob-fullscreen, not .ob-overlay) ---
+   Corrected class name -- .ob-overlay was a phantom selector that
+   never matched. The actual container the JS renders is .ob-fullscreen
+   (see src/screens/onboardingModal.js). */
+body.light-mode .ob-fullscreen {
+  background: radial-gradient(ellipse at 50% 35%, #F4E4C4 0%, #FAF7F2 60%);
+}
+
+/* --- Top bar chrome (brand + step counter) --- */
+body.light-mode .ob-brand {
+  color: var(--text);
+}
+
+body.light-mode .ob-step-counter {
+  color: var(--muted);
+}
+
+/* --- Progress bar track --- */
+body.light-mode .ob-progress-track {
+  background: rgba(26, 17, 8, 0.08);
+}
+
+/* --- Question + subtitle text ---
+   .ob-question already uses var(--text) so it flips automatically;
+   listing it here to acknowledge the whole Q-page hierarchy. The
+   subtitle uses rgba(245, 240, 232, 0.5) (warm-white translucent)
+   that vanishes on parchment. */
+body.light-mode .ob-question {
+  color: var(--text);
+}
+
+body.light-mode .ob-subtitle {
+  color: var(--text-secondary);
+}
+
+/* --- Chip buttons (Q1 / Q4 / Q5) ---
+   .ob-option was a phantom selector -- actual class is .ob-chip.
+   Selected state ships an amber tint from the default styles, but
+   the rgba is too subtle to read on parchment, so we deepen it. */
+body.light-mode .ob-chip {
+  background: rgba(26, 17, 8, 0.04);
+  border-color: rgba(26, 17, 8, 0.12);
+  color: var(--text-secondary);
+}
+
+body.light-mode .ob-chip:hover {
+  background: rgba(26, 17, 8, 0.06);
+  border-color: rgba(212, 134, 10, 0.35);
+  color: var(--text);
+}
+
+body.light-mode .ob-chip-selected,
+body.light-mode .ob-chip-selected:hover {
+  background: rgba(212, 134, 10, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* --- Continue / Add CTAs (Q1\u2013Q6 primary + Q6 add-location) ---
+   Amber CTAs shift text to the parchment bg so contrast is preserved
+   on the deeper light-mode amber (#D4860A). Named for the actual
+   classes rendered by onboardingModal.js so the override applies. */
+/* Amber CTAs carry dark charcoal text (#1A1108) on light mode so the
+   contrast stays crisp on the deeper light-mode amber (#D4860A). */
+body.light-mode .ob-continue-btn,
+body.light-mode .ob-loc-add-btn {
+  color: #1A1108;
+}
+
+body.light-mode .ob-continue-btn:disabled,
+body.light-mode .ob-loc-add-btn:disabled {
+  background: rgba(26, 17, 8, 0.08);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+/* --- Free-text inputs (Q2 name, Q3 ideal customer, Q6 city) ---
+   .ob-input was a phantom selector -- the real classes are
+   .ob-input-single (Q2), .ob-textarea (Q3), .ob-loc-city-input (Q6).
+   Placeholder tints on all three collapse to var(--muted) so faded
+   prompt text stays readable on parchment. */
+body.light-mode .ob-input-single,
+body.light-mode .ob-textarea,
+body.light-mode .ob-loc-city-input {
+  background: rgba(26, 17, 8, 0.04);
+  border-color: rgba(26, 17, 8, 0.12);
+  color: var(--text);
+}
+
+body.light-mode .ob-input-single:focus,
+body.light-mode .ob-textarea:focus,
+body.light-mode .ob-loc-city-input:focus {
+  background: rgba(26, 17, 8, 0.06);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(212, 134, 10, 0.10);
+}
+
+body.light-mode .ob-input-single::placeholder,
+body.light-mode .ob-textarea::placeholder,
+body.light-mode .ob-loc-city-input::placeholder {
+  color: var(--muted);
+}
+
+/* --- Bottom "Back" link ---
+   Default rgba(245, 240, 232, 0.3) becomes invisible on parchment. */
+body.light-mode .ob-back-link {
+  color: var(--muted);
+}
+
+body.light-mode .ob-back-link:hover {
+  color: var(--text);
+}
+
+/* --- Q6 location: popular-city suggestions + dropdown chrome --- */
+body.light-mode .ob-loc-city-suggestion {
+  background: rgba(26, 17, 8, 0.06);
+  border-color: rgba(26, 17, 8, 0.12);
+  color: var(--text-secondary);
+}
+
+body.light-mode .ob-loc-dropdown-btn {
+  background: rgba(26, 17, 8, 0.04);
+  border-color: rgba(26, 17, 8, 0.12);
+  color: var(--text);
+}
+
+body.light-mode .ob-loc-dropdown-btn:hover {
+  border-color: rgba(212, 134, 10, 0.35);
+}
+
+/* Placeholder-state dropdown label (when no country picked yet).
+   Default rgba(245, 240, 232, 0.4) vanishes on parchment. */
+body.light-mode .ob-loc-dropdown-btn .ob-loc-dropdown-label:first-child:not([data-selected]) {
+  color: var(--muted);
+}
+
+/* Q6 country dropdown menu -- default is a hardcoded dark panel
+   (#1E1913). Corrected class name from .ob-loc-menu (phantom) to
+   .ob-loc-dropdown-menu. Warm-brown shadow so the panel doesn't
+   render as a dark rectangle floating over light bg. */
+body.light-mode .ob-loc-dropdown-menu {
+  background: #F2EDE4;
+  border-color: rgba(26, 17, 8, 0.15);
+  box-shadow: 0 12px 32px rgba(26, 17, 8, 0.12), 0 4px 12px rgba(26, 17, 8, 0.06);
+}
+
+/* Committed location pills. The amber tint on .ob-loc-tag is fine on
+   both themes; only the remove-button surface needs a swap. */
+body.light-mode .ob-loc-tag-remove {
+  background: rgba(26, 17, 8, 0.08);
+  color: var(--text-secondary);
+}
+
+body.light-mode .ob-loc-tag-remove:hover {
+  background: rgba(212, 134, 10, 0.25);
+  color: #1A1108;
+}
+
+/* Interactive world-map container. The map's graticule + land paths
+   are drawn with cream-on-dark rgba's; a slightly-darker parchment
+   panel keeps the "held inside a card" feel without swapping the
+   entire dark-map artwork for a light one. */
+body.light-mode .ob-loc-globe-wrap {
+  background: #E8E0D4;
+  box-shadow:
+    inset 0 1px 0 rgba(26, 17, 8, 0.03),
+    0 12px 32px rgba(26, 17, 8, 0.08);
+}
+
+/* --- Review screen rows + Edit pencil ---
+   (The earlier iteration also had .ob-popover / .ob-popover-head
+   overrides here -- both were phantom selectors, removed.) */
+body.light-mode .ob-review-row {
+  background: rgba(26, 17, 8, 0.03);
+  border-color: rgba(26, 17, 8, 0.10);
+}
+
+body.light-mode .ob-review-row:hover {
+  background: rgba(212, 134, 10, 0.05);
+  border-color: rgba(212, 134, 10, 0.28);
+}
+
+/* Corrected class name (was .ob-review-empty in the initial pass \u2014
+   the actual class is .ob-review-row-empty). Dashed border needs a
+   stronger alpha so the "you skipped this" cue reads on parchment. */
+body.light-mode .ob-review-row-empty {
+  border-color: rgba(26, 17, 8, 0.20);
+}
+
+body.light-mode .ob-review-edit {
+  border-color: rgba(26, 17, 8, 0.20);
+  color: var(--text-secondary);
+}
+
+body.light-mode .ob-review-edit:hover {
+  color: var(--accent);
+  border-color: rgba(212, 134, 10, 0.40);
+  background: rgba(212, 134, 10, 0.08);
+}
+
+/* --- Q3 "ideal customer" suggestion pill + AI enhance chip ---
+   The .ob-confirmation-* selectors here were phantom (there is no
+   confirmation screen in the current onboarding flow). Removed. */
+body.light-mode .ob-q3-suggestion {
+  background: rgba(26, 17, 8, 0.06);
+  border-color: rgba(26, 17, 8, 0.12);
+  color: var(--text-secondary);
+}
+
+body.light-mode .ob-q3-suggestion-use:hover {
+  background: rgba(212, 134, 10, 0.10);
+}
+
+body.light-mode .ob-q3-enhance-btn {
+  background: rgba(212, 134, 10, 0.10);
+}
+
+body.light-mode .ob-q3-enhance-btn:hover:not(:disabled) {
+  background: rgba(212, 134, 10, 0.16);
+  border-color: rgba(212, 134, 10, 0.50);
+}

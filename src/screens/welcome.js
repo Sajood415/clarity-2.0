@@ -12,9 +12,26 @@ function renderWelcome(root) {
   const firstName = _firstName();
   const nameLine = 'Hey, ' + (firstName === 'there' ? 'there' : _escape(firstName)) + '.';
 
+  // Welcome is a pre-dashboard "hi, [name]" moment. Router forces this
+  // screen into light mode regardless of appState.colorMode (see
+  // renderApp in src/router.js), so we compute the theme once at render
+  // time and pick the matching radial + text colours. Inline styles
+  // are used because the blob layers rely on animation-driven opacity
+  // ramps that CSS classes handle less predictably during hot re-renders
+  // \u2014 so we can't lift these into welcome.css and rely on
+  // body.light-mode overrides (inline beats class specificity). The
+  // pair of hex values below MUST stay in sync with the light-mode
+  // overrides at the bottom of styles/screens/welcome.css so the two
+  // paths render identically.
+  const _isLight = document.body.classList.contains('light-mode');
+  const _bgStart = _isLight ? '#F4E4C4' : '#241a06';
+  const _bgEnd = _isLight ? '#FAF7F2' : '#0F0D0B';
+  const _nameColor = _isLight ? '#1A1108' : '#F5F0E8';
+  const _subtitleColor = _isLight ? 'rgba(74,55,40,0.75)' : 'rgba(245,240,232,0.4)';
+
   const screenStyle = [
     'position:fixed', 'inset:0',
-    'background:radial-gradient(ellipse at 50% 50%, #241a06 0%, #0F0D0B 70%)',
+    'background:radial-gradient(ellipse at 50% 50%, ' + _bgStart + ' 0%, ' + _bgEnd + ' 70%)',
     'display:flex', 'flex-direction:column',
     'align-items:center', 'justify-content:center',
     'z-index:1000', 'overflow:hidden'
@@ -28,21 +45,21 @@ function renderWelcome(root) {
 
   const nameStyle = [
     'font-size:56px', 'font-weight:800',
-    'color:#F5F0E8', 'letter-spacing:-0.03em', 'line-height:1',
+    'color:' + _nameColor, 'letter-spacing:-0.03em', 'line-height:1',
     'opacity:0',
     'animation:wl-fade-in 500ms cubic-bezier(0.2,0.7,0.2,1) 200ms forwards'
   ].join(';') + ';';
 
   const lineStyle = [
     'width:40px', 'height:2px',
-    'background:#F5A623', 'border-radius:1px',
+    'background:' + (_isLight ? '#D4860A' : '#F5A623'), 'border-radius:1px',
     'margin:24px auto 0',
     'transform:scaleX(0)',
     'animation:wl-line-in 300ms cubic-bezier(0.2,0.7,0.2,1) 600ms forwards'
   ].join(';') + ';';
 
   const subtitleStyle = [
-    'font-size:16px', 'color:rgba(245,240,232,0.4)',
+    'font-size:16px', 'color:' + _subtitleColor,
     'font-weight:400', 'line-height:1.4',
     'margin-top:16px',
     'opacity:0',

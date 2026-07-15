@@ -26,10 +26,55 @@
   /* Effective sidebar width for the content-area inset. Body flips
      between the two via the .sb-collapsed class. */
   --sidebar-current-w: var(--sidebar-w);
+  /* Sidebar surface tokens. Dark mode ships a slightly-darker
+     charcoal (#0D0B09) than the page bg (#0F0D0B) so the rail
+     reads as its own surface. Light mode flips these to warm
+     parchment tints so the sidebar has its own visual weight
+     against the light bg (see body.light-mode below). */
+  --sidebar-bg: #0D0B09;
+  --sidebar-active: rgba(245, 166, 35, 0.10);
+  --sidebar-hover: rgba(255, 240, 220, 0.05);
 }
 
 body.sb-collapsed {
   --sidebar-current-w: var(--sidebar-w-collapsed);
+}
+
+/* ==========================================
+   Light mode overrides
+   ==========================================
+   Applied by src/main.js on boot when appState.colorMode === 'light'
+   and toggled at runtime by the sun/moon button in the topbar. Every
+   variable below has a dark-mode counterpart on :root above; a light-
+   mode consumer that doesn't override here would show its dark colour
+   because CSS variables cascade through :root. So only the tokens
+   that actually differ appear in this block — no duplicated defaults.
+
+   Palette rationale: warm parchment (#FAF7F2) as the base with dark
+   charcoal warm text (#1A1108) — never cool greys. The accent shifts
+   slightly deeper (#D4860A) because the standard amber pops less on
+   a light surface; the shadow gains warm brown tint instead of the
+   pure black we use on dark. Every rgba is warm-biased so nothing
+   reads cold or clinical. */
+body.light-mode {
+  --bg: #FAF7F2;
+  --surface: #EDE8DF;
+  --surface-2: #E5DDD1;
+  --surface-3: #F2EDE4;
+  --accent: #D4860A;
+  --accent-dark: #B8720A;
+  --text: #1A1108;
+  --text-secondary: #4A3728;
+  --muted: #8C7B6B;
+  --border: rgba(26, 17, 8, 0.12);
+  --border-strong: rgba(26, 17, 8, 0.25);
+  --border-accent: rgba(212, 134, 10, 0.35);
+  --shadow: 0 1px 3px rgba(26, 17, 8, 0.08), 0 4px 12px rgba(26, 17, 8, 0.06);
+  --shadow-md: 0 2px 8px rgba(26, 17, 8, 0.10), 0 8px 24px rgba(26, 17, 8, 0.08);
+  --shadow-accent: 0 4px 20px rgba(212, 134, 10, 0.18);
+  --sidebar-bg: #F2EDE4;
+  --sidebar-active: rgba(212, 134, 10, 0.12);
+  --sidebar-hover: rgba(26, 17, 8, 0.05);
 }
 
 *,
@@ -47,6 +92,11 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Smooth theme-toggle transition. Only the two properties that
+     visibly change on a mode swap so we don't accidentally animate
+     unrelated repaints. Duration matches the sidebar rail transition
+     so the two feel like the same "app is settling" motion. */
+  transition: background-color 250ms ease, color 250ms ease;
 }
 
 button {

@@ -2020,3 +2020,142 @@
   }
   .cr-progress-dots { display: none; }
 }
+
+/* ==========================================
+   Light-mode overrides
+   ==========================================
+   Create carries a few dark-biased hardcoded tints \u2014 warm-white
+   step/variation hover lifts, black modal shadows, and #fff / #1a1108
+   text colours baked into the amber CTAs. The overrides below flip
+   those to warm-brown biased or light-text equivalents so the wizard
+   feels native on the parchment canvas. Variation preview thumbnails
+   (image/video/audio) keep their dark artwork on purpose \u2014 they're
+   simulating third-party media surfaces (Instagram/TikTok/YouTube)
+   which stay dark regardless of app theme, so no override there. */
+
+body.light-mode .cr-step-item {
+  background: rgba(26, 17, 8, 0.06);
+}
+
+body.light-mode .cr-step-item:hover,
+body.light-mode .cr-var-card:hover {
+  background: rgba(26, 17, 8, 0.05);
+  border-color: rgba(26, 17, 8, 0.12);
+}
+
+body.light-mode .cr-brief-textarea {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .cr-brief-textarea:focus {
+  background: rgba(26, 17, 8, 0.05);
+}
+
+/* Publish success card lands on light amber (not white) with dark
+   text so it reads as a warm affirmation rather than a starkly
+   inverted alert. The check inside the publish animation uses the
+   .cr-publishing-check class (not .cr-pub-success-icon) so both are
+   listed here to catch the actual rendered element. */
+body.light-mode .cr-pub-success-icon,
+body.light-mode .cr-publishing-check {
+  color: var(--bg);
+}
+
+body.light-mode .cr-var-preview-body {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+/* --- Wizard progress dots + bar track ---
+   The empty progress dot and the progress-bar rail both use warm-white
+   tints that vanish on parchment. Warm-brown biased alphas keep them
+   visible without competing with the amber fill they frame. */
+body.light-mode .cr-prog-dot {
+  background: rgba(26, 17, 8, 0.10);
+}
+
+body.light-mode .cr-progress-bar {
+  background: rgba(26, 17, 8, 0.08);
+}
+
+/* --- "I have my own idea" back-to-brief toggle ---
+   Muted state (open) uses warm-white lifts that don't read on light.
+   Both base and hover swap to warm-brown so the pill stays visible
+   as a secondary affordance next to the amber default. */
+body.light-mode .cr-custom-toggle-open {
+  background: rgba(26, 17, 8, 0.03);
+}
+
+body.light-mode .cr-custom-toggle-open:hover {
+  background: rgba(26, 17, 8, 0.06);
+}
+
+/* --- Task-source banner (only when arriving from a Today task) --- */
+body.light-mode .cr-task-banner-desc {
+  color: var(--text-secondary);
+}
+
+body.light-mode .cr-task-banner-close:hover {
+  background: rgba(26, 17, 8, 0.06);
+}
+
+/* --- Drafts view + step-3 utility chrome --- */
+body.light-mode .cr-draft-card-type {
+  background: rgba(26, 17, 8, 0.06);
+  color: var(--text-secondary);
+}
+
+body.light-mode .cr-regen-btn {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .cr-regen-btn:hover {
+  background: rgba(26, 17, 8, 0.08);
+}
+
+body.light-mode .cr-copy-btn {
+  background: rgba(26, 17, 8, 0.04);
+}
+
+body.light-mode .cr-copy-btn:hover {
+  background: rgba(26, 17, 8, 0.08);
+}
+
+body.light-mode .cr-toast {
+  box-shadow: 0 12px 32px rgba(26, 17, 8, 0.14);
+}
+
+body.light-mode .cr-toast-cta {
+  box-shadow: 0 0 0 3px rgba(212, 134, 10, 0.10), 0 12px 32px rgba(26, 17, 8, 0.16);
+}
+
+body.light-mode .cr-toast-cta:hover {
+  color: var(--bg);
+}
+
+body.light-mode .cr-cta-primary {
+  color: var(--bg);
+  box-shadow: 0 1px 4px rgba(26, 17, 8, 0.15);
+}
+
+body.light-mode .cr-pub-success-btn {
+  color: var(--bg);
+}
+
+/* Drafts drawer modal shadows: swap the black-biased drop shadows
+   for warm-brown ones so the modal doesn't look "stamped" onto the
+   parchment. */
+body.light-mode .cr-drafts-card {
+  box-shadow: 0 8px 24px rgba(26, 17, 8, 0.10);
+}
+
+body.light-mode .cr-drafts-card:hover {
+  box-shadow: 0 10px 28px rgba(26, 17, 8, 0.14);
+}
+
+body.light-mode .cr-drafts-card:focus-visible {
+  box-shadow: 0 0 0 2px rgba(212, 134, 10, 0.35), 0 8px 24px rgba(26, 17, 8, 0.12);
+}
+
+body.light-mode .cr-publish-modal {
+  box-shadow: 0 32px 80px rgba(26, 17, 8, 0.30);
+}
