@@ -106,6 +106,13 @@ const TD_ASK_CLARA_ICON = ''
 // can't leak into the next detail open.
 let _tdPendingThreadFocusTaskId = null;
 
+// Sibling of _tdPendingThreadFocusTaskId, for the Ask Clara button
+// on insight cards. Same lifecycle: set inside _openTdInsightDetail
+// when the click came from the card's Ask Clara pill, cleared
+// inside _renderTdInsightDetail after focus lands (or defensively
+// in _closeTdInsightDetail).
+let _tdPendingInsightThreadFocusId = null;
+
 // Status-cycling checkbox icons used in the list view.
 //   todo        \u2014 empty circle (muted)
 //   in_progress \u2014 half-filled amber
@@ -195,12 +202,15 @@ function renderToday(container) {
     _saveState();
   }
 
-  // Insight card sits between the greeting/heading and the task list
+  // Insight grid sits between the greeting/heading and the task list
   // when it hasn't been dismissed for the day AND we actually have
-  // insights to render. Otherwise the whole block collapses to zero
-  // height and the tasks slide up as if nothing was there.
+  // insights to render. We surface up to 3 insights as compact stat
+  // cards in a horizontal row -- click any card for the detail page,
+  // hit "Ask Clara" for a per-insight chat thread (mirrors tasks).
+  // If insights are missing/dismissed the whole block collapses to
+  // zero height and the tasks slide up as if nothing was there.
   const showInsights = _shouldRenderInsights(c);
-  const insightMarkup = showInsights ? _renderTdInsightCard(c.today.insights[0]) : '';
+  const insightMarkup = showInsights ? _renderTdInsightGrid(c.today.insights, c) : '';
 
   // Header top-right icon cluster: three quiet icon buttons that
   // form the view-switching surface for the task workspace. On
@@ -266,7 +276,7 @@ function renderToday(container) {
   `;
 
   _bindTdOpenBoard(container);
-  if (showInsights) _bindTdInsightCard(container, c);
+  if (showInsights) _bindTdInsightGrid(container, c);
 
   // Mount the shared date navigator between the heading + view-
   // toggle row and the insight card. Any date change re-renders
@@ -373,12 +383,16 @@ function _shouldRenderInsights(c) {
   return true;
 }
 
-function _renderTdInsightCard(insight) {
-  if (!insight) return '';
+// Grid wrapper: a shared header (DAILY INSIGHTS kicker + optional
+// "FOR NAME" tag + "Hide for today" skip) sits above a row of up
+// to 3 compact stat cards. Each card is its own clickable surface
+// that routes into the insight detail page for that specific
+// insight (not just insights[0] anymore -- the grid unlocks all
+// three).
+function _renderTdInsightGrid(insights, _c) {
+  const list = Array.isArray(insights) ? insights.slice(0, 3) : [];
+  if (list.length === 0) return '';
 
-  // "FOR {NAME}" personalisation tag. Rendered only when the active
-  // concept has a non-empty business.name \u2014 unnamed concepts
-  // fall back to the plain headline without the amber pill.
   const active = (typeof window.getActiveConcept === 'function') ? window.getActiveConcept() : null;
   const businessName = (active && active.business && active.business.name)
     ? String(active.business.name).trim()
@@ -387,29 +401,67 @@ function _renderTdInsightCard(insight) {
     ? '<span class="td-insight-personal-tag">FOR ' + _escape(businessName.toUpperCase()) + '</span>'
     : '';
 
-  // Emphasise the first stat "quantity" (percent / multiplier / ratio)
-  // by wrapping it in a larger, brighter span. Falls through to plain
-  // escaped text when the regex family finds no match \u2014 no stat
-  // ever comes back empty just because it was oddly formatted.
-  const statHtml = _tdEmphasiseInsightStat(insight.stat || '');
+  const cardsHtml = list.map(function (ins) { return _renderTdInsightCard(ins); }).join('');
 
   return ''
-    + '<div class="td-insight-card" id="tdInsightCard" role="button" tabindex="0"'
-    +   ' aria-label="Read today\u2019s Daily Insight">'
+    + '<section class="td-insight-grid-wrap" aria-label="Daily insights">'
+    +   '<div class="td-insight-grid-header">'
+    +     '<div class="td-insight-grid-headline">'
+    +       '<span class="td-insight-kicker">DAILY INSIGHTS</span>'
+    +       personalTagHtml
+    +     '</div>'
+    +     '<button type="button" class="td-insight-skip" id="tdInsightSkip">Hide for today \u2192</button>'
+    +   '</div>'
+    +   '<div class="td-insight-grid">' + cardsHtml + '</div>'
+    + '</section>';
+}
+
+// Single compact stat card. Extracts the primary number from the
+// insight's stat sentence and renders it as a big Playfair digit;
+// the rest of the sentence becomes the label. Whole card is a
+// button (open detail) EXCEPT the Ask Clara pill, which stops
+// propagation and opens the detail with the thread pre-focused
+// (same UX as task rows).
+function _renderTdInsightCard(insight) {
+  if (!insight) return '';
+
+  const parts = (typeof window._insExtractStat === 'function')
+    ? window._insExtractStat(insight.stat || '')
+    : { value: '', label: String(insight.stat || '') };
+  const value = parts.value || '';
+  const label = parts.label || String(insight.stat || '');
+  const source = String(insight.source || '');
+  const insightId = String(insight.id || '');
+
+  const valueHtml = value
+    ? '<div class="td-insight-value">' + _escape(value) + '</div>'
+    : '';
+  const sourceHtml = source
+    ? ''
+      + '<span class="td-insight-source" aria-hidden="true">'
+      +   '<span class="td-insight-source-dot" aria-hidden="true"></span>'
+      +   '<span class="td-insight-source-label">' + _escape(source) + '</span>'
+      + '</span>'
+    : '<span class="td-insight-source-placeholder" aria-hidden="true"></span>';
+
+  return ''
+    + '<div class="td-insight-card" data-insight-id="' + _escape(insightId) + '"'
+    +      ' role="button" tabindex="0" aria-label="Read insight: '
+    +      _escape(insight.headline || label) + '">'
     +   '<div class="td-insight-card-inner">'
-    +     '<div class="td-insight-eyebrow">'
-    +       '<span class="td-insight-kicker">DAILY INSIGHT</span>'
+    +     '<div class="td-insight-card-top">'
+    +       valueHtml
     +       '<span class="td-insight-arrow" aria-hidden="true">' + TD_INSIGHT_ARROW_SVG + '</span>'
     +     '</div>'
-    +     personalTagHtml
-    +     '<h2 class="td-insight-headline">' + _escape(insight.headline || '') + '</h2>'
-    +     '<p class="td-insight-stat">' + statHtml + '</p>'
-    +     '<div class="td-insight-footer">'
-    +       '<button type="button" class="td-insight-skip" id="tdInsightSkip">Hide for today \u2192</button>'
-    +       '<span class="td-insight-source" aria-hidden="true">'
-    +         '<span class="td-insight-source-dot" aria-hidden="true"></span>'
-    +         '<span class="td-insight-source-label">' + _escape(insight.source || '') + '</span>'
-    +       '</span>'
+    +     '<p class="td-insight-label">' + _escape(label) + '</p>'
+    +     '<div class="td-insight-card-footer">'
+    +       sourceHtml
+    +       '<button type="button" class="td-insight-ask-clara"'
+    +         ' data-insight-ask="' + _escape(insightId) + '"'
+    +         ' aria-label="Ask Clara about this insight">'
+    +         '<span class="td-insight-ask-clara-icon" aria-hidden="true">' + TD_ASK_CLARA_ICON + '</span>'
+    +         '<span class="td-insight-ask-clara-label">Ask Clara</span>'
+    +       '</button>'
     +     '</div>'
     +   '</div>'
     + '</div>';
@@ -443,26 +495,38 @@ function _tdEmphasiseInsightStat(stat) {
   return escaped;
 }
 
-// Binds card-open, skip-for-today, and keyboard-activation handlers.
-// Skip is an inline text button; clicks on it must NOT bubble up to
-// the card and navigate to the detail page.
-function _bindTdInsightCard(scope, c) {
-  const card = scope.querySelector('#tdInsightCard');
-  const skip = scope.querySelector('#tdInsightSkip');
-  if (!card) return;
+// Bind card-open, skip-for-today, keyboard-activation, and per-card
+// "Ask Clara" handlers across every card in the grid. Skip and Ask
+// Clara are inline text buttons; clicks on them must NOT bubble up
+// to the card body and navigate to the detail page.
+function _bindTdInsightGrid(scope, c) {
+  const cards = scope.querySelectorAll('.td-insight-card');
+  if (!cards || cards.length === 0) return;
 
-  const openDetail = function () {
-    _openTdInsightDetail(c);
-  };
+  cards.forEach(function (card) {
+    const insightId = card.getAttribute('data-insight-id') || '';
+    if (!insightId) return;
 
-  card.addEventListener('click', openDetail);
-  card.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      openDetail();
+    const openDetail = function () { _openTdInsightDetail(c, insightId); };
+
+    card.addEventListener('click', openDetail);
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDetail();
+      }
+    });
+
+    const askBtn = card.querySelector('.td-insight-ask-clara');
+    if (askBtn) {
+      askBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        _openTdInsightDetail(c, insightId, { openThread: true });
+      });
     }
   });
 
+  const skip = scope.querySelector('#tdInsightSkip');
   if (skip) {
     skip.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -475,18 +539,42 @@ function _bindTdInsightCard(scope, c) {
 }
 
 // Navigate to the full-page insight detail. Mirrors _openTaskDetail:
-// pin the id on state, persist, re-render Today. renderToday's routing
-// at the top of the function picks up viewingInsightId and dispatches
-// to _renderTdInsightDetail. Also marks the insight seen the first
-// time it's opened (idempotent via the helper).
-function _openTdInsightDetail(c) {
+// pin the id on state, persist, re-render Today. renderToday's
+// routing at the top of the function picks up viewingInsightId and
+// dispatches to _renderTdInsightDetail. Also marks the insight seen
+// the first time it's opened (idempotent via the helper).
+//
+// The optional `opts.openThread` flag (fired from a card's Ask Clara
+// button) seeds Clara's opening line into the insight's thread now
+// so the detail render sees a non-empty thread and skips the empty
+// state; also stamps a module-scoped auto-focus signal so the input
+// grabs focus after mount. Same pattern as `_openTaskDetail`.
+function _openTdInsightDetail(c, insightId, opts) {
   if (!c || !c.today) return;
   const list = Array.isArray(c.today.insights) ? c.today.insights : [];
-  const insight = list[0];
+  const idx = list.findIndex(function (i) { return i && i.id === insightId; });
+  const insight = idx >= 0 ? list[idx] : list[0];
   if (!insight) return;
+
   if (typeof window._markInsightSeen === 'function') {
     try { window._markInsightSeen(c, insight.id); } catch (_err) { /* ignore */ }
   }
+
+  const wantOpenThread = !!(opts && opts.openThread);
+  if (wantOpenThread) {
+    if (!Array.isArray(insight.thread)) insight.thread = [];
+    if (insight.thread.length === 0
+        && typeof window._claraInsightThreadOpening === 'function') {
+      insight.thread.push({
+        role: 'clara',
+        text: window._claraInsightThreadOpening(insight, c),
+        timestamp: Date.now()
+      });
+    }
+  }
+
+  _tdPendingInsightThreadFocusId = wantOpenThread ? insight.id : null;
+
   // Clear any sibling task-detail pointer so we don't stack two
   // detail sub-views in state at the same time.
   c.today.viewingTaskId = null;
@@ -499,6 +587,10 @@ function _closeTdInsightDetail() {
   const c = getActiveConcept();
   if (!c || !c.today) return;
   c.today.viewingInsightId = null;
+  // Same defensive reset as _closeTaskDetail: drop any un-consumed
+  // auto-focus flag so re-opening the same insight via a plain
+  // card click never inherits the previous Ask Clara behaviour.
+  _tdPendingInsightThreadFocusId = null;
   _saveState();
   _rerenderToday();
 }
@@ -546,6 +638,23 @@ function _renderTdInsightDetail(container, insight, c) {
       + '</li>';
   }).join('');
 
+  // Ask Clara thread section. Same DOM shape as the task-thread
+  // section inside `_renderTdDetail` -- collapsed if the thread is
+  // empty (surfaces the "Ask Clara" trigger button), expanded if
+  // there's already a transcript (opening line seeded on first
+  // Ask Clara click or via the card's Ask Clara pill).
+  const hasThread = Array.isArray(insight.thread) && insight.thread.length > 0;
+  const threadSectionClass = 'td-detail-section td-thread-section td-insight-thread-section'
+    + (hasThread ? '' : ' td-thread-section-collapsed');
+  const threadTriggerHtml = hasThread
+    ? ''
+    : ''
+      + '<button type="button" class="td-thread-trigger td-insight-thread-trigger"'
+      +   ' id="tdInsightThreadTrigger" aria-label="Discuss this insight with Clara">'
+      +   '<span class="td-thread-trigger-icon" aria-hidden="true">' + TD_ASK_CLARA_ICON + '</span>'
+      +   '<span class="td-thread-trigger-label">Ask Clara about this</span>'
+      + '</button>';
+
   container.innerHTML = ''
     + '<section class="td-wrap td-insight-page">'
     +   '<button type="button" class="td-insight-page-back" id="tdInsightBack" aria-label="Back to Today">'
@@ -558,10 +667,171 @@ function _renderTdInsightDetail(container, insight, c) {
     +   '<div class="td-insight-page-divider" aria-hidden="true"></div>'
     +   '<div class="td-insight-page-bullets-label">What this means for you</div>'
     +   '<ul class="td-insight-page-bullets">' + bulletsHtml + '</ul>'
+    +   threadTriggerHtml
+    +   '<div class="' + threadSectionClass + '" id="tdInsightThreadSection">'
+    +     '<div class="td-thread-label">Ask Clara</div>'
+    +     '<div class="td-thread-list" id="tdInsightThreadList" data-insight-id="'
+    +       _escape(String(insight.id || '')) + '"></div>'
+    +     '<form class="td-thread-input-row" id="tdInsightThreadForm" autocomplete="off">'
+    +       '<input type="text" class="td-thread-input" id="tdInsightThreadInput" '
+    +         'placeholder="Ask Clara about this insight\u2026" '
+    +         'aria-label="Ask Clara about this insight" '
+    +         'maxlength="500" />'
+    +       '<button type="submit" class="td-thread-send" id="tdInsightThreadSend"'
+    +         ' aria-label="Send message">'
+    +         TD_SEND_ICON
+    +       '</button>'
+    +     '</form>'
+    +   '</div>'
     + '</section>';
 
   const backBtn = container.querySelector('#tdInsightBack');
   if (backBtn) backBtn.addEventListener('click', _closeTdInsightDetail);
+
+  _bindTdInsightThread(container, insight, c);
+}
+
+// ---------------------------------------------
+// Insight thread wiring
+// ---------------------------------------------
+//
+// Sibling of `_bindTdDetail`'s thread wiring for tasks. Renders
+// any existing transcript, wires the trigger + submit handlers,
+// and honours the module-scoped auto-focus flag when the detail
+// was opened via a card's Ask Clara pill.
+function _bindTdInsightThread(scope, insight, c) {
+  const section = scope.querySelector('#tdInsightThreadSection');
+  const listEl = scope.querySelector('#tdInsightThreadList');
+  const inputEl = scope.querySelector('#tdInsightThreadInput');
+  const formEl = scope.querySelector('#tdInsightThreadForm');
+  const triggerBtn = scope.querySelector('#tdInsightThreadTrigger');
+  if (!section || !listEl || !inputEl || !formEl) return;
+
+  _tdInsightThreadRenderList(listEl, insight.thread);
+  _tdThreadScrollToBottom(listEl, false);
+
+  if (triggerBtn) {
+    triggerBtn.addEventListener('click', function () {
+      const cc = getActiveConcept();
+      if (!cc || !cc.today || !Array.isArray(cc.today.insights)) return;
+      const idx = cc.today.insights.findIndex(function (i) { return i && i.id === insight.id; });
+      if (idx < 0) return;
+      const persisted = cc.today.insights[idx];
+      if (!Array.isArray(persisted.thread)) persisted.thread = [];
+      if (persisted.thread.length === 0
+          && typeof window._claraInsightThreadOpening === 'function') {
+        persisted.thread.push({
+          role: 'clara',
+          text: window._claraInsightThreadOpening(persisted, cc),
+          timestamp: Date.now()
+        });
+        _saveState();
+      }
+      _tdInsightThreadRenderList(listEl, persisted.thread);
+      _tdThreadScrollToBottom(listEl, false);
+      section.classList.remove('td-thread-section-collapsed');
+      if (triggerBtn.parentNode) triggerBtn.parentNode.removeChild(triggerBtn);
+      // Slight delay so the section's max-height transition completes
+      // before we fire focus() -- otherwise Safari misplaces the
+      // caret vertical inside the animated container.
+      setTimeout(function () {
+        try { inputEl.focus({ preventScroll: true }); } catch (_e) { inputEl.focus(); }
+      }, 320);
+    });
+  }
+
+  formEl.addEventListener('submit', function (e) {
+    e.preventDefault();
+    _tdInsightThreadHandleSend(insight.id, listEl, inputEl);
+  });
+
+  // Consume the auto-focus flag exactly once, if present.
+  if (_tdPendingInsightThreadFocusId === insight.id) {
+    _tdPendingInsightThreadFocusId = null;
+    setTimeout(function () {
+      try { inputEl.focus({ preventScroll: true }); } catch (_e) { inputEl.focus(); }
+    }, 60);
+  }
+}
+
+// Renders an insight's transcript into the scroll container. Reuses
+// the shared bubble builder from the task thread so styling stays
+// consistent across both surfaces.
+function _tdInsightThreadRenderList(listEl, thread) {
+  if (!listEl) return;
+  const messages = Array.isArray(thread) ? thread : [];
+  if (messages.length === 0) {
+    listEl.innerHTML = ''
+      + '<div class="td-thread-empty">Ask Clara anything about this insight\u2026</div>';
+    return;
+  }
+  listEl.innerHTML = messages.map(_tdThreadBubbleHtml).join('');
+}
+
+// Send handler for the insight thread. Mirrors _tdThreadHandleSend
+// (task version) with the target changed from concept.today.tasks
+// to concept.today.insights. Shares the _tdThreadState.sending
+// guard, the typing indicator helpers, and the 800ms Clara-typing
+// delay so both surfaces feel identical to type in.
+function _tdInsightThreadHandleSend(insightId, listEl, inputEl) {
+  if (!listEl || !inputEl) return;
+  if (_tdThreadState.sending) return;
+
+  const raw = String(inputEl.value || '').trim();
+  if (!raw) return;
+
+  const c = getActiveConcept();
+  if (!c || !c.today || !Array.isArray(c.today.insights)) return;
+  const idx = c.today.insights.findIndex(function (i) { return i && i.id === insightId; });
+  if (idx < 0) return;
+  const insight = c.today.insights[idx];
+  if (!Array.isArray(insight.thread)) insight.thread = [];
+
+  _tdThreadState.sending = true;
+
+  const userMsg = { role: 'user', text: raw, timestamp: Date.now() };
+  insight.thread.push(userMsg);
+  _saveState();
+
+  const emptyNode = listEl.querySelector('.td-thread-empty');
+  if (emptyNode && emptyNode.parentNode) emptyNode.parentNode.removeChild(emptyNode);
+
+  listEl.insertAdjacentHTML('beforeend', _tdThreadBubbleHtml(userMsg));
+
+  inputEl.value = '';
+  inputEl.focus();
+  _tdThreadScrollToBottom(listEl, true);
+
+  _tdThreadShowTyping(listEl);
+
+  setTimeout(function () {
+    _tdThreadHideTyping(listEl);
+
+    const c2 = getActiveConcept();
+    if (!c2 || !c2.today || !Array.isArray(c2.today.insights)) {
+      _tdThreadState.sending = false;
+      return;
+    }
+    const idx2 = c2.today.insights.findIndex(function (i) { return i && i.id === insightId; });
+    if (idx2 < 0) {
+      _tdThreadState.sending = false;
+      return;
+    }
+    const insight2 = c2.today.insights[idx2];
+    if (!Array.isArray(insight2.thread)) insight2.thread = [];
+
+    const replyText = (typeof window._claraInsightThreadRespond === 'function')
+      ? window._claraInsightThreadRespond(raw, insight2, c2)
+      : 'Got it.';
+    const claraMsg = { role: 'clara', text: replyText, timestamp: Date.now() };
+    insight2.thread.push(claraMsg);
+    _saveState();
+
+    listEl.insertAdjacentHTML('beforeend', _tdThreadBubbleHtml(claraMsg));
+    _tdThreadScrollToBottom(listEl, true);
+
+    _tdThreadState.sending = false;
+  }, 800);
 }
 
 // ---------------------------------------------

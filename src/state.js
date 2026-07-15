@@ -976,6 +976,19 @@ function _normalizeState() {
     // Today render each day, so a bad shape here just means the seeder
     // has to run one extra time \u2014 no functional loss.
     if (!Array.isArray(c.today.insights)) c.today.insights = [];
+    // Per-insight "Ask Clara" transcript. Same shape as task.thread
+    // -- see src/clara/insights.js `_materialiseInsightsForDate`
+    // and src/clara/insightThreadRespond.js. Legacy insights that
+    // predate the field get an empty array backfilled here; anything
+    // that isn't a plain array (e.g. a persisted null from a
+    // corrupted state) is coerced so the send handler can trust the
+    // shape without defensive checks at every call site.
+    for (let ii = 0; ii < c.today.insights.length; ii++) {
+      const ins = c.today.insights[ii];
+      if (ins && typeof ins === 'object' && !Array.isArray(ins.thread)) {
+        ins.thread = [];
+      }
+    }
     if (typeof c.today.insightsDismissedDate !== 'string' || !c.today.insightsDismissedDate) {
       c.today.insightsDismissedDate = null;
     }

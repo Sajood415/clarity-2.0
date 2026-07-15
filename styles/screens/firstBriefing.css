@@ -1,20 +1,26 @@
 /* ==========================================
-   First-time Insights Briefing — full-screen
+   First-time Insights Briefing -- full-screen
    ==========================================
    Fires once per concept, right after onboarding completes.
 
    Layout:
      .fb-fullscreen               fixed inset 0, dark bg + amber glow
-       .fb-inner                  centered column, max 720, gap 32
-         .fb-kicker               11/uppercase amber pill copy
-         .fb-headline             Playfair 42/bold, centered
-         .fb-stat                 24 emphasized number + 18 muted rest
-         .fb-source               amber dot + source name
-         .fb-divider              1px muted, 60% width, 40px margin
-         .fb-bullets-label        11/uppercase amber pill copy
-         .fb-bullets              3 rows, amber dot + 16/white text
-         .fb-cta-button           amber gradient, 52 tall, max 400
-         .fb-footnote             11/muted, sub CTA copy
+       .fb-inner                  centered column, max 880, gap 24
+         .fb-brand                Clara avatar + name (small pill)
+         .fb-title                Playfair 36, "Before you start..."
+         .fb-subtitle             14/muted intro copy
+         .fb-signals              3-card grid of market signals
+           .fb-signal             value + label + source pill
+         .fb-hero-card            elevated card: serif headline + stat + bullets
+           .fb-hero-kicker
+           .fb-hero-headline
+           .fb-hero-stat
+           .fb-hero-source
+           .fb-hero-divider
+           .fb-hero-bullets-label
+           .fb-hero-bullets
+         .fb-cta-row              Continue button + footnote
+         .fb-advising-pill        "Now advising {ConceptName}"
 */
 
 .fb-fullscreen {
@@ -22,15 +28,23 @@
   inset: 0;
   z-index: 380;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 40px 24px;
+  padding: 48px 24px 96px;
   background:
-    radial-gradient(ellipse at 50% 50%, rgba(245, 166, 35, 0.04) 0%, rgba(245, 166, 35, 0) 55%),
+    radial-gradient(ellipse at 50% 20%, rgba(245, 166, 35, 0.06) 0%, rgba(245, 166, 35, 0) 55%),
     var(--bg);
   animation: fb-screen-in 400ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
   overflow-y: auto;
+  /* Reserve scrollbar gutter on both sides so the vertical
+     scrollbar can't nudge the centered content ~8px to the left.
+     Falls through gracefully on older browsers (Firefox < 89,
+     Chrome < 94, Safari < 16) which just show the standard
+     right-side scrollbar and the ~8px offset. */
+  scrollbar-gutter: stable both-edges;
 }
+
+.fb-inner { margin-inline: auto; }
 
 @keyframes fb-screen-in {
   from { opacity: 0; }
@@ -49,7 +63,7 @@
 
 .fb-inner {
   width: 100%;
-  max-width: 720px;
+  max-width: 880px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -57,51 +71,192 @@
   gap: 20px;
 }
 
-/* --- Kicker --- */
+/* --- Brand pill (top) --- */
 
-.fb-kicker {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+.fb-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.18);
   margin-bottom: 4px;
 }
 
-/* --- Headline --- */
+.fb-brand-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1A1108;
+  background: linear-gradient(180deg, #F5A623 0%, #D4860A 100%);
+  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.35);
+}
 
-.fb-headline {
+.fb-brand-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+/* --- Title + subtitle --- */
+
+.fb-title {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 700;
   color: var(--text);
   line-height: 1.15;
   letter-spacing: -0.01em;
-  max-width: 700px;
+  max-width: 720px;
   margin: 0;
 }
 
-/* --- Stat line --- */
+.fb-subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 640px;
+  margin: 0 0 8px 0;
+}
 
-.fb-stat {
-  font-size: 18px;
-  color: var(--muted);
-  line-height: 1.5;
-  max-width: 620px;
+/* --- Signals grid (3 stat cards) --- */
+
+.fb-signals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
   margin: 4px 0 8px 0;
 }
 
-.fb-stat-num {
-  font-size: 24px;
+.fb-signal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 20px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  text-align: left;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.fb-signal:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 166, 35, 0.28);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.24),
+    0 2px 6px rgba(245, 166, 35, 0.08);
+}
+
+.fb-signal-value {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.fb-signal-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.45;
+  flex: 1;
+}
+
+.fb-signal-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  background: rgba(245, 166, 35, 0.05);
+  border: 1px solid rgba(245, 166, 35, 0.12);
+  border-radius: 999px;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.fb-signal-source-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(245, 166, 35, 0.55);
+  flex-shrink: 0;
+}
+
+.fb-signal-source-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Hero card --- */
+
+.fb-hero-card {
+  position: relative;
+  width: 100%;
+  padding: 32px 36px 30px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px 14px 14px 4px;
+  text-align: left;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.32),
+    0 2px 6px rgba(245, 166, 35, 0.06);
+  margin-top: 8px;
+}
+
+.fb-hero-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 12px;
+}
+
+.fb-hero-headline {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  margin: 0 0 10px 0;
+}
+
+.fb-hero-stat {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0 0 14px 0;
+}
+
+.fb-hero-stat-num {
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
   margin-right: 2px;
 }
 
-/* --- Source badge --- */
-
-.fb-source {
+.fb-hero-source {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -109,13 +264,13 @@
   font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
-  padding: 6px 12px;
+  padding: 5px 12px;
   background: rgba(245, 166, 35, 0.06);
   border: 1px solid rgba(245, 166, 35, 0.14);
   border-radius: 999px;
 }
 
-.fb-source-dot {
+.fb-hero-source-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -124,7 +279,7 @@
   flex-shrink: 0;
 }
 
-.fb-source-label {
+.fb-hero-source-label {
   display: inline-block;
   max-width: 260px;
   overflow: hidden;
@@ -132,38 +287,28 @@
   white-space: nowrap;
 }
 
-/* --- Divider --- */
-
-.fb-divider {
-  width: 60%;
-  max-width: 480px;
+.fb-hero-divider {
   height: 1px;
-  background: var(--border-strong);
-  margin: 20px 0 4px 0;
+  background: var(--border);
+  margin: 20px 0 16px 0;
 }
 
-/* --- Bullets label --- */
-
-.fb-bullets-label {
+.fb-hero-bullets-label {
   font-size: 11px;
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  margin-bottom: 4px;
+  margin-bottom: 12px;
 }
 
-/* --- Bullets --- */
-
-.fb-bullets {
+.fb-hero-bullets {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-width: 600px;
-  width: 100%;
+  gap: 10px;
 }
 
 .fb-bullet {
@@ -171,7 +316,7 @@
   align-items: flex-start;
   gap: 12px;
   text-align: left;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text);
   line-height: 1.55;
@@ -184,20 +329,28 @@
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 6px rgba(245, 166, 35, 0.5);
-  margin-top: 9px;
+  margin-top: 8px;
 }
 
 .fb-bullet-text {
   flex: 1;
 }
 
-/* --- CTA button --- */
+/* --- CTA row --- */
+
+.fb-cta-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+}
 
 .fb-cta-button {
   width: 100%;
   max-width: 400px;
   height: 52px;
-  margin-top: 20px;
   padding: 0 24px;
   display: inline-flex;
   align-items: center;
@@ -241,52 +394,138 @@
   outline-offset: 3px;
 }
 
-/* --- Footnote --- */
-
 .fb-footnote {
   font-size: 11px;
   font-weight: 500;
   color: var(--muted);
   letter-spacing: 0.04em;
-  margin-top: 4px;
+}
+
+/* --- Advising pill (bottom) --- */
+
+.fb-advising-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(26, 17, 8, 0.6);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  margin-top: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.fb-advising-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.6);
+  animation: fb-advising-pulse 2s ease-in-out infinite;
+}
+
+@keyframes fb-advising-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.86); }
+}
+
+.fb-advising-name {
+  color: var(--text);
+  font-weight: 600;
 }
 
 /* --- Responsive --- */
 
-@media (max-width: 720px) {
-  .fb-fullscreen { padding: 32px 20px; }
-  .fb-headline   { font-size: 32px; }
-  .fb-stat       { font-size: 16px; }
-  .fb-stat-num   { font-size: 20px; }
-  .fb-bullet     { font-size: 15px; }
+@media (max-width: 880px) {
+  .fb-signals { grid-template-columns: 1fr 1fr; }
 }
 
-@media (max-height: 720px) {
-  /* Compact vertical rhythm for laptops (13" MacBook lands here). */
-  .fb-inner      { gap: 16px; }
-  .fb-headline   { font-size: 36px; }
-  .fb-divider    { margin: 12px 0 0 0; }
-  .fb-cta-button { margin-top: 12px; }
+@media (max-width: 640px) {
+  .fb-fullscreen { padding: 32px 20px 80px; }
+  .fb-title      { font-size: 28px; }
+  .fb-subtitle   { font-size: 14px; }
+  .fb-signals    { grid-template-columns: 1fr; gap: 12px; }
+  .fb-signal-value { font-size: 28px; }
+  .fb-hero-card  { padding: 24px 22px 22px; }
+  .fb-hero-headline { font-size: 26px; }
+  .fb-hero-stat  { font-size: 15px; }
+  .fb-hero-stat-num { font-size: 18px; }
+}
+
+@media (max-height: 780px) {
+  .fb-inner      { gap: 14px; }
+  .fb-title      { font-size: 30px; }
+  .fb-hero-card  { padding: 24px 26px 22px; }
+  .fb-hero-divider { margin: 14px 0 12px 0; }
+  .fb-cta-row    { margin-top: 4px; }
 }
 
 /* ==========================================
    Light-mode overrides
    ==========================================
-   Keep the radial amber glow (spec: "radial amber glow stays but
-   lighter") \u2014 just soften its opacity and let the parchment bg
-   token drive the base. Swap the CTA's inset white highlight and
-   black drop-shadow for warm-brown equivalents so the button
-   doesn't look "stamped" on parchment. */
+   Keep the radial amber glow but lighten it and swap the drop
+   shadows for warm-brown so nothing looks "stamped" onto the
+   parchment background. The hero card's left accent stays amber
+   in both modes -- it's the identity mark. */
 
 body.light-mode .fb-fullscreen {
   background:
-    radial-gradient(ellipse at 50% 50%, rgba(212, 134, 10, 0.07) 0%, rgba(212, 134, 10, 0) 55%),
+    radial-gradient(ellipse at 50% 20%, rgba(212, 134, 10, 0.10) 0%, rgba(212, 134, 10, 0) 55%),
     var(--bg);
 }
 
-body.light-mode .fb-source {
+body.light-mode .fb-brand {
+  background: rgba(212, 134, 10, 0.10);
+  border-color: rgba(212, 134, 10, 0.22);
+}
+
+body.light-mode .fb-brand-avatar {
+  color: var(--bg);
+  background: linear-gradient(180deg, #D4860A 0%, #B8720A 100%);
+  box-shadow: 0 2px 6px rgba(212, 134, 10, 0.35);
+}
+
+body.light-mode .fb-signal {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 2px 6px rgba(26, 17, 8, 0.05);
+}
+
+body.light-mode .fb-signal:hover {
+  border-color: rgba(212, 134, 10, 0.32);
+  box-shadow:
+    0 10px 28px rgba(26, 17, 8, 0.10),
+    0 2px 6px rgba(212, 134, 10, 0.10);
+}
+
+body.light-mode .fb-signal-source {
+  background: rgba(212, 134, 10, 0.08);
+  border-color: rgba(212, 134, 10, 0.18);
+}
+
+body.light-mode .fb-signal-source-dot {
+  box-shadow: 0 0 6px rgba(212, 134, 10, 0.55);
+}
+
+body.light-mode .fb-hero-card {
+  box-shadow:
+    0 12px 40px rgba(26, 17, 8, 0.10),
+    0 2px 6px rgba(212, 134, 10, 0.08);
+}
+
+body.light-mode .fb-hero-source {
   background: rgba(212, 134, 10, 0.08);
   border-color: rgba(212, 134, 10, 0.20);
+}
+
+body.light-mode .fb-hero-source-dot,
+body.light-mode .fb-bullet-dot {
+  box-shadow: 0 0 6px rgba(212, 134, 10, 0.55);
 }
 
 body.light-mode .fb-cta-button {
@@ -304,4 +543,14 @@ body.light-mode .fb-cta-button:hover {
     0 1px 0 rgba(255, 255, 255, 0.28) inset,
     0 6px 24px rgba(212, 134, 10, 0.40),
     0 16px 40px rgba(26, 17, 8, 0.18);
+}
+
+body.light-mode .fb-advising-pill {
+  background: rgba(255, 255, 255, 0.70);
+  border-color: rgba(26, 17, 8, 0.18);
+  color: var(--text-secondary);
+}
+
+body.light-mode .fb-advising-dot {
+  box-shadow: 0 0 8px rgba(212, 134, 10, 0.55);
 }

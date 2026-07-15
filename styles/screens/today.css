@@ -1237,43 +1237,190 @@
 
    min-height keeps the card visually anchored even when the copy
    is short so it doesn\u2019t collapse into a thin banner. */
-.td-insight-card {
-  position: relative;
+/* --- Daily Insight grid (3-card row) ---
+   The Today insight surface renders as a header row + a 3-column
+   grid of compact stat cards. Each card surfaces one insight's
+   extracted stat value (Playfair display digit), a short label,
+   and a source pill. Whole card is clickable; footer holds an
+   Ask Clara pill that opens the detail page with the thread
+   pre-focused (mirrors the row-level Ask Clara on tasks). */
+
+.td-insight-grid-wrap {
   display: block;
-  width: 100%;
-  min-height: 180px;
   margin-bottom: 40px;
-  padding: 0;
-  background: var(--surface);
-  border: none;
-  border-left: 4px solid var(--accent);
-  border-radius: 0 4px 4px 0;
-  box-shadow: -2px 0 24px rgba(245, 166, 35, 0.15);
-  cursor: pointer;
-  overflow: visible;
-  transition: box-shadow 220ms ease, background 220ms ease;
   animation: cl-init-fade-in 320ms ease;
 }
 
+.td-insight-grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.td-insight-grid-headline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.td-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.td-insight-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 176px;
+  margin-bottom: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px 12px 12px 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  overflow: visible;
+  transition: transform 200ms ease, box-shadow 220ms ease, background 220ms ease, border-color 220ms ease;
+}
+
 .td-insight-card:hover {
+  transform: translateY(-2px);
   background: var(--surface-2);
-  box-shadow: -2px 0 32px rgba(245, 166, 35, 0.22);
+  border-color: rgba(245, 166, 35, 0.28);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(245, 166, 35, 0.08);
 }
 
 .td-insight-card:focus-visible {
   outline: none;
-  box-shadow: -2px 0 32px rgba(245, 166, 35, 0.22),
-              0 0 0 2px rgba(245, 166, 35, 0.35);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28),
+              0 0 0 2px rgba(245, 166, 35, 0.4);
 }
 
 .td-insight-card-inner {
-  padding: 28px 32px;
+  flex: 1;
+  padding: 20px 22px 18px;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  min-height: 180px;
+  gap: 10px;
+  min-height: 0;
 }
 
+.td-insight-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Big Playfair stat value ("71%", "3 in 4", "20-25%"). Amber
+   in both modes -- reads as the card's "headline number". */
+.td-insight-value {
+  font-family: 'Playfair Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.td-insight-label {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.5;
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.td-insight-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 6px;
+  flex-wrap: wrap;
+}
+
+.td-insight-source-placeholder {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Ask Clara pill on each card. Same amber-outline treatment used
+   on task-row Ask Clara so the affordance transfers instantly. */
+.td-insight-ask-clara {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.28);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, color 160ms ease;
+  flex-shrink: 0;
+}
+
+.td-insight-ask-clara:hover {
+  background: rgba(245, 166, 35, 0.16);
+  border-color: rgba(245, 166, 35, 0.44);
+  transform: translateY(-1px);
+}
+
+.td-insight-ask-clara:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.4);
+}
+
+.td-insight-ask-clara-icon {
+  display: inline-flex;
+  transition: transform 200ms ease;
+}
+
+.td-insight-ask-clara:hover .td-insight-ask-clara-icon {
+  transform: rotate(90deg);
+}
+
+/* Responsive: on narrower viewports collapse to 2 columns, then
+   1. Below 480px, the label clamp also relaxes to 5 lines because
+   there's more vertical room to breathe when the grid is 1-wide. */
+@media (max-width: 900px) {
+  .td-insight-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 600px) {
+  .td-insight-grid { grid-template-columns: 1fr; }
+  .td-insight-card { min-height: 156px; }
+  .td-insight-value { font-size: 28px; }
+  .td-insight-label { -webkit-line-clamp: 5; }
+}
+
+/* --- Legacy single-card leftovers ---
+   These classes (.td-insight-eyebrow, .td-insight-headline,
+   .td-insight-stat, .td-insight-footer, .td-insight-stat-num,
+   .td-insight-personal-tag) are no longer emitted by the Today
+   card -- they belonged to the retired full-width panel. Left
+   in-file for two reasons: (1) the personal-tag class still
+   appears in the grid header on some viewports (see
+   .td-insight-grid-headline), and (2) the arrow/eyebrow rules
+   are inherited by the insight-detail sub-view's kicker. */
 .td-insight-eyebrow {
   display: flex;
   align-items: center;
@@ -1388,6 +1535,13 @@
   border: 1px solid rgba(245, 166, 35, 0.28);
   border-radius: 3px;
   line-height: 1;
+}
+
+/* When the personal tag lives inside the grid header (next to the
+   DAILY INSIGHTS kicker), it should sit inline with no vertical
+   margin. */
+.td-insight-grid-headline .td-insight-personal-tag {
+  margin: 0;
 }
 
 /* First numeric quantity inside the stat sentence \u2014 sized up
@@ -1873,6 +2027,19 @@
    slightly-lighter rgba tint so the two roles read
    without needing accent colours on both.
    ===================================================== */
+
+/* When the thread section lives on the insight detail page (not
+   the task detail page), it doesn't inherit .td-detail-section's
+   vertical rhythm -- give it explicit spacing so it doesn't
+   crash into the bullets above. Trigger button gets a top margin
+   for the same reason. */
+.td-insight-thread-section {
+  margin-top: 32px;
+}
+
+.td-insight-thread-trigger {
+  margin-top: 32px;
+}
 
 .td-thread-section {
   /* Inherits .td-detail-section vertical rhythm; overrides
@@ -2759,11 +2926,27 @@ body.light-mode .td-kanban-card-done .td-kanban-card-desc {
 
 /* --- Insight card + drawer --- */
 body.light-mode .td-insight-card {
-  box-shadow: -2px 0 24px rgba(212, 134, 10, 0.14);
+  box-shadow: 0 2px 6px rgba(26, 17, 8, 0.06);
 }
 
 body.light-mode .td-insight-card:hover {
-  box-shadow: -2px 0 32px rgba(212, 134, 10, 0.22);
+  border-color: rgba(212, 134, 10, 0.32);
+  box-shadow: 0 10px 28px rgba(26, 17, 8, 0.10), 0 2px 6px rgba(212, 134, 10, 0.10);
+}
+
+body.light-mode .td-insight-ask-clara {
+  background: rgba(212, 134, 10, 0.08);
+  border-color: rgba(212, 134, 10, 0.32);
+  color: var(--accent);
+}
+
+body.light-mode .td-insight-ask-clara:hover {
+  background: rgba(212, 134, 10, 0.16);
+  border-color: rgba(212, 134, 10, 0.48);
+}
+
+body.light-mode .td-insight-ask-clara:focus-visible {
+  box-shadow: 0 0 0 2px rgba(212, 134, 10, 0.4);
 }
 
 body.light-mode .td-insight-arrow {

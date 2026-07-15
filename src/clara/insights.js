@@ -1137,10 +1137,77 @@ function _materialiseInsightsForDate(business, dateKey) {
         return _insPersonalise(b, business);
       }),
       date: dateKey,
-      seen: false
+      seen: false,
+      // Per-insight "Ask Clara" transcript. Same shape as task.thread:
+      // an array of { role, text, timestamp } messages. Seeded empty
+      // and populated (a) with an auto opening the first time the
+      // user hits the Ask Clara button on the insight, and (b) with
+      // user + Clara turns on each send. Mirrors the per-task pattern
+      // -- see src/screens/today.js `_tdThreadHandleSend` and the
+      // opening emitted from `src/clara/insightThreadRespond.js`.
+      thread: []
     };
   });
 }
+
+// ---------------------------------------------
+// Stat card extraction
+// ---------------------------------------------
+//
+// The base `stat` field is a full sentence: "78% of local mobile
+// searches lead to an offline purchase within 24 hours." For the
+// compact "market signals" cards that live on the first briefing +
+// the Today screen we need to surface just the quantity as a big
+// display and use the rest of the sentence as a short descriptor
+// underneath. Rather than hand-authoring `statValue` + `statLabel`
+// on every one of the 48 templates, we regex out the first
+// meaningful quantity at render time.
+//
+// Match order matters -- longer / more specific patterns must come
+// first so "20-25%" doesn't collapse to just "20%". Everything
+// after the matched quantity becomes the label; if nothing follows
+// (rare), we fall back to whatever precedes it. Leading connectors
+// like "of", "for", "in" are preserved so the label still reads
+// grammatically ("of local mobile searches lead to..." not
+// "local mobile searches lead to...").
+//
+// Returns `{ value, label }`. Value is empty string if we can't
+// find a quantity -- the caller decides how to degrade (probably
+// fall back to the raw sentence as headline).
+
+const _INS_STAT_PATTERNS = [
+  /(\d+(?:\.\d+)?\s*%\s*[-\u2013]\s*\d+(?:\.\d+)?\s*%)/,
+  /(\d+(?:\.\d+)?\s*x\s*[-\u2013]\s*\d+(?:\.\d+)?\s*x)/i,
+  /(\d+(?:\.\d+)?\s*%)/,
+  /(\d+(?:\.\d+)?\s*x)/i,
+  /(\d+\s+out of\s+\d+)/i,
+  /(\d+\s+in\s+\d+)/i
+];
+
+function _insExtractStat(statSentence) {
+  const raw = String(statSentence || '').trim();
+  if (!raw) return { value: '', label: '' };
+  for (let i = 0; i < _INS_STAT_PATTERNS.length; i++) {
+    const m = raw.match(_INS_STAT_PATTERNS[i]);
+    if (!m) continue;
+    const value = m[1].replace(/\s+/g, '');
+    const matchStart = m.index;
+    const matchEnd = matchStart + m[0].length;
+    const after = raw.slice(matchEnd).replace(/^[\s.,;:\u2014\u2013-]+/, '').trim();
+    const before = raw.slice(0, matchStart).replace(/[\s.,;:\u2014\u2013-]+$/, '').trim();
+    // Prefer the trailing side (it's usually the descriptor). Only
+    // fall back to the leading side if the trailing side is empty
+    // or too short to read as a phrase.
+    let label = (after.length >= 6) ? after
+              : (before.length >= 6) ? before
+              : raw;
+    label = label.replace(/\.$/, '');
+    return { value: value, label: label };
+  }
+  return { value: '', label: raw };
+}
+
+window._insExtractStat = _insExtractStat;
 
 // Reverses _todayDateKey \u2014 accepts either a Date or a "YYYY-MM-DD"
 // string. Robust to being handed a Date already (identity).
