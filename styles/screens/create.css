@@ -627,10 +627,11 @@
 
 .cr-brief-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
+  min-height: 26px;
 }
 
 .cr-brief-label {
@@ -664,6 +665,78 @@
   outline: none;
   margin-bottom: 20px;
   transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+/* Enhance-with-AI pill \u2014 sits in the .cr-brief-head row on the
+   right, where the "Tell Clara what to write about." hint used to
+   live. Amber-forward like the "I have my own idea" toggle so all
+   the accent affordances on Step 2 read as the same family. */
+.cr-brief-head .cr-enhance-btn {
+  margin-left: auto;
+}
+.cr-enhance-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 166, 35, 0.35);
+  background: rgba(245, 166, 35, 0.10);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 120ms ease;
+}
+.cr-enhance-btn:hover:not(:disabled) {
+  background: rgba(245, 166, 35, 0.18);
+  border-color: rgba(245, 166, 35, 0.55);
+}
+.cr-enhance-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.cr-enhance-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cr-enhance-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Spinner is hidden by default; the loading state swaps the icon
+   out for the spinner via visibility on the two siblings so we
+   don't have to rewrite innerHTML mid-stream. */
+.cr-enhance-btn-spinner {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+}
+.cr-enhance-btn-spinner svg {
+  animation: cr-enhance-spin 900ms linear infinite;
+}
+.cr-enhance-btn-loading .cr-enhance-btn-icon {
+  display: none;
+}
+.cr-enhance-btn-loading .cr-enhance-btn-spinner {
+  display: inline-flex;
+}
+@keyframes cr-enhance-spin {
+  to { transform: rotate(360deg); }
+}
+
+body.light-mode .cr-enhance-btn {
+  background: rgba(212, 134, 10, 0.12);
+  border-color: rgba(212, 134, 10, 0.4);
+}
+body.light-mode .cr-enhance-btn:hover:not(:disabled) {
+  background: rgba(212, 134, 10, 0.2);
+  border-color: rgba(212, 134, 10, 0.6);
 }
 
 .cr-brief-input:focus {

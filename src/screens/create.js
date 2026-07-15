@@ -1100,11 +1100,33 @@ function _crRenderStep2() {
   // Brief-slot content \u2014 either Clara's editable brief or the
   // user's own-idea textarea. Both use the same .cr-brief-head /
   // textarea / hint layout so the swap doesn't reflow the page.
+  // Enhance-with-AI pill: sits in the .cr-brief-head row where the
+  // "Tell Clara what to write about." hint used to live. Same right-
+  // side slot, but now it's an active affordance -- click to have
+  // Clara generate a fresh idea seed and stream it into the textarea
+  // (see _crEnhanceIdea + _crBindStep2 click handler for the flow).
+  // The button stays enabled even when the textarea is empty; the
+  // point of Enhance here is to seed an idea from scratch, so the
+  // empty state is actually its most useful trigger.
+  const enhanceDisabled = !!c.generating;
+  const enhanceBtn = ''
+    + '<button type="button" class="cr-enhance-btn" id="crEnhanceBtn"'
+    +        ' aria-label="Enhance with AI"'
+    +        (enhanceDisabled ? ' disabled' : '') + '>'
+    +   '<span class="cr-enhance-btn-icon">' + CR_SPARK_ICON + '</span>'
+    +   '<span class="cr-enhance-btn-label">Enhance with AI</span>'
+    +   '<span class="cr-enhance-btn-spinner" aria-hidden="true">'
+    +     '<svg viewBox="0 0 20 20" width="12" height="12">'
+    +       '<circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="12 30"/>'
+    +     '</svg>'
+    +   '</span>'
+    + '</button>';
+
   const briefSlot = customActive
     ? (''
         + '<div class="cr-brief-head">'
         +   '<span class="cr-brief-label">YOUR IDEA</span>'
-        +   '<span class="cr-brief-hint">Tell Clara what to write about.</span>'
+        +   enhanceBtn
         + '</div>'
         + '<textarea class="cr-brief-input" id="crCustomAngleInput" rows="4" spellcheck="true"'
         +        ' placeholder="e.g. I want to talk about why I started this bakery"'
@@ -1173,6 +1195,209 @@ function _crRenderStep2() {
     + briefSlot
     + toggleBtn
     + primary;
+}
+
+// ---------------------------------------------
+// Enhance-with-AI idea generator
+// ---------------------------------------------
+//
+// Template-driven post/email/video/audio idea seeds. Same pattern as
+// clara/customerTemplates.js: no LLM call, no network -- just a
+// hand-authored table keyed by (contentType, subFormat) with a
+// business-context interpolation layer. Successive Enhance clicks
+// cycle through the seed list so the user gets a fresh angle each
+// time they hit the button.
+//
+// Placeholders:
+//   {name}        \u2192 business.name (fallback 'Your business')
+//   {name_lower}  \u2192 lowercased name for mid-sentence use
+//   {product}     \u2192 business.product (fallback 'what you make')
+//   {goalPhrase}  \u2192 short phrase tuned to the Q2 goal (leads/sales/etc.)
+//
+// Seeds are complete, ready-to-generate 1\u20132 sentence briefs
+// (matches the CR_CUSTOM_MIN_CHARS threshold so Generate turns green
+// immediately after streaming completes).
+
+const CR_IDEA_SEEDS = {
+  // Text/Social post -- the main use case; a handful of angles that
+  // Clara can always fall back to regardless of niche.
+  'text_post': [
+    "A short story about the first time {name_lower} sold {product} \u2014 the moment it clicked, and why it still matters.",
+    "One thing about {product} that people get wrong, and the honest answer from {name_lower}.",
+    "A behind-the-scenes look at the boring, unglamorous step of making {product} that most people never see.",
+    "The customer moment from last week that reminded {name_lower} why {product} is worth the work.",
+    "A myth about the industry {name_lower} keeps hearing \u2014 and what actually holds up after doing this for real.",
+    "The advice {name_lower} would give someone thinking about buying {product} for the first time. No pitch, just the truth.",
+    "Why {name_lower} does {product} differently than the obvious way \u2014 and what changed after trying it that way.",
+    "A tiny detail in {product} that took the longest to get right, and why it's the thing repeat customers notice first."
+  ],
+  'text_thread': [
+    "A short thread on the five hardest lessons {name_lower} learned building {product}. Honest, specific, one lesson per post.",
+    "A thread walking through the exact steps behind {product} \u2014 the workflow, the mistakes, and what finally worked.",
+    "A thread on the industry advice {name_lower} used to believe but doesn't anymore, and what replaced each one."
+  ],
+  'text_email': [
+    "A short update from {name} on what changed this month, one thing worth trying, and where {product} is going next.",
+    "An email to the people who've been following {name} for a while: what {product} really is, in one paragraph, no fluff.",
+    "A quick note from {name} on a customer story worth sharing \u2014 the ask, the fix, and what {product} did about it."
+  ],
+  'text_newsletter': [
+    "A newsletter issue with three quick sections: what {name_lower} is working on, one thing worth reading this week, and a note about {product}.",
+    "A deep-dive newsletter on the hardest problem {name_lower} solved this month, and how {product} came out the other side."
+  ],
+  // Non-text content types \u2014 shorter, punchier seeds tuned to the
+  // medium.
+  'image': [
+    "A single honest photo of {product}, before any polish. Caption tells the one thing about it people usually miss.",
+    "A side-by-side of {product} on day one vs today \u2014 caption tells the story of what changed.",
+    "The workspace where {product} actually gets made, shot as it looks right now. Caption invites the audience in."
+  ],
+  'video': [
+    "A 30-second walk-through of {product} \u2014 no polish, just the honest angle on why it works.",
+    "The first time a customer tried {product}: their reaction, in their words, cut short and shared.",
+    "A quick video on the moment {name_lower} almost gave up on {product} \u2014 and what changed the day after."
+  ],
+  'audio': [
+    "A short audio note from {name_lower} on why {product} exists at all \u2014 one story, told the way you'd tell a friend.",
+    "A 60-second audio clip on the one part of {product} that always surprises new customers."
+  ]
+};
+
+// Goal-flavoured tag lines. Appended to some seeds to steer the idea
+// toward the user's Q2 goal without hard-coding every combination.
+const CR_GOAL_FLAVOURS = {
+  leads:       'Ending with a soft invite for anyone curious to reach out.',
+  sales:       'Landing on why now is a good time to try {product}.',
+  retention:   'Written for the people already in the door.',
+  marketing:   'Framed so it travels \u2014 shareable, quotable, and clear.',
+  launch:      'Tied to what\u2019s new right now at {name_lower}.',
+  test:        'Written to gauge who\u2019s actually interested before going bigger.',
+  competitors: 'Making the sharp contrast between {name_lower} and the obvious alternatives.',
+  growth:      'Meant to bring in the next wave of people who haven\u2019t heard of {name_lower} yet.'
+};
+
+// Composes a full idea string ready to stream into the textarea.
+// Rotation index cycles per Create session so successive clicks don't
+// repeat the same seed \u2014 stored on the create-slice so it survives
+// re-renders but resets when the user restarts the flow.
+function _crEnhanceIdea() {
+  const c = getCreate();
+  const b = getBusiness();
+
+  const contentType = c.contentType || 'text';
+  const subFormat = c.subFormat || 'post';
+  const key = contentType === 'text' ? ('text_' + subFormat) : contentType;
+  const seeds = CR_IDEA_SEEDS[key]
+             || CR_IDEA_SEEDS['text_' + subFormat]
+             || CR_IDEA_SEEDS['text_post'];
+
+  // Pull a fresh seed each click. Index stored on c so it survives
+  // re-renders inside the Create flow.
+  const nextIdx = (typeof c._enhanceSeedIdx === 'number' ? c._enhanceSeedIdx + 1 : 0) % seeds.length;
+  c._enhanceSeedIdx = nextIdx;
+  _saveState();
+  const seedTemplate = seeds[nextIdx];
+
+  // Goal flavour tag (~50% of the time; keeps output varied). We
+  // deterministically toggle based on the seed index so cycling
+  // through the list alternates flavoured / plain rather than being
+  // random on every click.
+  let flavourTemplate = '';
+  if ((nextIdx % 2) === 0 && typeof window._claraGoalKey === 'function') {
+    const goalKey = window._claraGoalKey(b.goal);
+    flavourTemplate = CR_GOAL_FLAVOURS[goalKey] || '';
+  }
+
+  const composed = flavourTemplate
+    ? (seedTemplate + ' ' + flavourTemplate)
+    : seedTemplate;
+
+  return _crInterpolateIdea(composed, b);
+}
+
+function _crInterpolateIdea(template, business) {
+  const b = business || {};
+  const rawName = (b.name || '').trim();
+  const name = rawName || 'Your business';
+  const nameLower = rawName ? rawName : 'your business';
+  const rawProduct = (b.product || '').trim();
+  const product = rawProduct || 'what you make';
+
+  return String(template || '')
+    .replace(/\{name_lower\}/g, nameLower)
+    .replace(/\{name\}/g, name)
+    .replace(/\{product\}/g, product);
+}
+
+// Streams the Enhance output into the textarea one character at a
+// time. Same shape as onboardingModal's _obQ3StartEnhance:
+//   \u2022 lock the button (spinner + disabled + dataset flag)
+//   \u2022 flip the textarea to readonly + clear it
+//   \u2022 setInterval pushes chars; on completion, unlock everything
+//     and bounce through syncCustomUI so char-hint + Generate button
+//     + auto-grow all sync
+// The interval id lives on the button element so a subsequent click
+// (or a step change) can cancel a stream cleanly without leaking.
+function _crStartEnhanceStream(btnEl, textareaEl, syncFn) {
+  if (!btnEl || !textareaEl) return;
+
+  const idea = _crEnhanceIdea();
+  if (!idea) return;
+
+  const labelEl = btnEl.querySelector('.cr-enhance-btn-label');
+  const originalLabel = labelEl ? labelEl.textContent : 'Enhance with AI';
+
+  btnEl.dataset.enhancing = '1';
+  btnEl.setAttribute('disabled', '');
+  btnEl.setAttribute('aria-busy', 'true');
+  btnEl.classList.add('cr-enhance-btn-loading');
+  if (labelEl) labelEl.textContent = 'Enhancing\u2026';
+
+  textareaEl.readOnly = true;
+  textareaEl.value = '';
+  // Push an initial input event so syncCustomUI clears the old
+  // customText + collapses the char hint from "ok" back to "not ok"
+  // before the new stream starts.
+  if (typeof syncFn === 'function') syncFn();
+
+  let i = 0;
+  const CHAR_MS = 14;
+  const finish = function () {
+    if (btnEl._enhanceTimer) {
+      clearInterval(btnEl._enhanceTimer);
+      btnEl._enhanceTimer = null;
+    }
+    delete btnEl.dataset.enhancing;
+    btnEl.removeAttribute('disabled');
+    btnEl.removeAttribute('aria-busy');
+    btnEl.classList.remove('cr-enhance-btn-loading');
+    if (labelEl) labelEl.textContent = originalLabel || 'Enhance with AI';
+    textareaEl.readOnly = false;
+    if (typeof syncFn === 'function') syncFn();
+    try {
+      const end = textareaEl.value.length;
+      textareaEl.setSelectionRange(end, end);
+      textareaEl.focus();
+    } catch (_e) { /* setSelectionRange can throw in older FF */ }
+  };
+
+  btnEl._enhanceTimer = setInterval(function () {
+    // Guard against a re-render swapping the textarea out mid-stream
+    // (step change, back nav, subFormat toggle). Bail cleanly.
+    if (!document.body.contains(textareaEl)) {
+      if (btnEl._enhanceTimer) {
+        clearInterval(btnEl._enhanceTimer);
+        btnEl._enhanceTimer = null;
+      }
+      return;
+    }
+    if (i >= idea.length) { finish(); return; }
+    textareaEl.value += idea.charAt(i);
+    i += 1;
+    // Keep the char count + auto-grow ticking so the box grows as
+    // the text streams in.
+    if (typeof syncFn === 'function') syncFn();
+  }, CHAR_MS);
 }
 
 function _crRenderLoadingBlock() {
@@ -1286,6 +1511,7 @@ function _crBindStep2() {
       customInput.style.height = Math.min(customInput.scrollHeight, 320) + 'px';
     };
     requestAnimationFrame(growCustom);
+    const enhanceEl = document.getElementById('crEnhanceBtn');
     const syncCustomUI = function () {
       const val = customInput.value;
       const ok = val.length >= CR_CUSTOM_MIN_CHARS;
@@ -1303,6 +1529,21 @@ function _crBindStep2() {
     // Blur belt-and-braces \u2014 covers the rare browsers where a
     // paste event doesn't dispatch an input.
     customInput.addEventListener('blur', syncCustomUI);
+
+    // Enhance-with-AI: generates a fresh (contentType, subFormat)-
+    // aware idea from CR_IDEA_SEEDS, then streams it character-by-
+    // character into the textarea for a generative feel. Mirrors the
+    // onboarding Q3 Enhance flow (see onboardingModal.js
+    // _obQ3StartEnhance) -- same button-locking, readonly textarea,
+    // and finish-and-focus dance. Successive clicks cycle to the
+    // next seed so the user can shop for an angle they like.
+    if (enhanceEl) {
+      enhanceEl.addEventListener('click', function () {
+        if (getCreate().generating) return;
+        if (enhanceEl.dataset.enhancing === '1') return;
+        _crStartEnhanceStream(enhanceEl, customInput, syncCustomUI);
+      });
+    }
   }
 
   const gen = document.getElementById('crGenerateBtn');
