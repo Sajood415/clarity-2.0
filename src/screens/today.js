@@ -1151,10 +1151,13 @@ function _renderTdList(container, c) {
   if (!isPast) _tdBindFilterBar(container);
 }
 
-// Filter bar markup: "All | To Do | In Progress | Done" pills.
-// Rendered as buttons for accessibility (focusable, keyboard-
-// activatable) even though they're styled minimally as text-only
-// pills with an amber underline in the active state.
+// Filter bar markup: "All | To Do | In Progress | Done" pills sit on
+// the left; a small "+ Add task" pill sits flush right on the same
+// row via flex space-between. Directly below the row we always
+// render the manual-add modal in its collapsed state -- clicking
+// "+ Add task" reveals it inline (no full-screen overlay, no
+// re-render round-trip). All buttons are rendered as <button>s so
+// they participate in the tab order.
 function _tdRenderFilterBar(activeFilter) {
   const pills = TD_LIST_FILTERS.map(function (key) {
     const isActive = key === activeFilter;
@@ -1169,8 +1172,95 @@ function _tdRenderFilterBar(activeFilter) {
   }).join('');
   return ''
     + '<div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);margin-bottom:14px;">Your moves for today</div>'
-    + '<div class="td-filters" role="group" aria-label="Filter tasks by status">'
-    +   pills
+    + '<div class="td-filters-row">'
+    +   '<div class="td-filters" role="group" aria-label="Filter tasks by status">'
+    +     pills
+    +   '</div>'
+    +   '<button type="button" class="td-add-task-btn" id="tdAddTaskBtn"'
+    +     ' aria-expanded="false" aria-controls="tdAddModal">'
+    +     '+ Add task'
+    +   '</button>'
+    + '</div>'
+    + _tdRenderAddTaskModal();
+}
+
+// "Add manual task" modal. Uses the SAME visual shell as the
+// Kanban / Calendar Tasks-screen add modal (`.tk-add-modal-*`
+// classes defined in styles/screens/tasks.css) so both surfaces
+// present a unified add-task experience -- full-screen backdrop,
+// centered dialog, matching typography and buttons. Only the
+// fields differ: the Today variant collects the three fields
+// needed by the Today task shape (title, type, optional time),
+// while Kanban collects title + description + status + priority
+// + type + board + due-date.
+//
+// Field summary:
+//   - Task title (required)
+//   - Type: POST / OUTREACH / OFFER (chip picker, default POST)
+//   - Time estimate (optional -- empty falls back to '30 min')
+//
+// Submit builds a task object matching the shape produced by
+// _seedTodayTasks + `_todayTasks()` so downstream renderers, the
+// Ask Clara thread, and the state normalizer all treat it as any
+// other Today task.
+function _tdRenderAddTaskModal() {
+  const types = ['POST', 'OUTREACH', 'OFFER'];
+  const chipsHtml = types.map(function (t, idx) {
+    const active = idx === 0 ? ' td-add-modal-type-chip-active' : '';
+    return ''
+      + '<button type="button" class="td-add-modal-type-chip' + active + '"'
+      +   ' data-td-add-type="' + t + '"'
+      +   ' aria-pressed="' + (idx === 0 ? 'true' : 'false') + '">'
+      +   t
+      + '</button>';
+  }).join('');
+
+  const closeIcon = (typeof window.TK_ICONS !== 'undefined' && window.TK_ICONS.close)
+    ? window.TK_ICONS.close
+    : '&times;';
+
+  return ''
+    + '<div class="tk-add-modal-backdrop td-add-modal-backdrop" id="tdAddModalBackdrop"'
+    +      ' role="dialog" aria-modal="true" aria-labelledby="tdAddModalTitle"'
+    +      ' aria-hidden="true">'
+    +   '<div class="tk-add-modal" id="tdAddModal">'
+    +     '<div class="tk-add-modal-head">'
+    +       '<h3 class="tk-add-modal-title" id="tdAddModalTitle">New task</h3>'
+    +       '<button type="button" class="tk-add-modal-close" id="tdAddModalClose"'
+    +         ' aria-label="Close">'
+    +         closeIcon
+    +       '</button>'
+    +     '</div>'
+    +     '<div class="tk-add-modal-body">'
+    +       '<label class="tk-add-field">'
+    +         '<span class="tk-add-field-label">Task *</span>'
+    +         '<input type="text" class="tk-add-input" id="tdAddModalTitleInput"'
+    +           ' placeholder="What do you want to do?" maxlength="140"'
+    +           ' autocomplete="off" />'
+    +       '</label>'
+    +       '<div class="tk-add-field">'
+    +         '<span class="tk-add-field-label">Type</span>'
+    +         '<div class="td-add-modal-types" id="tdAddModalTypes" role="group"'
+    +              ' aria-label="Task type">'
+    +           chipsHtml
+    +         '</div>'
+    +       '</div>'
+    +       '<label class="tk-add-field">'
+    +         '<span class="tk-add-field-label">Time estimate (optional)</span>'
+    +         '<input type="text" class="tk-add-input"'
+    +           ' id="tdAddModalTime" placeholder="e.g. 15 min" maxlength="20"'
+    +           ' autocomplete="off" />'
+    +       '</label>'
+    +     '</div>'
+    +     '<div class="tk-add-modal-footer">'
+    +       '<button type="button" class="tk-add-modal-cancel" id="tdAddModalCancel">'
+    +         'Cancel'
+    +       '</button>'
+    +       '<button type="button" class="tk-add-modal-save" id="tdAddModalSubmit">'
+    +         'Add task'
+    +       '</button>'
+    +     '</div>'
+    +   '</div>'
     + '</div>';
 }
 
@@ -1181,6 +1271,211 @@ function _tdBindFilterBar(scope) {
       const next = pill.getAttribute('data-td-filter');
       if (_tdListFilterSet(next)) _rerenderToday();
     });
+  });
+
+  _tdBindAddTaskModal(scope);
+}
+
+// Wire the +Add task pill + modal handlers. Modal is a full-screen
+// backdrop + centered dialog (mirrors the Kanban tasks add modal
+// -- see `_tkBindAddModal` in src/screens/tasks.js). Open/close is
+// driven by an `.td-add-modal-backdrop-open` class on the backdrop
+// so we can keep the modal DOM alive between opens and skip the
+// _rerenderToday round-trip on typing.
+function _tdBindAddTaskModal(scope) {
+  const trigger = scope.querySelector('#tdAddTaskBtn');
+  const backdrop = scope.querySelector('#tdAddModalBackdrop');
+  const modal = scope.querySelector('#tdAddModal');
+  if (!trigger || !backdrop || !modal) return;
+
+  const titleInput = backdrop.querySelector('#tdAddModalTitleInput');
+  const timeInput = backdrop.querySelector('#tdAddModalTime');
+  const closeBtn = backdrop.querySelector('#tdAddModalClose');
+  const cancelBtn = backdrop.querySelector('#tdAddModalCancel');
+  const submitBtn = backdrop.querySelector('#tdAddModalSubmit');
+  const typeChips = backdrop.querySelectorAll('[data-td-add-type]');
+
+  const open = function () {
+    backdrop.classList.add('td-add-modal-backdrop-open');
+    backdrop.setAttribute('aria-hidden', 'false');
+    trigger.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('td-add-modal-lock');
+    // Focus lands on title input; requestAnimationFrame delays it
+    // one paint so the fade-in doesn't clip the focus outline.
+    requestAnimationFrame(function () {
+      try { titleInput.focus({ preventScroll: true }); } catch (_e) { titleInput.focus(); }
+    });
+  };
+
+  const close = function () {
+    backdrop.classList.remove('td-add-modal-backdrop-open');
+    backdrop.setAttribute('aria-hidden', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('td-add-modal-lock');
+    if (titleInput) {
+      titleInput.value = '';
+      titleInput.classList.remove('td-add-modal-input-error');
+    }
+    if (timeInput) timeInput.value = '';
+    // Reset chip selection to POST (the default).
+    typeChips.forEach(function (chip, idx) {
+      const active = idx === 0;
+      chip.classList.toggle('td-add-modal-type-chip-active', active);
+      chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    // Return focus to the trigger so keyboard flow doesn't dead-end.
+    try { trigger.focus({ preventScroll: true }); } catch (_e) { trigger.focus(); }
+  };
+
+  trigger.addEventListener('click', function () {
+    if (backdrop.classList.contains('td-add-modal-backdrop-open')) close();
+    else open();
+  });
+
+  // Click on the backdrop (but NOT on the modal dialog itself)
+  // closes the panel -- matches the Kanban add modal's dismiss
+  // behaviour so both surfaces feel identical.
+  backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) close();
+  });
+
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (cancelBtn) cancelBtn.addEventListener('click', close);
+
+  typeChips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      typeChips.forEach(function (c) {
+        c.classList.remove('td-add-modal-type-chip-active');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      chip.classList.add('td-add-modal-type-chip-active');
+      chip.setAttribute('aria-pressed', 'true');
+    });
+  });
+
+  const handleKey = function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      _tdAddTaskSubmit(backdrop);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+    }
+  };
+  if (titleInput) {
+    titleInput.addEventListener('input', function () {
+      titleInput.classList.remove('td-add-modal-input-error');
+    });
+    titleInput.addEventListener('keydown', handleKey);
+  }
+  if (timeInput) timeInput.addEventListener('keydown', handleKey);
+  if (submitBtn) submitBtn.addEventListener('click', function () {
+    _tdAddTaskSubmit(backdrop);
+  });
+}
+
+// Submit handler. Validates the title (only required field),
+// builds a task object matching the shape used by _seedTodayTasks
+// + the pool factory, pushes it onto concept.today.tasks, saves,
+// and re-renders. If validation fails we flash a red outline on
+// the title input and bail without closing the modal so the user
+// can fix and retry.
+function _tdAddTaskSubmit(backdrop) {
+  if (!backdrop) return;
+  const titleInput = backdrop.querySelector('#tdAddModalTitleInput');
+  const timeInput = backdrop.querySelector('#tdAddModalTime');
+  const activeChip = backdrop.querySelector('.td-add-modal-type-chip-active');
+
+  const rawTitle = String((titleInput && titleInput.value) || '').trim();
+  if (!rawTitle) {
+    if (titleInput) {
+      titleInput.classList.add('td-add-modal-input-error');
+      titleInput.focus();
+    }
+    return;
+  }
+
+  const type = activeChip
+    ? String(activeChip.getAttribute('data-td-add-type') || 'POST').toUpperCase()
+    : 'POST';
+  const rawTime = String((timeInput && timeInput.value) || '').trim();
+  const time = rawTime || '30 min';
+
+  const c = getActiveConcept();
+  if (!c) return;
+  if (!c.today) c.today = { tasks: [], viewingTaskId: null, viewingInsightId: null };
+  if (!Array.isArray(c.today.tasks)) c.today.tasks = [];
+
+  const task = {
+    id: 'manual-' + Date.now(),
+    description: rawTitle,
+    type: type,
+    time: time,
+    status: 'todo',
+    source: 'manual',
+    approved: false,
+    discarded: false,
+    thread: [],
+    reason: 'You added this task yourself.'
+  };
+  c.today.tasks.push(task);
+
+  // If the current filter would hide the new task (which always
+  // ships as status:'todo'), silently reset to 'all' so the user
+  // actually sees what they just added instead of an unchanged
+  // filtered view. 'all' and 'todo' filters both show the task, so
+  // we leave them alone in that case.
+  const filter = _tdListFilterCurrent();
+  if (filter !== 'all' && filter !== 'todo') {
+    _tdListFilterSet('all');
+  }
+
+  document.body.classList.remove('td-add-modal-lock');
+  _saveState();
+
+  // Stash the new task id on the module so the post-render hook
+  // knows which row to scroll to + flash. Cleared inside
+  // _tdFocusJustAddedRow after it consumes the value, so a plain
+  // re-render (status change, discard, filter click) never re-fires
+  // the flash animation. See _tdFocusJustAddedRow for the scroll
+  // + highlight sequence.
+  _tdJustAddedTaskId = task.id;
+  _rerenderToday();
+  _tdFocusJustAddedRow();
+}
+
+// Consumes `_tdJustAddedTaskId` set by the add-task submit handler
+// and, if the row for that id exists in the freshly-rendered DOM,
+// smooth-scrolls it into view and plays the amber pulse animation.
+// Wrapped in requestAnimationFrame so the browser has painted the
+// new row before we ask it to scroll -- otherwise Chrome sometimes
+// scrolls to where the row USED to be. The highlight class is
+// removed after the animation completes so subsequent renders
+// don't accidentally re-run it.
+let _tdJustAddedTaskId = null;
+function _tdFocusJustAddedRow() {
+  const id = _tdJustAddedTaskId;
+  _tdJustAddedTaskId = null;
+  if (!id) return;
+  requestAnimationFrame(function () {
+    const row = document.querySelector(
+      '[data-task-id="' + id.replace(/"/g, '\\"') + '"]'
+    );
+    if (!row) return;
+    try {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (_e) {
+      // Older browsers that ignore the options object fall back
+      // to a plain scrollIntoView -- still gets the row on-screen.
+      row.scrollIntoView();
+    }
+    row.classList.add('td-row-just-added');
+    // Match the highlight animation duration in today.css. Adding
+    // 200ms of slack so the class removal never clips the tail
+    // frames on slower machines.
+    setTimeout(function () {
+      row.classList.remove('td-row-just-added');
+    }, 1800);
   });
 }
 

@@ -2380,6 +2380,219 @@
    one. Session-only state (resets on reload) driven by
    _tdListFilter in today.js.
    ===================================================== */
+/* Wrapper that lays the filter pills on the left and the
+   "+ Add task" affordance on the right of the same row. Uses
+   space-between so the two clusters hug the edges of the list
+   column regardless of how many filter pills are rendered. */
+.td-filters-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: -8px;
+  margin-bottom: 24px;
+}
+
+/* When the pill row lives inside .td-filters-row we hand its
+   spacing over to the wrapper, so the pills themselves render
+   flush against the row rather than carrying their own margins. */
+.td-filters-row .td-filters {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* "+ Add task" affordance -- amber outlined pill, sits flush right
+   of the filter row. Amber border at 40% opacity in the base state
+   firms up on hover and picks up a subtle amber wash. Uses the
+   same 12px / 4px padding numbers called out in the spec. */
+.td-add-task-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: transparent;
+  border: 1px solid rgba(245, 166, 35, 0.4);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.td-add-task-btn:hover {
+  background: rgba(245, 166, 35, 0.08);
+  border-color: var(--accent);
+}
+
+.td-add-task-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.25);
+}
+
+.td-add-task-btn[aria-expanded="true"] {
+  background: rgba(245, 166, 35, 0.10);
+  border-color: var(--accent);
+}
+
+/* Today "Add task" modal reuses the same visual shell as the
+   Kanban / Calendar add modal -- backdrop + centered dialog +
+   header + body + footer are all rendered with the shared
+   `.tk-add-modal-*` classes defined in styles/screens/tasks.css.
+   The only pieces that live here are:
+     (a) The open/closed state on the backdrop (Kanban toggles
+         via a re-render of the whole Tasks screen; Today keeps
+         the modal DOM alive between opens and toggles a class
+         instead, so we own the visibility rules).
+     (b) The POST / OUTREACH / OFFER chip picker inside the
+         "Type" field, which replaces Kanban's <select>. */
+
+/* Higher-specificity selectors on purpose: `tasks.css`
+   (`.tk-add-modal-backdrop { display: flex }`) loads AFTER
+   `today.css` and would otherwise win the display race for the
+   same-specificity single-class selector. Compound `.tk-...` +
+   `.td-...` classes on the same element let us override without
+   `!important` -- 2 classes beats 1. */
+.tk-add-modal-backdrop.td-add-modal-backdrop {
+  display: none;
+}
+
+.tk-add-modal-backdrop.td-add-modal-backdrop.td-add-modal-backdrop-open {
+  display: flex;
+}
+
+/* Prevent the page underneath from scrolling while the modal is
+   open. Toggled from JS on open/close. */
+body.td-add-modal-lock {
+  overflow: hidden;
+}
+
+/* Error state on the title input -- red flash signals the required
+   field is empty at submit time. Auto-clears on the next input
+   event via the JS binder. */
+.tk-add-input.td-add-modal-input-error {
+  border-color: rgba(220, 60, 60, 0.6);
+  box-shadow: 0 0 0 3px rgba(220, 60, 60, 0.12);
+}
+
+/* Highlight pulse played once on the row that was just added via
+   the manual add-task modal. JS adds `.td-row-just-added` after the
+   list re-renders, smooth-scrolls it into view, and strips the
+   class ~1.8s later so subsequent renders don't replay it. The
+   animation lifts the row briefly, warms the background with an
+   amber wash, and fades everything back to neutral. */
+.td-row-just-added {
+  animation: td-row-just-added-in 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes td-row-just-added-in {
+  0% {
+    background: rgba(245, 166, 35, 0.32);
+    box-shadow:
+      inset 3px 0 0 var(--accent),
+      0 0 0 1px rgba(245, 166, 35, 0.45),
+      0 6px 20px rgba(245, 166, 35, 0.28);
+    transform: translateY(-2px);
+  }
+  30% {
+    background: rgba(245, 166, 35, 0.20);
+    box-shadow:
+      inset 3px 0 0 var(--accent),
+      0 0 0 1px rgba(245, 166, 35, 0.28),
+      0 4px 14px rgba(245, 166, 35, 0.18);
+    transform: translateY(0);
+  }
+  100% {
+    background: transparent;
+    box-shadow:
+      inset 3px 0 0 transparent,
+      0 0 0 1px transparent,
+      0 0 0 0 rgba(245, 166, 35, 0);
+    transform: translateY(0);
+  }
+}
+
+/* Light-mode: same beats, warmer amber so the flash reads on
+   parchment without looking neon. */
+body.light-mode .td-row-just-added {
+  animation-name: td-row-just-added-in-light;
+}
+
+@keyframes td-row-just-added-in-light {
+  0% {
+    background: rgba(212, 134, 10, 0.22);
+    box-shadow:
+      inset 3px 0 0 var(--accent),
+      0 0 0 1px rgba(212, 134, 10, 0.36),
+      0 6px 20px rgba(212, 134, 10, 0.20);
+    transform: translateY(-2px);
+  }
+  30% {
+    background: rgba(212, 134, 10, 0.14);
+    box-shadow:
+      inset 3px 0 0 var(--accent),
+      0 0 0 1px rgba(212, 134, 10, 0.22),
+      0 4px 14px rgba(212, 134, 10, 0.14);
+    transform: translateY(0);
+  }
+  100% {
+    background: transparent;
+    box-shadow:
+      inset 3px 0 0 transparent,
+      0 0 0 1px transparent,
+      0 0 0 0 rgba(212, 134, 10, 0);
+    transform: translateY(0);
+  }
+}
+
+/* Type chip row -- three POST / OUTREACH / OFFER pills. Small,
+   text-only, amber-tint when active. */
+.td-add-modal-types {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.td-add-modal-type-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.td-add-modal-type-chip:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.td-add-modal-type-chip-active,
+.td-add-modal-type-chip-active:hover {
+  background: rgba(245, 166, 35, 0.10);
+  border-color: rgba(245, 166, 35, 0.4);
+  color: var(--accent);
+}
+
+.td-add-modal-type-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.35);
+}
+
 .td-filters {
   display: flex;
   align-items: center;
@@ -3075,4 +3288,50 @@ body.light-mode .td-rows-readonly .td-row-thread-count {
 }
 body.light-mode .td-rows-readonly .td-row:hover .td-row-thread-count {
   background: rgba(26, 17, 8, 0.04);
+}
+
+/* --- Manual add-task: pill + Today-specific bits ---
+   The modal SHELL (backdrop, dialog, header, body, footer, inputs,
+   buttons) is styled by `.tk-add-modal-*` in tasks.css and already
+   has its own light-mode overrides in that file. These rules only
+   cover the pieces unique to Today: the "+ Add task" trigger pill
+   in the filter row, plus the POST/OUTREACH/OFFER chip picker
+   that replaces Kanban's <select> inside the Type field. */
+
+body.light-mode .td-add-task-btn {
+  background: transparent;
+  border-color: rgba(212, 134, 10, 0.44);
+  color: var(--accent);
+}
+
+body.light-mode .td-add-task-btn:hover {
+  background: rgba(212, 134, 10, 0.10);
+  border-color: var(--accent);
+}
+
+body.light-mode .td-add-task-btn[aria-expanded="true"] {
+  background: rgba(212, 134, 10, 0.12);
+  border-color: var(--accent);
+}
+
+body.light-mode .tk-add-input.td-add-modal-input-error {
+  border-color: rgba(180, 40, 40, 0.55);
+  box-shadow: 0 0 0 3px rgba(180, 40, 40, 0.10);
+}
+
+body.light-mode .td-add-modal-type-chip {
+  color: var(--text-secondary);
+  border-color: rgba(26, 17, 8, 0.18);
+}
+
+body.light-mode .td-add-modal-type-chip:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+body.light-mode .td-add-modal-type-chip-active,
+body.light-mode .td-add-modal-type-chip-active:hover {
+  background: rgba(212, 134, 10, 0.12);
+  border-color: rgba(212, 134, 10, 0.44);
+  color: var(--accent);
 }
