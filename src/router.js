@@ -254,6 +254,10 @@ function _renderActiveView(container) {
       if (typeof renderPersonas === 'function') renderPersonas(container);
       else renderToday(container);
       break;
+    case 'training-stats':
+      if (typeof renderTrainingStats === 'function') renderTrainingStats(container);
+      else renderToday(container);
+      break;
     case 'market-report':
     case 'customer-report':
     case 'competition-report':

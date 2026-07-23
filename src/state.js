@@ -1297,6 +1297,120 @@ function getPersonas() {
   return c.personas;
 }
 
+// ---------------------------------------------
+// Clara training score (0–100) + breakdown
+// ---------------------------------------------
+//
+// Weighted readiness score for how much Clara "knows" this concept:
+//   Onboarding fields filled     — up to 30
+//   Tasks completed / total      — up to 30
+//   Published results            — up to 25
+//   Days active (cap 60 days)    — up to 15
+//
+// getTrainingBreakdown() returns the full component map for the
+// Training Stats page. getTrainingScore() returns just the integer.
+
+function _tsFieldFilled(val) {
+  if (val == null) return false;
+  if (typeof val === 'string') return val.trim().length > 0;
+  if (Array.isArray(val)) return val.length > 0;
+  if (typeof val === 'number') return isFinite(val) && val !== 0;
+  return !!val;
+}
+
+function _tsRound1(n) {
+  return Math.round(n * 10) / 10;
+}
+
+function getTrainingBreakdown(concept) {
+  const c = concept || getActiveConcept();
+  const empty = {
+    score: 0,
+    onboarding: { points: 0, max: 30 },
+    tasks: { points: 0, max: 30 },
+    results: { points: 0, max: 25 },
+    days: { points: 0, max: 15 },
+    copy: getTrainingScoreCopy(0)
+  };
+  if (!c) return empty;
+
+  const business = c.business || {};
+
+  // --- 1. Onboarding completeness (30 pts, 7 fields) ---
+  const fields = [
+    business.name,
+    business.type,
+    business.customer,
+    (Array.isArray(business.goals) && business.goals.length > 0) ? business.goals : business.goal,
+    business.channels,
+    business.budget,
+    (Array.isArray(business.locations) && business.locations.length > 0) ? business.locations : business.location
+  ];
+  let filled = 0;
+  for (let i = 0; i < fields.length; i++) {
+    if (_tsFieldFilled(fields[i])) filled++;
+  }
+  const onboardingPts = (filled / fields.length) * 30;
+
+  // --- 2. Tasks completed / total (30 pts) ---
+  let taskList = (c.today && Array.isArray(c.today.tasks)) ? c.today.tasks : [];
+  if (taskList.length === 0 && c.tasks && Array.isArray(c.tasks.items)) {
+    taskList = c.tasks.items;
+  }
+  const totalTasks = taskList.length;
+  let completedTasks = 0;
+  for (let t = 0; t < taskList.length; t++) {
+    const task = taskList[t];
+    if (!task) continue;
+    if (String(task.status || '').toLowerCase() === 'done') completedTasks++;
+  }
+  const taskPts = totalTasks > 0 ? (completedTasks / totalTasks) * 30 : 0;
+
+  // --- 3. Published results (25 pts, full at 4) ---
+  const items = (c.results && Array.isArray(c.results.items)) ? c.results.items : [];
+  let published = 0;
+  for (let r = 0; r < items.length; r++) {
+    const it = items[r];
+    if (!it) continue;
+    if (String(it.status || '').toLowerCase() === 'draft') continue;
+    published++;
+  }
+  const resultsPts = Math.min(published / 4, 1) * 25;
+
+  // --- 4. Days active (15 pts, full at 60 days) ---
+  const createdAt = (typeof c.createdAt === 'number' && isFinite(c.createdAt) && c.createdAt > 0)
+    ? c.createdAt
+    : Date.now();
+  const daysActive = Math.max(0, (Date.now() - createdAt) / (24 * 60 * 60 * 1000));
+  const daysPts = Math.min(daysActive / 60, 1) * 15;
+
+  const raw = onboardingPts + taskPts + resultsPts + daysPts;
+  let score = Math.round(raw);
+  if (score < 0) score = 0;
+  if (score > 100) score = 100;
+
+  return {
+    score: score,
+    onboarding: { points: _tsRound1(onboardingPts), max: 30, filled: filled, totalFields: fields.length },
+    tasks: { points: _tsRound1(taskPts), max: 30, completed: completedTasks, total: totalTasks },
+    results: { points: _tsRound1(resultsPts), max: 25, published: published },
+    days: { points: _tsRound1(daysPts), max: 15, daysActive: Math.floor(daysActive) },
+    copy: getTrainingScoreCopy(score)
+  };
+}
+
+function getTrainingScore(concept) {
+  return getTrainingBreakdown(concept).score;
+}
+
+function getTrainingScoreCopy(score) {
+  const s = Number(score) || 0;
+  if (s <= 20) return 'Just getting started. Complete more tasks to help Clara learn.';
+  if (s <= 50) return 'Clara is building her understanding of your business.';
+  if (s <= 80) return 'Clara knows your business well. Keep going.';
+  return 'Clara is highly trained on your business.';
+}
+
 // Create a brand new concept and make it active. Returns the concept
 // id. The only supported option is `name` (pre-set business name for
 // the rare code paths that seed a value from outside Clara's flow \u2014
@@ -1362,6 +1476,8 @@ function setActiveView(view) {
     // Buyer personas gallery for the active concept. Reached from the
     // top-bar More (⋯) menu.
     'personas',
+    // Clara training stats breakdown. Same More menu, under Personas.
+    'training-stats',
     // Strategic Planning reports. Each opens as a full-screen view
     // (no top-bar page label), routed by the report shell in
     // router.js. Reached from the Overview insight cards.
@@ -1382,7 +1498,7 @@ function setActiveView(view) {
   // Remember the last primary tab for deep-link recovery. Reports and
   // the concepts list are sub-pages, they don't count.
   const isReport = view.indexOf('-report') !== -1;
-  const isSubPage = view === 'concepts-list' || view === 'insights-detail' || view === 'profile' || view === 'personas' || isReport;
+  const isSubPage = view === 'concepts-list' || view === 'insights-detail' || view === 'profile' || view === 'personas' || view === 'training-stats' || isReport;
   if (!isSubPage) {
     const c = getActiveConcept();
     if (c) c.lastWorkspaceView = view;
@@ -1423,6 +1539,9 @@ window.getCreate = getCreate;
 window.getResults = getResults;
 window.getTasks = getTasks;
 window.getPersonas = getPersonas;
+window.getTrainingBreakdown = getTrainingBreakdown;
+window.getTrainingScore = getTrainingScore;
+window.getTrainingScoreCopy = getTrainingScoreCopy;
 window.createConcept = createConcept;
 window.switchConcept = switchConcept;
 window.setActiveView = setActiveView;

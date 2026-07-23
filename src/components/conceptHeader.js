@@ -291,6 +291,17 @@ const CH_MORE_ITEMS = [
       + '</svg>'
   },
   {
+    id: 'training-stats',
+    label: 'Clara Training Stats',
+    target: 'training-stats',
+    icon:
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M12 20V10"/>'
+      + '<path d="M18 20V4"/>'
+      + '<path d="M6 20v-4"/>'
+      + '</svg>'
+  },
+  {
     id: 'strategic-reports',
     label: 'Strategic Reports',
     target: 'report-market',
@@ -375,6 +386,7 @@ const CH_VIEW_LABELS = {
   'concepts-list':     'Your concepts',
   'profile':           'Profile',
   'personas':          'Personas',
+  'training-stats':    'Clara Training Stats',
   'market-report':     'Market report',
   'customer-report':   'Customer report',
   'competition-report':'Competition report',
