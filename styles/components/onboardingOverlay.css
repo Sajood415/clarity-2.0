@@ -65,6 +65,12 @@
   flex-direction: column;
   background: radial-gradient(ellipse at 50% 35%, #261c08 0%, #0F0D0B 60%);
   animation: ob-screen-in 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* Page-level scroll lives here so the scrollbar sits on the
+     viewport edge. Never put overflow-y on .ob-content — that
+     capped column is only 640px wide and paints a floating
+     mid-page scrollbar next to the review cards. */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 @keyframes ob-screen-in {
@@ -91,6 +97,13 @@
   justify-content: space-between;
   padding: 0 32px;
   flex-shrink: 0;
+  /* Stick while .ob-fullscreen scrolls so Review / progress stay put. */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(15, 13, 11, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .ob-brand {
@@ -138,16 +151,21 @@
 /* --- Main content column --- */
 
 .ob-content {
-  flex: 1;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 24px;
+  padding: 40px 24px 72px;
   max-width: 640px;
   margin: 0 auto;
   width: 100%;
-  min-height: 0;
+  /* Grow with children; do NOT shrink into a nested scrollport.
+     Scrolling is owned by .ob-fullscreen so the bar stays at the
+     right edge of the window. min-height keeps short steps
+     vertically centered in the remaining viewport below the topbar. */
+  min-height: calc(100vh - 56px);
+  box-sizing: border-box;
 }
 
 .ob-content-in {
@@ -956,13 +974,12 @@
 /* --- Q6-specific viewport fit ---
    The location picker step stacks avatar + question + subtitle +
    dropdown + city row + tag row + world map + continue button, which
-   easily exceeds a 13" MacBook's ~760px content height. Same trick as
-   the review screen: safe-center keeps the block visually centered
-   when it fits, and falls back to top-aligned scrolling when it
-   doesn't. Scoped via :has() so no other step is affected. */
+   easily exceeds a 13" MacBook's ~760px content height. Safe-center
+   keeps the block visually centered when it fits and top-aligns when
+   the fullscreen shell has to scroll. Overflow stays on
+   .ob-fullscreen — never on this column. */
 .ob-content:has(.ob-loc-picker) {
   justify-content: safe center;
-  overflow-y: auto;
 }
 
 /* ==========================================
@@ -983,12 +1000,12 @@
 /* The review screen's content stack (avatar + question + list +
    approve button) can grow taller than the viewport on shorter screens.
    Flex "safe center" keeps the layout centered when it fits and falls
-   back to top-aligned scrolling when it doesn't \u2014 without this,
-   justify-content: center clips the top rows and users can't reach
-   them. Scoped via :has() so no other step is affected. */
+   back to top-aligned when .ob-fullscreen scrolls. Do NOT set
+   overflow-y here — .ob-content is max-width 640px, so an internal
+   scrollbar floats mid-page next to the cards (the bug in the
+   review screenshot). Scoped via :has() so no other step is affected. */
 .ob-content:has(.ob-review-list) {
   justify-content: safe center;
-  overflow-y: auto;
 }
 
 .ob-review-list {
@@ -1396,7 +1413,7 @@
    capping height directly \u2014 that keeps the continents at full width
    without letterboxing gaps on the sides. */
 @media (max-height: 860px) {
-  .ob-content { padding: 22px 24px; }
+  .ob-content { padding: 22px 24px 64px; }
   .ob-avatar { margin-bottom: 14px; }
   .ob-question { font-size: 24px; margin-bottom: 6px; }
   .ob-subtitle { margin-bottom: 20px; }
@@ -1442,7 +1459,7 @@
    etc.) get an extra squeeze on typography and shrink the map / review
    list further via a tighter picker max-width and denser rows. */
 @media (max-height: 720px) {
-  .ob-content { padding: 16px 24px; }
+  .ob-content { padding: 16px 24px 60px; }
   .ob-avatar { width: 28px; height: 28px; font-size: 12px; margin-bottom: 10px; }
   .ob-question { font-size: 21px; margin-bottom: 4px; }
   .ob-subtitle { font-size: 14px; margin-bottom: 14px; }
@@ -1466,7 +1483,7 @@
 @media (max-width: 640px) {
   .ob-topbar { padding: 0 20px; }
   .ob-progress-track { margin: 0 16px; }
-  .ob-content { padding: 32px 20px; }
+  .ob-content { padding: 32px 20px 64px; }
   .ob-question { font-size: 22px; }
   .ob-subtitle { font-size: 14px; margin-bottom: 32px; }
   .ob-back-link { bottom: 20px; left: 20px; }
@@ -1502,6 +1519,11 @@
    (see src/screens/onboardingModal.js). */
 body.light-mode .ob-fullscreen {
   background: radial-gradient(ellipse at 50% 35%, #F4E4C4 0%, #FAF7F2 60%);
+}
+
+/* Sticky topbar reads over parchment while the page scrolls. */
+body.light-mode .ob-topbar {
+  background: rgba(250, 247, 242, 0.92);
 }
 
 /* --- Top bar chrome (brand + step counter) --- */

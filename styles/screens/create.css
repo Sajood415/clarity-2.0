@@ -1855,6 +1855,167 @@ body.light-mode .cr-enhance-btn:hover:not(:disabled) {
 }
 
 /* ==========================================
+   Persona targeting badge (Step 3 + Step 4)
+   ========================================== */
+
+.cr-persona-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 0;
+  margin: 16px 0 4px;
+  padding: 10px 14px;
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.22);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.cr-persona-badge-label {
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+
+.cr-persona-badge-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cr-persona-badge-sep {
+  color: var(--muted);
+}
+
+.cr-persona-badge-reason {
+  color: var(--text-secondary);
+}
+
+/* ==========================================
+   Tags section (Step 4 publish)
+   ========================================== */
+
+.cr-tags-section {
+  margin: 20px 0 8px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.cr-tags-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.cr-tags-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.cr-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  min-height: 28px;
+}
+
+.cr-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 10px;
+  background: rgba(245, 166, 35, 0.1);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1.3;
+}
+
+.cr-tag-chip-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+
+.cr-tag-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.16);
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.cr-tag-chip-remove:hover {
+  background: rgba(245, 166, 35, 0.32);
+}
+
+.cr-tags-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cr-tags-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.cr-tags-input:focus {
+  outline: none;
+  border-color: rgba(245, 166, 35, 0.55);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
+}
+
+.cr-tags-add-btn {
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.cr-tags-add-btn:hover {
+  background: rgba(245, 166, 35, 0.12);
+  border-color: rgba(245, 166, 35, 0.35);
+  color: var(--accent);
+}
+
+/* ==========================================
    Draft-saved toast (bottom-center, transient)
    ========================================== */
 
@@ -2231,4 +2392,18 @@ body.light-mode .cr-drafts-card:focus-visible {
 
 body.light-mode .cr-publish-modal {
   box-shadow: 0 32px 80px rgba(26, 17, 8, 0.30);
+}
+
+body.light-mode .cr-persona-badge {
+  background: rgba(212, 134, 10, 0.08);
+  border-color: rgba(212, 134, 10, 0.22);
+}
+
+body.light-mode .cr-tag-chip {
+  background: rgba(212, 134, 10, 0.1);
+  border-color: rgba(212, 134, 10, 0.28);
+}
+
+body.light-mode .cr-tags-section {
+  background: rgba(26, 17, 8, 0.02);
 }

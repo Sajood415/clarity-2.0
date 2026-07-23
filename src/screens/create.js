@@ -790,11 +790,13 @@ function _resetCreate() {
   c.generating = false;
   c.regenerationCount = 0;
   c.publishing = false;
+  c.tags = [];
 }
 
 function _crInit() {
   const c = getCreate();
   if (c.step !== 1 && c.step !== 2 && c.step !== 3 && c.step !== 4) c.step = 1;
+  if (!Array.isArray(c.tags)) c.tags = [];
 
   // From-task handoff runs once. If the user later changes contentType
   // manually we don't stomp their choice on the next render.
@@ -830,6 +832,12 @@ function _crInit() {
 function _crGoTo(step) {
   const c = getCreate();
   if (c.step === step) return;
+  // Entering the publish step: (re)seed auto tags from the current
+  // angle / platform / linked insight so the chips match what the
+  // user just picked. Manual edits happen after this seed on Step 4.
+  if (step === 4 && typeof _crAutoGenerateTags === 'function') {
+    c.tags = _crAutoGenerateTags();
+  }
   c.step = step;
   _saveState();
   renderCreate(document.getElementById('homeContent'));
@@ -1616,6 +1624,238 @@ function _crBindStep2() {
 }
 
 // ---------------------------------------------
+// Persona targeting + tags
+// ---------------------------------------------
+//
+// Persona comes from onboarding's ideal-customer string
+// (business.customer). We derive a stable personaId slug, a short
+// display name, and a one-line "why this content fits" reason from
+// the selected variation angle. Tags are short hyphenated chips
+// seeded on Step 4 from angle / platform / linked insight, then
+// editable by the user before publish.
+
+function _crPersonaCustomerText() {
+  const concept = (typeof getActiveConcept === 'function') ? getActiveConcept() : null;
+  const business = (concept && concept.business) || {};
+  return String(business.customer || '').trim();
+}
+
+function _crPersonaDisplayName(customer) {
+  const raw = String(customer || '').trim();
+  if (!raw) return 'Ideal customer';
+  // Prefer the subject phrase before "who" / "that" / "looking".
+  const m = raw.match(/^(.+?)(?:\s+who\b|\s+that\b|\s+looking\b|,|\.|$)/i);
+  let name = (m && m[1] ? m[1] : raw).trim();
+  if (name.length > 48) name = name.slice(0, 45).replace(/\s+\S*$/, '') + '\u2026';
+  return name || 'Ideal customer';
+}
+
+function _crPersonaId(customer) {
+  const slug = _crSlugTag(customer || 'ideal-customer');
+  return 'persona_' + (slug || 'ideal-customer');
+}
+
+function _crPersonaReason(angle, customer) {
+  const desc = String(customer || '').trim() || 'your ideal customer';
+  const shortDesc = desc.length > 72 ? desc.slice(0, 69).replace(/\s+\S*$/, '') + '\u2026' : desc;
+  const key = String(angle || 'Direct');
+  if (key === 'Story') {
+    return 'A customer-voice story mirrors what ' + shortDesc + ' already trusts.';
+  }
+  if (key === 'Question') {
+    return 'An open hook invites ' + shortDesc + ' into a real conversation.';
+  }
+  if (key === 'Custom') {
+    return 'Your custom angle is written to speak directly to ' + shortDesc + '.';
+  }
+  // Direct + fallback
+  return 'A clear, no-hedging message matches how ' + shortDesc + ' decides.';
+}
+
+function _crPersonaTarget(variation) {
+  const customer = _crPersonaCustomerText();
+  const angle = (variation && variation.angle) || 'Direct';
+  return {
+    id: _crPersonaId(customer),
+    name: _crPersonaDisplayName(customer),
+    reason: _crPersonaReason(angle, customer),
+    customer: customer
+  };
+}
+
+function _crRenderPersonaBadge(variation) {
+  const p = _crPersonaTarget(variation);
+  return ''
+    + '<div class="cr-persona-badge" role="status">'
+    +   '<span class="cr-persona-badge-label">Targeting:</span> '
+    +   '<span class="cr-persona-badge-name">' + _escape(p.name) + '</span>'
+    +   '<span class="cr-persona-badge-sep"> \u2014 </span>'
+    +   '<span class="cr-persona-badge-reason">' + _escape(p.reason) + '</span>'
+    + '</div>';
+}
+
+function _crSlugTag(str) {
+  return String(str || '')
+    .toLowerCase()
+    .replace(/['\u2019]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32);
+}
+
+function _crNormalizeTag(raw) {
+  const slug = _crSlugTag(raw);
+  if (!slug || slug.length < 2) return '';
+  return slug;
+}
+
+function _crLinkedInsight() {
+  const c = getCreate();
+  const task = c && c.fromTask;
+  if (!task || !task.insightId) return null;
+  const concept = (typeof getActiveConcept === 'function') ? getActiveConcept() : null;
+  const list = (concept && concept.today && Array.isArray(concept.today.insights))
+    ? concept.today.insights
+    : [];
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] && list[i].id === task.insightId) return list[i];
+  }
+  // Fallback: insight may live in history even if not on today's live list.
+  const history = (concept && concept.insights && concept.insights.history) || {};
+  const keys = Object.keys(history);
+  for (let k = 0; k < keys.length; k++) {
+    const day = history[keys[k]] || [];
+    for (let j = 0; j < day.length; j++) {
+      if (day[j] && day[j].id === task.insightId) return day[j];
+    }
+  }
+  return { id: task.insightId, headline: '' };
+}
+
+function _crInsightTag(insight) {
+  if (!insight) return '';
+  const headline = String(insight.headline || '').toLowerCase();
+  if (!headline) return 'insight-linked';
+  const skip = {
+    that: 1, this: 1, with: 1, from: 1, your: 1, have: 1, more: 1,
+    than: 1, when: 1, what: 1, they: 1, their: 1, into: 1, about: 1,
+    for: 1, and: 1, the: 1, are: 1, not: 1, how: 1, who: 1, you: 1
+  };
+  const words = headline.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
+    .filter(function (w) { return w.length > 3 && !skip[w]; });
+  if (words.length === 0) return 'insight-linked';
+  return _crSlugTag(words.slice(0, 2).join('-')) || 'insight-linked';
+}
+
+function _crAutoGenerateTags() {
+  const c = getCreate();
+  const platform = c.selectedPlatform || 'instagram';
+  const contentType = c.contentType || 'post';
+  const subFormat = c.subFormat || null;
+  const angle = (c.selectedVariation && c.selectedVariation.angle)
+    ? String(c.selectedVariation.angle)
+    : 'Direct';
+  const brief = String(c.customBrief || c.customText || '').toLowerCase();
+  const tags = [];
+
+  // 1) Platform / format
+  if (platform === 'instagram' && contentType === 'video') tags.push('instagram-reel');
+  else if (platform === 'tiktok') tags.push('tiktok-clip');
+  else if (platform === 'youtube' && contentType === 'video') tags.push('youtube-short');
+  else if (platform === 'email' || subFormat === 'email') tags.push('email-outreach');
+  else if (subFormat === 'newsletter') tags.push('newsletter');
+  else if (subFormat === 'thread') tags.push('thread-post');
+  else tags.push(_crSlugTag(platform + '-' + (subFormat || contentType)) || (platform + '-post'));
+
+  // 2) Angle
+  tags.push(_crSlugTag(angle.toLowerCase() + '-angle') || 'direct-angle');
+
+  // 3) Insight link OR brief-derived theme
+  const insight = _crLinkedInsight();
+  if (insight) {
+    tags.push(_crInsightTag(insight));
+  } else if (/audience|reach|follow|new\s+customer/.test(brief)) {
+    tags.push('new-audience');
+  } else if (/colour|color|fall|autumn|season/.test(brief)) {
+    tags.push('fall-colours');
+  } else if (/behind|bts|process|making/.test(brief)) {
+    tags.push('behind-the-scenes');
+  } else if (/sale|offer|discount|promo|deal/.test(brief)) {
+    tags.push('promo');
+  } else if (/review|testimonial|customer\s+stor/.test(brief)) {
+    tags.push('social-proof');
+  } else {
+    tags.push(_crSlugTag(contentType + '-content') || 'content');
+  }
+
+  const seen = {};
+  const out = [];
+  for (let i = 0; i < tags.length && out.length < 3; i++) {
+    const t = _crNormalizeTag(tags[i]);
+    if (!t || seen[t]) continue;
+    seen[t] = true;
+    out.push(t);
+  }
+  // Guarantee at least 2 tags
+  if (out.length < 2) {
+    const fallbacks = ['clara-draft', 'gtm-content', platform];
+    for (let f = 0; f < fallbacks.length && out.length < 2; f++) {
+      const t = _crNormalizeTag(fallbacks[f]);
+      if (t && !seen[t]) { seen[t] = true; out.push(t); }
+    }
+  }
+  return out;
+}
+
+function _crRenderTagsSection() {
+  const c = getCreate();
+  if (!Array.isArray(c.tags)) c.tags = [];
+  // Safety net if Step 4 was reached without going through _crGoTo(4)
+  // (e.g. draft resume with empty tags).
+  if (c.tags.length === 0) {
+    c.tags = _crAutoGenerateTags();
+    _saveState();
+  }
+
+  const chips = c.tags.map(function (tag, i) {
+    return ''
+      + '<span class="cr-tag-chip" data-tag-index="' + i + '">'
+      +   '<span class="cr-tag-chip-text">' + _escape(tag) + '</span>'
+      +   '<button type="button" class="cr-tag-chip-remove" data-remove-tag="' + i + '" aria-label="Remove tag ' + _escape(tag) + '">\u00d7</button>'
+      + '</span>';
+  }).join('');
+
+  return ''
+    + '<div class="cr-tags-section">'
+    +   '<div class="cr-tags-label">TAGS</div>'
+    +   '<p class="cr-tags-hint">Clara suggested these from your angle and platform. Add your own below.</p>'
+    +   '<div class="cr-tags-row" id="crTagsRow">' + chips + '</div>'
+    +   '<div class="cr-tags-input-row">'
+    +     '<input type="text" class="cr-tags-input" id="crTagInput" maxlength="40" '
+    +            'placeholder="Add a tag (e.g. fall-colours)" aria-label="Add a tag" autocomplete="off" />'
+    +     '<button type="button" class="cr-tags-add-btn" id="crTagAddBtn">Add</button>'
+    +   '</div>'
+    + '</div>';
+}
+
+function _crAddTagFromInput() {
+  const input = document.getElementById('crTagInput');
+  if (!input) return;
+  const tag = _crNormalizeTag(input.value);
+  input.value = '';
+  if (!tag) return;
+  const c = getCreate();
+  if (!Array.isArray(c.tags)) c.tags = [];
+  if (c.tags.indexOf(tag) !== -1) return;
+  c.tags.push(tag);
+  _saveState();
+  renderCreate(document.getElementById('homeContent'));
+  // Restore focus for rapid multi-add.
+  const next = document.getElementById('crTagInput');
+  if (next) next.focus();
+}
+
+// ---------------------------------------------
 // Step 3 — Variations (3-across grid)
 // ---------------------------------------------
 
@@ -1678,6 +1918,12 @@ function _crRenderStep3() {
     ? 'Generated from your angle. Regenerate for a fresh take, or continue to publish.'
     : 'Three angles on the same brief. Tap Copy to save any of them.';
 
+  // Persona badge tracks the currently selected variation's angle;
+  // falls back to the first card so the badge is never empty before
+  // the user taps a card.
+  const personaVariation = c.selectedVariation || variations[0] || null;
+  const personaBadge = _crRenderPersonaBadge(personaVariation);
+
   return ''
     + '<button type="button" class="cr-back-link" id="crBackBtn">\u2190 Back</button>'
     + '<div class="cr-step3-head">'
@@ -1690,6 +1936,7 @@ function _crRenderStep3() {
     +     '<span>Regenerate</span>'
     +   '</button>'
     + '</div>'
+    + personaBadge
     + '<div class="cr-variations cr-variations-grid' + (isCustomGrid ? ' cr-variations-grid-solo' : '') + '">' + cardsHtml + '</div>'
     + '<button type="button" class="cr-continue-btn" id="crContinueBtn"' + (canContinue ? '' : ' disabled') + '>'
     +   'Continue \u2192'
@@ -1988,11 +2235,14 @@ function _crRenderStep4() {
   // matching field shape, so _crRenderVariationBody routes it the
   // same way as any pool variation.
   const bodyHtml = _crRenderVariationBody(c.selectedVariation);
+  const personaBadge = _crRenderPersonaBadge(c.selectedVariation);
+  const tagsSection = _crRenderTagsSection();
 
   return ''
     + '<button type="button" class="cr-back-link" id="crBackBtn">\u2190 Back</button>'
     + '<h1 class="cr-heading cr-heading-sm">Ready when you are.</h1>'
     + '<p class="cr-subheading">Review the piece and pick where it goes next.</p>'
+    + personaBadge
     + '<div class="cr-publish-preview">'
     +   '<div class="cr-publish-preview-head">'
     +     '<span class="cr-publish-label">READY TO PUBLISH</span>'
@@ -2016,6 +2266,7 @@ function _crRenderStep4() {
     +     '<div class="cr-confidence-copy">' + _escape(conf.copy) + '</div>'
     +   '</div>'
     + '</div>'
+    + tagsSection
     + '<div class="cr-publish-options">'
     +   '<button type="button" class="cr-publish-btn" id="crPublishBtn">Publish now</button>'
     +   '<button type="button" class="cr-publish-draft" id="crDraftBtn">Save as draft</button>'
@@ -2026,6 +2277,33 @@ function _crRenderStep4() {
 function _crBindStep4() {
   const back = document.getElementById('crBackBtn');
   if (back) back.addEventListener('click', function () { _crGoTo(3); });
+
+  // Tag chips: remove
+  document.querySelectorAll('[data-remove-tag]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute('data-remove-tag'), 10);
+      const c = getCreate();
+      if (!Array.isArray(c.tags) || isNaN(idx) || idx < 0 || idx >= c.tags.length) return;
+      c.tags.splice(idx, 1);
+      _saveState();
+      renderCreate(document.getElementById('homeContent'));
+    });
+  });
+
+  const addBtn = document.getElementById('crTagAddBtn');
+  if (addBtn) addBtn.addEventListener('click', function () { _crAddTagFromInput(); });
+
+  const tagInput = document.getElementById('crTagInput');
+  if (tagInput) {
+    tagInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        _crAddTagFromInput();
+      }
+    });
+  }
 
   const publishBtn = document.getElementById('crPublishBtn');
   if (publishBtn) {
@@ -2146,6 +2424,8 @@ function _crResultsType(contentType, subFormat) {
 function _crPushResultItem(status) {
   const c = getCreate();
   const platform = c.selectedPlatform || 'instagram';
+  const persona = _crPersonaTarget(c.selectedVariation);
+  const tags = Array.isArray(c.tags) ? c.tags.slice() : _crAutoGenerateTags();
   const item = {
     id: 'item-' + Date.now(),
     type: _crResultsType(c.contentType, c.subFormat),
@@ -2154,7 +2434,9 @@ function _crPushResultItem(status) {
     variation: _crVariationPreviewText(c.selectedVariation),
     timestamp: Date.now(),
     reach: 0,
-    status: status
+    status: status,
+    personaId: persona.id,
+    tags: tags
   };
 
   // Drafts carry the extra context needed to resume at Step 4 with
@@ -2375,6 +2657,13 @@ function _crResumeDraft(id) {
   c.viewingDrafts = false;
   c.variations = [];
   c.step = 4;
+  // Restore saved tags when present; otherwise seed fresh auto tags
+  // so Step 4 never renders an empty chips row.
+  if (Array.isArray(draft.tags) && draft.tags.length > 0) {
+    c.tags = draft.tags.slice();
+  } else {
+    c.tags = _crAutoGenerateTags();
+  }
   _saveState();
   renderCreate(document.getElementById('homeContent'));
 }

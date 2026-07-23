@@ -1003,10 +1003,20 @@ function _insRenderContentCard(item) {
     +       '<span class="ins-content-date">' + _insFormatDateShort(item.timestamp) + '</span>'
     +     '</div>'
     +     '<div class="ins-content-body">' + _escape(bodyText) + '</div>'
+    +     _insRenderTagChips(item)
     +     '<div class="ins-stats-row">' + statsHtml + '</div>'
     +   '</div>'
     + '</div>'
   );
+}
+
+function _insRenderTagChips(item) {
+  const tags = (item && Array.isArray(item.tags)) ? item.tags : [];
+  if (tags.length === 0) return '';
+  const chips = tags.map(function (tag) {
+    return '<span class="ins-tag-chip">' + _escape(String(tag)) + '</span>';
+  }).join('');
+  return '<div class="ins-tags-row">' + chips + '</div>';
 }
 
 function _insBindEvents(published) {

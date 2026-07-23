@@ -297,7 +297,11 @@ function _defaultCreate() {
     // Transient: true while the Publish success animation is playing
     // before we redirect to Insights. Normalized back to false on load
     // so a stale flag never freezes the UI mid-flow.
-    publishing: false
+    publishing: false,
+    // Working tag list for Step 4 (auto-generated + user-added).
+    // Copied onto the result item at publish/draft time as `tags: []`.
+    // Cleared by _resetCreate; normalized to [] on load.
+    tags: []
   };
 }
 
@@ -541,6 +545,12 @@ function _newConcept(opts) {
     tasks: _defaultTasks(),
     create: _defaultCreate(),
     results: _defaultResults(),
+    // Buyer personas for this concept. Seeded lazily the first time
+    // the Personas screen opens (see screens/personas.js) from
+    // business.customer + business.type. Shape per entry:
+    //   { id, name, age, description, motivations[], howTheyFind,
+    //     whatMovesThem, typicalSpend, contentPreferences[], createdAt }
+    personas: [],
     // Strategic Planning research (Market, Customer, Competition, GTM).
     // Filled at onboarding completion; drives the four full-screen
     // reports the user opens from Overview's insight cards.
@@ -1168,6 +1178,20 @@ function _normalizeState() {
     });
     c.results = Object.assign(_defaultResults(), c.results || {});
     if (!Array.isArray(c.results.items)) c.results.items = [];
+    // Ensure every result item has a tags array + optional personaId
+    // so Create/Results can read them without per-call guards.
+    c.results.items.forEach(function (it) {
+      if (!it || typeof it !== 'object') return;
+      if (!Array.isArray(it.tags)) it.tags = [];
+      if (typeof it.personaId !== 'string' || !it.personaId) {
+        it.personaId = it.personaId || null;
+      }
+    });
+    if (!Array.isArray(c.create.tags)) c.create.tags = [];
+
+    // Buyer personas gallery. Always an array; empty until the
+    // Personas screen seeds from business.customer / type mocks.
+    if (!Array.isArray(c.personas)) c.personas = [];
 
     // Backfill the research payload for any concept that finished
     // onboarding before this feature existed, so opening a legacy
@@ -1263,6 +1287,16 @@ function getTasks() {
   return c ? c.tasks : _defaultTasks();
 }
 
+// Buyer personas for the active concept. Always returns an array so
+// screens can map without null checks. Mutations on the returned
+// array persist via the concept reference + _saveState().
+function getPersonas() {
+  const c = getActiveConcept();
+  if (!c) return [];
+  if (!Array.isArray(c.personas)) c.personas = [];
+  return c.personas;
+}
+
 // Create a brand new concept and make it active. Returns the concept
 // id. The only supported option is `name` (pre-set business name for
 // the rare code paths that seed a value from outside Clara's flow \u2014
@@ -1325,6 +1359,9 @@ function setActiveView(view) {
     // the app level (no concept scope), same shell shape as
     // concepts-list -- own back button, no lastWorkspaceView update.
     'profile',
+    // Buyer personas gallery for the active concept. Reached from the
+    // top-bar More (⋯) menu.
+    'personas',
     // Strategic Planning reports. Each opens as a full-screen view
     // (no top-bar page label), routed by the report shell in
     // router.js. Reached from the Overview insight cards.
@@ -1345,7 +1382,7 @@ function setActiveView(view) {
   // Remember the last primary tab for deep-link recovery. Reports and
   // the concepts list are sub-pages, they don't count.
   const isReport = view.indexOf('-report') !== -1;
-  const isSubPage = view === 'concepts-list' || view === 'insights-detail' || view === 'profile' || isReport;
+  const isSubPage = view === 'concepts-list' || view === 'insights-detail' || view === 'profile' || view === 'personas' || isReport;
   if (!isSubPage) {
     const c = getActiveConcept();
     if (c) c.lastWorkspaceView = view;
@@ -1385,6 +1422,7 @@ window.getChat = getChat;
 window.getCreate = getCreate;
 window.getResults = getResults;
 window.getTasks = getTasks;
+window.getPersonas = getPersonas;
 window.createConcept = createConcept;
 window.switchConcept = switchConcept;
 window.setActiveView = setActiveView;
