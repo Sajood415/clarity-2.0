@@ -976,6 +976,13 @@ function _normalizeState() {
         // inside the array are validated lazily at render time
         // rather than here \u2014 keeping the normalizer cheap.
         if (!Array.isArray(_tk.thread)) _tk.thread = [];
+        // `personaId` links the task to a concept persona (or a
+        // customer-derived fallback id). Legacy tasks may lack it;
+        // stamp the default so Today can render a persona badge
+        // without a per-render null check.
+        if (!_tk.personaId || typeof _tk.personaId !== 'string') {
+          _tk.personaId = getDefaultPersonaId(c);
+        }
       }
     }
     // viewingTaskId is either a task id string or null. Anything else
@@ -1298,6 +1305,86 @@ function getPersonas() {
 }
 
 // ---------------------------------------------
+// Persona helpers for Today task badges
+// ---------------------------------------------
+// Same subject-phrase extraction as create.js `_crPersonaDisplayName`
+// so Create targeting and Today "For:" badges stay consistent.
+function _personaDisplayNameFromCustomer(customer) {
+  const raw = String(customer || '').trim();
+  if (!raw) return 'Ideal customer';
+  const m = raw.match(/^(.+?)(?:\s+who\b|\s+that\b|\s+looking\b|,|\.|$)/i);
+  let name = (m && m[1] ? m[1] : raw).trim();
+  if (name.length > 48) name = name.slice(0, 45).replace(/\s+\S*$/, '') + '\u2026';
+  return name || 'Ideal customer';
+}
+
+function _personaIdFromCustomer(customer) {
+  const slug = String(customer || 'ideal-customer')
+    .toLowerCase()
+    .replace(/['\u2019']/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32);
+  return 'persona_' + (slug || 'ideal-customer');
+}
+
+// Prefer an existing concept.personas entry (match derived name, else
+// first persona). Fall back to a stable id from business.customer.
+function getDefaultPersonaId(concept) {
+  const c = concept || getActiveConcept();
+  if (!c) return 'persona_ideal-customer';
+  const customer = (c.business && c.business.customer)
+    ? String(c.business.customer).trim()
+    : '';
+  const derivedName = _personaDisplayNameFromCustomer(customer);
+  const personas = Array.isArray(c.personas) ? c.personas : [];
+  let i;
+  for (i = 0; i < personas.length; i++) {
+    const p = personas[i];
+    if (p && p.name === derivedName && p.id) return String(p.id);
+  }
+  if (personas.length > 0 && personas[0] && personas[0].id) {
+    return String(personas[0].id);
+  }
+  return _personaIdFromCustomer(customer);
+}
+
+// Resolve the persona for a Today task card.
+// 1. Look up concept.personas by task.personaId
+// 2. Else derive the display name from business.customer
+function getPersonaForTask(task, concept) {
+  const c = concept || getActiveConcept();
+  const customer = (c && c.business && c.business.customer)
+    ? String(c.business.customer).trim()
+    : '';
+  const fallbackName = _personaDisplayNameFromCustomer(customer);
+  const fallbackId = (task && task.personaId)
+    ? String(task.personaId)
+    : getDefaultPersonaId(c);
+
+  if (!c) {
+    return { id: fallbackId, name: fallbackName };
+  }
+
+  const personaId = task && task.personaId ? String(task.personaId) : '';
+  const personas = Array.isArray(c.personas) ? c.personas : [];
+  let i;
+  if (personaId) {
+    for (i = 0; i < personas.length; i++) {
+      const p = personas[i];
+      if (p && String(p.id) === personaId) {
+        return {
+          id: String(p.id),
+          name: String(p.name || fallbackName)
+        };
+      }
+    }
+  }
+
+  return { id: personaId || fallbackId, name: fallbackName };
+}
+
+// ---------------------------------------------
 // Clara training score (0–100) + breakdown
 // ---------------------------------------------
 //
@@ -1539,6 +1626,8 @@ window.getCreate = getCreate;
 window.getResults = getResults;
 window.getTasks = getTasks;
 window.getPersonas = getPersonas;
+window.getDefaultPersonaId = getDefaultPersonaId;
+window.getPersonaForTask = getPersonaForTask;
 window.getTrainingBreakdown = getTrainingBreakdown;
 window.getTrainingScore = getTrainingScore;
 window.getTrainingScoreCopy = getTrainingScoreCopy;

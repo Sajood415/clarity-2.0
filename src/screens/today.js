@@ -980,11 +980,13 @@ function _seedTodayTasks(c) {
     // user + Clara turns on each send. The state normalizer
     // backfills all three fields for legacy tasks that pre-date
     // them.
+    const personaId = t.personaId || getDefaultPersonaId(c);
     return Object.assign({}, t, {
       status: 'todo',
       discarded: false,
       approved: false,
-      thread: []
+      thread: [],
+      personaId: personaId
     });
   });
   c.today.tasks = fresh;
@@ -1416,6 +1418,7 @@ function _tdAddTaskSubmit(backdrop) {
     approved: false,
     discarded: false,
     thread: [],
+    personaId: getDefaultPersonaId(c),
     reason: 'You added this task yourself.'
   };
   c.today.tasks.push(task);
@@ -1494,6 +1497,18 @@ function _tdFocusJustAddedRow() {
 // the row's default meaning is "yes I plan to do this today", so an
 // explicit approve action is redundant. `task.approved` still exists
 // in state for backward compat but no longer has a UI affordance.
+function _tdPersonaBadgeHtml(task) {
+  const persona = (typeof getPersonaForTask === 'function')
+    ? getPersonaForTask(task)
+    : { name: 'Ideal customer' };
+  const name = String((persona && persona.name) || 'Ideal customer');
+  return ''
+    + '<div class="td-persona-badge" role="status">'
+    +   '<span class="td-persona-badge-label">For:</span> '
+    +   '<span class="td-persona-badge-name">' + _escape(name) + '</span>'
+    + '</div>';
+}
+
 function _buildTdListCard(task, idx, opts) {
   const readOnly = !!(opts && opts.readOnly);
   const status = _resolveStatus(task.status);
@@ -1612,6 +1627,7 @@ function _buildTdListCard(task, idx, opts) {
     +   statusCheckboxHtml
     +   '<div class="td-row-body">'
     +     '<div class="td-row-desc">' + _escape(task.description) + '</div>'
+    +     _tdPersonaBadgeHtml(task)
     +     '<div class="td-row-meta">'
     +       '<span class="td-row-meta-type">' + _escape(type) + '</span>'
     +       '<span class="td-row-meta-sep" aria-hidden="true">\u00b7</span>'

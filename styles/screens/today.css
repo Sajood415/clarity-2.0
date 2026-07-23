@@ -335,6 +335,36 @@
   word-break: break-word;
 }
 
+/* Persona badge on list cards — mirrors .cr-persona-badge from
+   create.css so Create targeting and Today "For:" stay consistent. */
+.td-persona-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 0;
+  margin: 2px 0 0;
+  padding: 10px 14px;
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.22);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.td-persona-badge-label {
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+
+.td-persona-badge-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
 .td-row-meta {
   display: inline-flex;
   align-items: center;
@@ -3164,6 +3194,11 @@ body.light-mode .td-row-discard:focus-visible {
 
 body.light-mode .td-row-done .td-row-desc {
   text-decoration-color: rgba(74, 55, 40, 0.5);
+}
+
+body.light-mode .td-persona-badge {
+  background: rgba(212, 134, 10, 0.08);
+  border-color: rgba(212, 134, 10, 0.22);
 }
 
 body.light-mode .td-wrap-detail-done .td-detail-title {

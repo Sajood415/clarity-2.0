@@ -194,7 +194,8 @@ function _postTask(ctx) {
     type: 'POST',
     description: description,
     time: '5 min',
-    reason: reason
+    reason: reason,
+    personaId: (typeof getDefaultPersonaId === 'function') ? getDefaultPersonaId() : undefined
   };
 }
 
@@ -231,7 +232,8 @@ function _outreachTask(ctx) {
     type: 'OUTREACH',
     description: description,
     time: '10 min',
-    reason: reason
+    reason: reason,
+    personaId: (typeof getDefaultPersonaId === 'function') ? getDefaultPersonaId() : undefined
   };
 }
 
@@ -287,7 +289,8 @@ function _offerTask(ctx) {
     type: 'OFFER',
     description: description,
     time: '15 min',
-    reason: reason
+    reason: reason,
+    personaId: (typeof getDefaultPersonaId === 'function') ? getDefaultPersonaId() : undefined
   };
 }
 
